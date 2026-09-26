@@ -1,0 +1,188 @@
+{
+  "$schema": "../../schemas/contract.schema.json",
+  "format": 1,
+  "id": "globe-arcs",
+  "version": "1.0.0",
+  "title": "Arcs on the globe",
+  "category": "Network",
+  "description": "Routes between two places as arcs lifted off a 3D globe, each endpoint a place marker; optionally a subset in focus over the rest as context.",
+  "surface": "globe",
+  "mark": "arc",
+  "data": {
+    "groups": "required",
+    "minRows": 1,
+    "description": "Each group is a place and its rows are the places it has a route to: the shape of `Airport { at route -> Airport { at } }`. A place that appears in several groups or rows is drawn once."
+  },
+  "roles": {
+    "from": {
+      "per": "group",
+      "type": "Point",
+      "required": true,
+      "description": "Where the group’s routes start. Animated dashes travel away from here."
+    },
+    "to": {
+      "per": "row",
+      "type": "Point",
+      "required": true,
+      "description": "Where one route ends."
+    },
+    "focus": {
+      "per": "group",
+      "type": "Bool",
+      "required": false,
+      "description": "true draws this group’s routes in focus, on top; when any group is true, every other route draws faint, as context."
+    }
+  },
+  "surfaceParams": {
+    "center": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        {
+          "type": "number",
+          "minimum": -85.0511,
+          "maximum": 85.0511
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2,
+      "default": [
+        0,
+        20
+      ],
+      "description": "[lon, lat] the camera looks at. The engine default is @point(20, 0)."
+    },
+    "zoom": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 22,
+      "default": 1.5,
+      "description": "MapLibre zoom. At 3 and below the view is of the planet and is fitted into the canvas with a margin; the globe becomes the flat map near 12."
+    },
+    "tilt": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 85,
+      "default": 0,
+      "description": "Degrees from straight down."
+    }
+  },
+  "options": {
+    "lift": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.5,
+      "default": 0.18,
+      "description": "Arc height in globe radii, scaled by route length: lift × min(0.25 + 0.75·d/π, 2d) for angular length d."
+    },
+    "edges": {
+      "enum": [
+        "animated",
+        "static"
+      ],
+      "default": "animated",
+      "description": "animated: dashes travel from each route start and a pulse runs along it. static: solid arcs. Reduced motion forces static."
+    },
+    "spin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Turn the globe slowly eastward while nobody is touching it."
+    }
+  },
+  "examples": {
+    "sample": "samples/flights.zql",
+    "zql": "query {\n  Airport {\n    code at\n    route -> Airport { code at }\n  }\n}",
+    "valid": [
+      {
+        "title": "The whole network, still",
+        "spec": {
+          "format": 1,
+          "component": "globe-arcs",
+          "version": "1",
+          "binding": {
+            "groups": ".",
+            "rows": "route",
+            "from": "at",
+            "to": "at"
+          },
+          "surface": {
+            "center": [
+              -45,
+              55
+            ],
+            "zoom": 1,
+            "tilt": 40
+          },
+          "options": {
+            "edges": "static"
+          }
+        }
+      },
+      {
+        "title": "One hub in focus",
+        "spec": {
+          "format": 1,
+          "component": "globe-arcs",
+          "version": "1",
+          "binding": {
+            "groups": ".",
+            "rows": "route",
+            "from": "at",
+            "to": "at",
+            "focus": "focus"
+          },
+          "surface": {
+            "center": [
+              -100,
+              40
+            ],
+            "zoom": 1,
+            "tilt": 20
+          },
+          "options": {
+            "lift": 0.3
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "title": "A tilt past the horizon",
+        "spec": {
+          "format": 1,
+          "component": "globe-arcs",
+          "version": "1",
+          "binding": {
+            "groups": ".",
+            "rows": "route",
+            "from": "at",
+            "to": "at"
+          },
+          "surface": {
+            "tilt": 90
+          }
+        },
+        "error": {
+          "code": "range",
+          "at": "surface.tilt",
+          "message": "90 is above the maximum 85",
+          "help": "use a value in [0, 85]",
+          "fix": {
+            "kind": "safe",
+            "patch": [
+              {
+                "op": "replace",
+                "path": "/surface/tilt",
+                "value": 85
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
