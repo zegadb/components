@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zega.dev/schemas/components/tokens.schema.json",
+  "title": "zega graph-component design tokens, format 1",
+  "type": "object",
+  "required": ["format", "description", "color", "ramp", "space", "radius", "stroke", "opacity", "size", "type", "motion"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": 1 },
+    "description": { "type": "string" },
+    "color": { "type": "object", "additionalProperties": { "$ref": "#/$defs/themedColor" } },
+    "ramp": { "type": "object", "additionalProperties": { "$ref": "#/$defs/themedRamp" } },
+    "space": { "$ref": "#/$defs/numbers" },
+    "radius": { "$ref": "#/$defs/numbers" },
+    "stroke": { "$ref": "#/$defs/numbers" },
+    "opacity": { "type": "object", "additionalProperties": { "$ref": "#/$defs/fraction" } },
+    "size": { "$ref": "#/$defs/numbers" },
+    "type": {
+      "type": "object",
+      "required": ["family", "size", "weight", "lineHeight", "tracking"],
+      "additionalProperties": false,
+      "properties": {
+        "family": { "type": "object", "additionalProperties": { "$ref": "#/$defs/string" } },
+        "size": { "$ref": "#/$defs/numbers" },
+        "weight": { "$ref": "#/$defs/numbers" },
+        "lineHeight": { "$ref": "#/$defs/numbers" },
+        "tracking": { "$ref": "#/$defs/numbers" }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "required": ["duration", "easing", "rate"],
+      "additionalProperties": false,
+      "properties": {
+        "duration": { "$ref": "#/$defs/numbers" },
+        "easing": { "type": "object", "additionalProperties": { "$ref": "#/$defs/bezier" } },
+        "rate": { "$ref": "#/$defs/numbers" }
+      }
+    }
+  },
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#[0-9A-F]{6}$" },
+    "themedColor": {
+      "type": "object",
+      "required": ["light", "dark", "description"],
+      "additionalProperties": false,
+      "properties": { "light": { "$ref": "#/$defs/hex" }, "dark": { "$ref": "#/$defs/hex" }, "description": { "type": "string", "minLength": 1 } }
+    },
+    "themedRamp": {
+      "type": "object",
+      "required": ["light", "dark", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "light": { "type": "array", "items": { "$ref": "#/$defs/hex" }, "minItems": 2, "maxItems": 11 },
+        "dark": { "type": "array", "items": { "$ref": "#/$defs/hex" }, "minItems": 2, "maxItems": 11 },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "number": {
+      "type": "object",
+      "required": ["value", "description"],
+      "additionalProperties": false,
+      "properties": { "value": { "type": "number", "minimum": 0 }, "description": { "type": "string", "minLength": 1 } }
+    },
+    "numbers": { "type": "object", "additionalProperties": { "$ref": "#/$defs/number" } },
+    "fraction": {
+      "type": "object",
+      "required": ["value", "description"],
+      "additionalProperties": false,
+      "properties": { "value": { "type": "number", "minimum": 0, "maximum": 1 }, "description": { "type": "string", "minLength": 1 } }
+    },
+    "string": {
+      "type": "object",
+      "required": ["value", "description"],
+      "additionalProperties": false,
+      "properties": { "value": { "type": "string", "minLength": 1 }, "description": { "type": "string", "minLength": 1 } }
+    },
+    "bezier": {
+      "type": "object",
+      "required": ["value", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4 },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

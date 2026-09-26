@@ -1,0 +1,22 @@
+{
+  "images": {
+    "components/globe-arcs/fixtures/focus-hub.reference.dark.png": "e2dc2fe971944109fe4702fa2a83d665ce6899f86b97eca000037dda78805b97",
+    "components/globe-arcs/fixtures/focus-hub.reference.png": "b15a29d48633c0da93d20367a427ed11e52049272fb392cf17706f9408041b63",
+    "components/globe-arcs/globe-arcs.reference.dark.png": "b34481703235a4cc6f48f22bc08185ac8563ba5130b9abc57fc4476aee6e820a",
+    "components/globe-arcs/globe-arcs.reference.png": "ad6545a4bd2d5b40ef8f7af6bd40fa19047580644f1b2c3977c9c6789252f746",
+    "components/path-on-map/fixtures/dist-2d-diverging.reference.dark.png": "41bd65f3ae133ead9316c2588516768ef3afaf0adac50e0ccde0fb3a7eb5c292",
+    "components/path-on-map/fixtures/dist-2d-diverging.reference.png": "1622fe9cffdb7827c62f6245cfad727467add908044eb80f7ae2f0b17e647ef5",
+    "components/path-on-map/fixtures/solid-no-buildings.reference.dark.png": "81b20a2d69d799258007fff8fe014c42fce1e28b7ef0e77aef86111d23615b8d",
+    "components/path-on-map/fixtures/solid-no-buildings.reference.png": "14b1cc0bbfdc765170b7b757f7a31f8c4d1fb452838b36ba93963c6dcd777909",
+    "components/path-on-map/path-on-map.reference.dark.png": "e44a9d7a40880514097e98132dcd598ed8584d9b18e7c84f7c885f70039098c0",
+    "components/path-on-map/path-on-map.reference.png": "22c752e7c8931e7b174a2fb697c99a668119ec12bf0f5da8ca288ac6965e4608"
+  },
+  "renderer": {
+    "tool": "tools/render/render.mjs",
+    "implementation": "zegadb/zega@11cff10204e6eca37c6fceb2b5b413c63aab62da",
+    "browser": "chromium 153.0.8010.12 headless",
+    "gl": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "host": "darwin-x64",
+    "note": "Rendered offline from the implementation checkout; reviewed and approved by Sami (CONFORMANCE.md)."
+  }
+}

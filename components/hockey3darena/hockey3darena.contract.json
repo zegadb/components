@@ -1,0 +1,129 @@
+{
+  "$schema": "../../schemas/contract.schema.json",
+  "format": 1,
+  "id": "hockey3darena",
+  "version": "0.1.0",
+  "title": "Hockey arena (3D)",
+  "category": "Sports",
+  "description": "DRAFT. Events on an NHL rink (shots, goals, rebounds) as a heat density over the ice, in 2D or a tilted 3D arena. Roles follow APS 21 (rink heat); nothing is built yet.",
+  "surface": "rink",
+  "mark": "heat",
+  "data": {
+    "groups": "none",
+    "minRows": 1,
+    "description": "One row per event, in rink feet: x along the rink from centre ice, y across it."
+  },
+  "roles": {
+    "at": {
+      "per": "row",
+      "type": "XY",
+      "frame": "rink",
+      "required": true,
+      "description": "Where the event happened, in the rink frame (ft, x ±100, y ±42.5)."
+    },
+    "weight": {
+      "per": "row",
+      "type": "Float",
+      "minimum": 0,
+      "required": false,
+      "description": "How much the event counts towards the density (e.g. expected goals); 1 when unbound."
+    }
+  },
+  "surfaceParams": {
+    "extent": {
+      "enum": [
+        "full",
+        "offensive",
+        "defensive"
+      ],
+      "default": "offensive",
+      "description": "The whole rink, or one zone."
+    }
+  },
+  "options": {
+    "colorScale": {
+      "enum": [
+        "sequential",
+        "solid"
+      ],
+      "default": "sequential",
+      "description": "sequential: density on the sequential ramp. solid: one accent colour, opacity by density."
+    },
+    "view": {
+      "enum": [
+        "2d",
+        "3d"
+      ],
+      "default": "2d",
+      "description": "2d looks straight down; 3d tilts the camera over the arena."
+    }
+  },
+  "examples": {
+    "valid": [
+      {
+        "title": "Shots in the offensive zone",
+        "spec": {
+          "format": 1,
+          "component": "hockey3darena",
+          "version": "0",
+          "binding": {
+            "rows": "shots",
+            "at": "at"
+          }
+        }
+      },
+      {
+        "title": "Expected goals, full rink, 3D",
+        "spec": {
+          "format": 1,
+          "component": "hockey3darena",
+          "version": "0",
+          "binding": {
+            "rows": "shots",
+            "at": "at",
+            "weight": "xg"
+          },
+          "surface": {
+            "extent": "full"
+          },
+          "options": {
+            "view": "3d"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "title": "A view that does not exist",
+        "spec": {
+          "format": 1,
+          "component": "hockey3darena",
+          "version": "0",
+          "binding": {
+            "rows": "shots",
+            "at": "at"
+          },
+          "options": {
+            "view": "4d"
+          }
+        },
+        "error": {
+          "code": "enum",
+          "at": "options.view",
+          "message": "\"4d\" is not one of \"2d\", \"3d\"",
+          "help": "did you mean \"2d\"?",
+          "fix": {
+            "kind": "safe",
+            "patch": [
+              {
+                "op": "replace",
+                "path": "/options/view",
+                "value": "2d"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

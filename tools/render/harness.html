@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>conformance harness</title>
+<link rel="icon" href="data:,">
+<!-- Served by tools/render/render.mjs: `/` is a zegadb/zega checkout's browser/,
+     `/__ref/` is this folder, `/__repo/` is this repository. -->
+<link rel="stylesheet" href="/vendor/maplibre-gl/maplibre-gl.css">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/components/canvas.css">
+<style>
+  html, body { margin: 0; padding: 0; height: auto; min-height: 0; overflow: hidden; background: var(--ground); }
+  #stage { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module" src="/__ref/harness.js"></script>
+</body>
+</html>

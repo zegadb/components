@@ -1,0 +1,4 @@
+# Reference images and their lock change only with Sami's approval (CONFORMANCE.md).
+*.png                   @samifouad
+/REFERENCES.lock.json   @samifouad
+/tokens/tokens.json     @samifouad

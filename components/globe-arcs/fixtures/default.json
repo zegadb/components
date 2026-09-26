@@ -1,0 +1,51 @@
+{
+  "$schema": "../../../schemas/fixture.schema.json",
+  "fixture": 1,
+  "component": "globe-arcs",
+  "title": "The OpenFlights network",
+  "description": "715 routes between 52 airports (the example ZQL result over the explorer Flights sample), still arcs, the Flights sample camera.",
+  "size": {
+    "width": 640,
+    "height": 400
+  },
+  "scale": 2,
+  "resultFile": "data/openflights-routes.json",
+  "masks": [
+    {
+      "x": 588,
+      "y": 0,
+      "width": 52,
+      "height": 116,
+      "reason": "map SDK navigation control stack (zoom, compass; the explorer globe also puts its gear here): placement specified, look SDK-owned"
+    },
+    {
+      "x": 360,
+      "y": 376,
+      "width": 280,
+      "height": 24,
+      "reason": "map SDK attribution: legally required text whose font and layout each SDK owns"
+    }
+  ],
+  "spec": {
+    "format": 1,
+    "component": "globe-arcs",
+    "version": "1",
+    "binding": {
+      "groups": ".",
+      "rows": "route",
+      "from": "at",
+      "to": "at"
+    },
+    "surface": {
+      "center": [
+        -45,
+        55
+      ],
+      "zoom": 1,
+      "tilt": 40
+    },
+    "options": {
+      "edges": "static"
+    }
+  }
+}

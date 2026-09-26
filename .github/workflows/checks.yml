@@ -1,0 +1,38 @@
+name: checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    environment: public-ci
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Token drift (generated/ matches tokens/tokens.json)
+        run: node tools/tokens.mjs --check
+
+      - name: Contracts, fixtures, spec files, spec lint, reference lock
+        run: node tools/check.mjs
+
+      - name: The checks fail on the drift they exist to catch
+        run: npm test
+
+      - name: Generated Swift type-checks
+        run: |
+          if ! command -v swiftc >/dev/null 2>&1; then
+            echo "::error::swiftc is not on this runner; the generated Swift cannot be checked."
+            exit 1
+          fi
+          swiftc -parse-as-library -typecheck generated/Tokens.swift
