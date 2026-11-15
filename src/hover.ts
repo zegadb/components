@@ -87,13 +87,20 @@ export function attachHover(svg: SVGSVGElement, hover: Hover, theme: Theme, loca
     const box = svg.getBoundingClientRect(), hostBox = host.getBoundingClientRect();
     const scale = box.width / (svg.viewBox.baseVal?.width || box.width || 1) || 1;
     const offsetLeft = box.left - hostBox.left, offsetTop = box.top - hostBox.top;
-    const w = tip.offsetWidth;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
     const width = host.clientWidth;
     const x = col.x * scale + offsetLeft;
     let left = x + 12;
     if (left + w > width) left = x - 12 - w;
     left = Math.max(0, Math.min(width - w, left));
-    tip.style.transform = `translate(${Math.round(left)}px, ${Math.round(hover.plot.y * scale + offsetTop)}px)`;
+    // Vertically, inside the plot and away from the marks it describes: at the plot's top when
+    // they're low, at its bottom when they're high, so the tooltip never sits on the data under the pointer.
+    const plotTop = hover.plot.y * scale + offsetTop, plotBottom = (hover.plot.y + hover.plot.height) * scale + offsetTop;
+    const ys = col.rows.flatMap((r) => (r.y === undefined ? [] : [r.y * scale + offsetTop]));
+    const marksTop = ys.length ? Math.min(...ys) : plotBottom, marksBottom = ys.length ? Math.max(...ys) : plotTop;
+    const roomAbove = marksTop - plotTop, roomBelow = plotBottom - marksBottom;
+    const top = roomAbove >= roomBelow ? plotTop : Math.max(plotTop, plotBottom - h);
+    tip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
   };
   const hide = () => { at = -1; layer.setAttribute("visibility", "hidden"); tip.style.visibility = "hidden"; };
   const nearest = (clientX: number) => {

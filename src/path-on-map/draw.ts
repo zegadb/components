@@ -9,7 +9,7 @@
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import { validate } from "../validate.ts";
 import type { Theme, ViewError } from "../types.ts";
-import { allPoints, buildingsLayer, frameCamera, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
+import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
 
 /** Thrown by drawPaths when the input doesn't meet the contract: nothing on the map has changed. */
 export class PathInputError extends Error {
@@ -109,6 +109,8 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   const glyphs = Boolean(map.getStyle().glyphs);
   for (const layer of pathLayers(theme, p.options, glyphs)) map.addLayer(layer);
   const markers: MapLibreMarker[] = [];
+  // Room the HTML labels need beside their starts, per side, so framing keeps them on the map.
+  const room = { top: 0, right: 0, bottom: 0, left: 0 };
   if (!glyphs && context.Marker) {
     const c = pathColours(theme);
     for (const path of p.paths) {
@@ -118,8 +120,14 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
       label.textContent = path.label;
       label.style.color = c.ink;
       label.style.setProperty("--zc-halo", c.halo);
-      label.style.marginLeft = `${Math.max(MEASURES.markerMin, p.options.lineWidth) + MEASURES.labelOffset * MEASURES.labelSize}px`;
-      markers.push(new context.Marker({ element: label, anchor: "left", pitchAlignment: "viewport", rotationAlignment: "viewport" }).setLngLat([path.points[0]![0], path.points[0]![1]]).addTo(map));
+      // Off the path, beside the start marker (labelPlacement): the same side the symbol layer uses.
+      const at = labelPlacement(path.points, p.options.bearing);
+      const gap = Math.max(MEASURES.markerMin, p.options.lineWidth) + MEASURES.labelOffset * MEASURES.labelSize / 2;
+      const offset: [number, number] = [Math.sign(at.offset[0]) * gap, Math.sign(at.offset[1]) * gap];
+      markers.push(new context.Marker({ element: label, anchor: at.anchor, offset, pitchAlignment: "viewport", rotationAlignment: "viewport" }).setLngLat([path.points[0]![0], path.points[0]![1]]).addTo(map));
+      const need = { w: label.offsetWidth + gap, h: label.offsetHeight + gap };
+      const side = ({ left: "right", right: "left", top: "bottom", bottom: "top" } as const)[at.anchor];
+      room[side] = Math.max(room[side], side === "left" || side === "right" ? need.w : need.h);
     }
   }
   drawn.set(map, { markers, cls });
@@ -129,7 +137,8 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     const given = context.insets ?? { top: 0, right: 0, bottom: 0, left: 0 };
     // On a small map (a chat column) the legend would cover the path's bottom: frame above it.
     const box = el.querySelector<HTMLElement>(`:scope > .${cls}`);
-    const insets = box && el.clientHeight < 600 ? { ...given, bottom: Math.max(given.bottom, el.clientHeight - box.offsetTop - MEASURES.frame / 2) } : given;
+    const legendBottom = box && el.clientHeight < 600 ? el.clientHeight - box.offsetTop - MEASURES.frame / 2 : 0;
+    const insets = { top: Math.max(given.top, room.top), right: Math.max(given.right, room.right), bottom: Math.max(given.bottom, legendBottom, room.bottom), left: Math.max(given.left, room.left) };
     const camera = frameCamera(allPoints(p), { width: el.clientWidth, height: el.clientHeight }, p.options, insets);
     map.jumpTo({ ...camera, padding: insets });
   }

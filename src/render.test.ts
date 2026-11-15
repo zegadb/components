@@ -102,3 +102,23 @@ test("path-on-map: the model draws segments in the theme's ramp", () => {
   assert.notEqual(pom.pathFeatures(v.view.paths, dark).segments.features[0]!.properties.c, f.segments.features[0]!.properties.c);
   assert.equal(pom.pathFeatures(v.view.paths, theme("zega", "light")).segments.features[0]!.properties.c, theme("zega", "light").sequential[0]);
 });
+
+test("path-on-map: the name goes across the path at its start, away from the rest of it", () => {
+  // Heading east, the rest of the route to the north-east: the label goes below (anchor top), off the line.
+  assert.deepEqual(pom.labelPlacement([[0, 0], [1, 0], [2, 1]], 0), { anchor: "top", offset: [0, pom.MEASURES.labelOffset] });
+  // Heading north with the route bending west: the label goes east (anchor left).
+  assert.deepEqual(pom.labelPlacement([[0, 0], [0, 1], [-1, 2]], 0), { anchor: "left", offset: [pom.MEASURES.labelOffset, 0] });
+  // Facing east (bearing 90), east is up the screen and north to the left: the label goes right of the start.
+  assert.equal(pom.labelPlacement([[0, 0], [1, 0], [2, 1]], 90).anchor, "left");
+  // And the symbol layer reads it per path.
+  const layer = pom.pathLayers(ava, { colorScale: "solid", valueUnit: null, lineWidth: 6, view: "2d", bearing: 0, showBuildings: false, bounds: null }).at(-1)!;
+  assert.deepEqual((layer as { layout: Record<string, unknown> }).layout["text-anchor"], ["get", "anchor"]);
+});
+
+test("price-chart: no price label crowds the volume band's label", () => {
+  const pts = Array.from({ length: 30 }, (_, i) => ({ t: `2026-10-${String(i + 1).padStart(2, "0")}`, o: 50 + i / 10, h: 51 + i / 10, l: 49 + i / 10, c: 50.5 + i / 10, v: 1e6 + i * 1e4 }));
+  const r = draw({ component: "price-chart", data: { series: [{ points: pts }] }, options: { kind: "candle", volume: true } });
+  const texts = all(r.svg, (n) => n.tag === "text" && Number(n.attrs.x) > r.width - 80);
+  const vol = texts.find((t) => /M$/.test(String(t.children[0])))!;
+  for (const t of texts) if (t !== vol) assert.ok(Math.abs(Number(t.attrs.y) - Number(vol.attrs.y)) >= 16, `${t.children[0]} at ${t.attrs.y} vs ${vol.attrs.y}`);
+});
