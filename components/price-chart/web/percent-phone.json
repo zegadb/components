@@ -1,0 +1,80 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "price-chart",
+  "title": "Two series as % change, at a phone's chat width",
+  "description": "Two series on one percent axis with a legend, in the 358-point column. Illustrative closes.",
+  "host": "ava",
+  "size": {
+    "width": 358
+  },
+  "scale": 2,
+  "spec": {
+    "component": "price-chart",
+    "data": {
+      "series": [
+        {
+          "label": "XIU.TO",
+          "points": [
+            {
+              "t": "2026-09-01",
+              "c": 37.4
+            },
+            {
+              "t": "2026-09-15",
+              "c": 37.9
+            },
+            {
+              "t": "2026-10-01",
+              "c": 38.2
+            },
+            {
+              "t": "2026-10-15",
+              "c": 38
+            },
+            {
+              "t": "2026-11-02",
+              "c": 39.1
+            },
+            {
+              "t": "2026-11-13",
+              "c": 39.6
+            }
+          ]
+        },
+        {
+          "label": "SPY",
+          "points": [
+            {
+              "t": "2026-09-01",
+              "c": 640.2
+            },
+            {
+              "t": "2026-09-15",
+              "c": 648.9
+            },
+            {
+              "t": "2026-10-01",
+              "c": 655
+            },
+            {
+              "t": "2026-10-15",
+              "c": 661.3
+            },
+            {
+              "t": "2026-11-02",
+              "c": 671.4
+            },
+            {
+              "t": "2026-11-13",
+              "c": 668
+            }
+          ]
+        }
+      ]
+    },
+    "options": {
+      "scale": "percent"
+    }
+  }
+}

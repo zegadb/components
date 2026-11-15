@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zega.dev/schemas/components/themes.schema.json",
+  "title": "Graph-component host themes, format 1",
+  "description": "Each host product's theme for graph components: the same roles, each host's brand values, light and dark (Sami, 15 Nov: colour follows each product's brand).",
+  "type": "object",
+  "required": ["format", "description", "roles", "hosts"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": 1 },
+    "description": { "type": "string" },
+    "roles": { "type": "object", "additionalProperties": { "type": "string" } },
+    "hosts": { "type": "object", "additionalProperties": { "$ref": "#/$defs/host" } }
+  },
+  "$defs": {
+    "colour": { "type": "string", "pattern": "^#[0-9A-F]{6}$", "description": "#RRGGBB, upper case." },
+    "ramp": { "type": "array", "minItems": 3, "maxItems": 9, "items": { "$ref": "#/$defs/colour" } },
+    "mode": {
+      "type": "object",
+      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "sequential", "diverging"],
+      "additionalProperties": false,
+      "properties": {
+        "ground": { "$ref": "#/$defs/colour" }, "panel": { "$ref": "#/$defs/colour" }, "ink": { "$ref": "#/$defs/colour" },
+        "soft": { "$ref": "#/$defs/colour" }, "rule": { "$ref": "#/$defs/colour" }, "axis": { "$ref": "#/$defs/colour" },
+        "accent": { "$ref": "#/$defs/colour" }, "up": { "$ref": "#/$defs/colour" }, "down": { "$ref": "#/$defs/colour" },
+        "buildings": { "$ref": "#/$defs/colour" },
+        "series": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/colour" } },
+        "sequential": { "$ref": "#/$defs/ramp" },
+        "diverging": { "$ref": "#/$defs/ramp" }
+      }
+    },
+    "host": {
+      "type": "object",
+      "required": ["description", "font", "light", "dark"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "font": {
+          "type": "object",
+          "required": ["ui", "mono", "map"],
+          "additionalProperties": false,
+          "properties": { "ui": { "type": "string" }, "mono": { "type": "string" }, "map": { "type": "string" } }
+        },
+        "light": { "$ref": "#/$defs/mode" },
+        "dark": { "$ref": "#/$defs/mode" }
+      }
+    }
+  }
+}

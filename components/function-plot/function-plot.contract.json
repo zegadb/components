@@ -1,0 +1,147 @@
+{
+  "$schema": "../../schemas/contract.schema.json",
+  "format": 2,
+  "id": "function-plot",
+  "version": "1.0.0",
+  "title": "Function plot",
+  "category": "Math",
+  "description": "Curves y = f(x) on a plane with axes and a grid, for explaining maths: one or several functions, shaded areas (an integral under a curve, the region between two curves, an inequality), marked points (roots, intersections, extrema) and reference lines (asymptotes). Write each function as an expression in x, e.g. \"x^2 - 4\" or \"2sin(x)\".",
+  "surface": { "kind": "plane", "description": "The Cartesian plane: x across, y up, the axes through zero when zero is in view, a hairline grid at the ticks." },
+  "marks": ["line", "area", "point", "rule", "label"],
+  "size": { "aspect": 0.62, "minHeight": 220, "maxHeight": 420 },
+  "data": {
+    "type": "object",
+    "required": ["functions"],
+    "additionalProperties": false,
+    "properties": {
+      "functions": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 6,
+        "description": "The curves, in legend order: one colour each, in the theme's fixed order.",
+        "items": {
+          "type": "object",
+          "required": ["fn"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$", "description": "A name areas and points refer to (default f1, f2… in order)." },
+            "fn": { "type": "string", "minLength": 1, "maxLength": 400, "description": "y as an expression in x: numbers, x, + - * / ^, parentheses, pi, e, sin cos tan sqrt abs exp ln log…; \"2x\" multiplies. Never \"y = …\"." },
+            "label": { "type": "string", "maxLength": 60, "description": "Its name in the legend, e.g. \"f(x) = x² − 4\" (default: y = the expression)." },
+            "domain": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2, "description": "[from, to]: draw it only on this part of x." }
+          }
+        }
+      },
+      "areas": {
+        "type": "array",
+        "maxItems": 6,
+        "description": "Shaded regions between two edges, from x = from to x = to.",
+        "items": {
+          "type": "object",
+          "required": ["above", "below"],
+          "additionalProperties": false,
+          "properties": {
+            "above": { "type": "string", "maxLength": 32, "description": "The top edge: a function's id, \"axis\" (y = 0) or \"top\" (the top of the view, for y > f(x))." },
+            "below": { "type": "string", "maxLength": 32, "description": "The bottom edge: a function's id, \"axis\" or \"bottom\" (for y < f(x))." },
+            "from": { "type": "number", "description": "Where it starts on x (default: the view's left edge)." },
+            "to": { "type": "number", "description": "Where it ends on x (default: the view's right edge)." },
+            "label": { "type": "string", "maxLength": 40, "description": "Said inside it, e.g. \"area = 10.67\"." }
+          }
+        }
+      },
+      "points": {
+        "type": "array",
+        "maxItems": 24,
+        "description": "Marked points. Give y, or `on` and the point sits on that function at x.",
+        "items": {
+          "type": "object",
+          "required": ["x"],
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "on": { "type": "string", "maxLength": 32, "description": "A function's id: y is that function at x." },
+            "label": { "type": "string", "maxLength": 40, "description": "Said beside it, e.g. \"root (2, 0)\"." }
+          }
+        }
+      },
+      "lines": {
+        "type": "array",
+        "maxItems": 8,
+        "description": "Reference lines across the view: x = a (an asymptote, a bound) or y = b.",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "label": { "type": "string", "maxLength": 40 }
+          }
+        }
+      }
+    }
+  },
+  "options": {
+    "x": {
+      "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2,
+      "default": [-10, 10],
+      "description": "[from, to]: the part of x in view."
+    },
+    "y": {
+      "type": ["array", "null"], "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2,
+      "default": null,
+      "description": "[from, to]: the part of y in view; null fits the curves (ignoring their spikes)."
+    },
+    "xTicks": { "enum": ["number", "pi"], "default": "number", "description": "pi: ticks at multiples of π/2, labelled π/2, π… (for trigonometry)." },
+    "grid": { "type": "boolean", "default": true, "description": "Hairline gridlines at the ticks." },
+    "xLabel": { "type": ["string", "null"], "maxLength": 40, "default": null, "description": "The x axis's name." },
+    "yLabel": { "type": ["string", "null"], "maxLength": 40, "default": null, "description": "The y axis's name." },
+    "title": { "type": ["string", "null"], "maxLength": 80, "default": null, "description": "A title above the plot." }
+  },
+  "examples": {
+    "valid": [
+      {
+        "title": "A parabola, its roots and the area under it",
+        "spec": {
+          "component": "function-plot",
+          "data": {
+            "functions": [{ "id": "f", "fn": "4 - x^2", "label": "f(x) = 4 − x²" }],
+            "areas": [{ "above": "f", "below": "axis", "from": -2, "to": 2, "label": "area = 32/3" }],
+            "points": [{ "x": -2, "on": "f", "label": "(−2, 0)" }, { "x": 2, "on": "f", "label": "(2, 0)" }]
+          },
+          "options": { "x": [-4, 4], "y": [-3, 5] }
+        }
+      },
+      {
+        "title": "Sine and cosine, where they cross",
+        "spec": {
+          "component": "function-plot",
+          "data": {
+            "functions": [{ "id": "s", "fn": "sin(x)", "label": "sin x" }, { "id": "c", "fn": "cos(x)", "label": "cos x" }],
+            "points": [{ "x": 0.7853981633974483, "on": "s", "label": "π/4" }]
+          },
+          "options": { "x": [-6.283185307179586, 6.283185307179586], "y": [-1.5, 1.5], "xTicks": "pi" }
+        }
+      },
+      {
+        "title": "An asymptote",
+        "spec": {
+          "component": "function-plot",
+          "data": { "functions": [{ "fn": "1/(x-1)" }], "lines": [{ "x": 1, "label": "x = 1" }, { "y": 0 }] },
+          "options": { "x": [-4, 6], "y": [-6, 6] }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "title": "An equation where an expression goes",
+        "spec": { "component": "function-plot", "data": { "functions": [{ "fn": "y = x^2" }] } },
+        "error": { "code": "expression", "at": "data.functions[0].fn", "message": "an expression has no `=` (at character 3)", "help": "write only the right-hand side: for y = x^2 - 4, write \"x^2 - 4\"" }
+      },
+      {
+        "title": "An area that names no function",
+        "spec": { "component": "function-plot", "data": { "functions": [{ "id": "f", "fn": "x^2" }], "areas": [{ "above": "g", "below": "axis" }] } },
+        "error": { "code": "reference", "at": "data.areas[0].above", "message": "`g` is not a function's id", "help": "use one of f, or \"axis\", \"top\"" }
+      }
+    ]
+  }
+}

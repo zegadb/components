@@ -1,0 +1,55 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "function-plot",
+  "title": "A parabola, its roots and the area under it",
+  "description": "One curve in the accent, the area between it and the x axis from −2 to 2 shaded and labelled, both roots marked; axes through zero, hairline grid.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "spec": {
+    "component": "function-plot",
+    "data": {
+      "functions": [
+        {
+          "id": "f",
+          "fn": "4 - x^2",
+          "label": "f(x) = 4 − x²"
+        }
+      ],
+      "areas": [
+        {
+          "above": "f",
+          "below": "axis",
+          "from": -2,
+          "to": 2,
+          "label": "area = 32/3"
+        }
+      ],
+      "points": [
+        {
+          "x": -2,
+          "on": "f",
+          "label": "(−2, 0)"
+        },
+        {
+          "x": 2,
+          "on": "f",
+          "label": "(2, 0)"
+        }
+      ]
+    },
+    "options": {
+      "x": [
+        -4,
+        4
+      ],
+      "y": [
+        -3,
+        5
+      ]
+    }
+  }
+}

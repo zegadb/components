@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "function-plot",
+  "title": "Sine and cosine on zega.dev",
+  "description": "Two series in the zega theme, a legend, ticks at multiples of π/2, a marked crossing, a title.",
+  "host": "zega",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "spec": {
+    "component": "function-plot",
+    "data": {
+      "functions": [
+        {
+          "id": "s",
+          "fn": "sin(x)",
+          "label": "sin x"
+        },
+        {
+          "id": "c",
+          "fn": "cos(x)",
+          "label": "cos x"
+        }
+      ],
+      "points": [
+        {
+          "x": 0.7853981633974483,
+          "on": "s",
+          "label": "π/4"
+        }
+      ]
+    },
+    "options": {
+      "x": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "y": [
+        -1.5,
+        1.5
+      ],
+      "xTicks": "pi",
+      "title": "sin x and cos x"
+    }
+  }
+}

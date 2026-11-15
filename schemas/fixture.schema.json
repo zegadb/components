@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zega.dev/schemas/components/fixture.schema.json",
+  "title": "zega graph-component conformance fixture, format 1",
+  "description": "One input every platform renders at the stated size and scale, in both themes, and compares with the reference PNGs (CONFORMANCE.md).",
+  "type": "object",
+  "required": ["fixture", "component", "title", "description", "size", "scale", "resultFile", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "fixture": { "const": 1 },
+    "component": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "size": {
+      "type": "object",
+      "description": "The canvas size in points (1 pt = 1 CSS px = 1 iOS point).",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "integer", "minimum": 64, "maximum": 2048 },
+        "height": { "type": "integer", "minimum": 64, "maximum": 2048 }
+      }
+    },
+    "scale": { "enum": [2], "description": "Device pixels per point. References are @2x; every platform renders at 2." },
+    "resultFile": { "type": "string", "pattern": "^data/[a-z0-9][a-z0-9-]*\\.json$", "description": "The result snapshot, relative to the fixture." },
+    "tolerance": {
+      "type": "object",
+      "description": "Overrides of the default tolerance; each needs a reason in the component spec's Conformance section.",
+      "additionalProperties": false,
+      "properties": {
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxDiffRatio": { "type": "number", "minimum": 0, "maximum": 0.05 },
+        "maxCluster": { "type": "number", "minimum": 0, "maximum": 256 }
+      }
+    },
+    "masks": {
+      "type": "array",
+      "description": "Rectangles (points) left out of the comparison: only chrome a platform SDK owns, each with its reason.",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["x", "y", "width", "height", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "x": { "type": "number", "minimum": 0 },
+          "y": { "type": "number", "minimum": 0 },
+          "width": { "type": "number", "minimum": 1 },
+          "height": { "type": "number", "minimum": 1 },
+          "reason": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "spec": { "type": "object", "description": "The view spec (schemas/view-spec.schema.json) bound to the result." }
+  }
+}

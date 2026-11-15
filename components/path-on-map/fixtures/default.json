@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../schemas/fixture.schema.json",
+  "fixture": 1,
+  "component": "path-on-map",
+  "title": "Speed around the lap, in 3D",
+  "description": "The Monaco racing line coloured by modelled speed on the sequential ramp, camera tilted with buildings, start marker labelled.",
+  "size": {
+    "width": 640,
+    "height": 400
+  },
+  "scale": 2,
+  "resultFile": "data/monaco-lap.json",
+  "masks": [
+    {
+      "x": 588,
+      "y": 0,
+      "width": 52,
+      "height": 116,
+      "reason": "map SDK navigation control stack (zoom, compass; the explorer globe also puts its gear here): placement specified, look SDK-owned"
+    },
+    {
+      "x": 360,
+      "y": 376,
+      "width": 280,
+      "height": 24,
+      "reason": "map SDK attribution: legally required text whose font and layout each SDK owns"
+    }
+  ],
+  "spec": {
+    "format": 1,
+    "component": "path-on-map",
+    "version": "1",
+    "binding": {
+      "rows": "points",
+      "path": "at",
+      "value": "speed",
+      "label": "name"
+    },
+    "options": {
+      "valueUnit": "km/h",
+      "view": "3d",
+      "bearing": -30
+    }
+  }
+}

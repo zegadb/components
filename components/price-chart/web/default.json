@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "price-chart",
+  "title": "Closes over three months",
+  "description": "One line in the accent with its wash, the last close on the price axis, two annotations. Example data, not a real instrument.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "dataFile": "data/example-daily.json",
+  "spec": {
+    "component": "price-chart",
+    "data": {},
+    "options": {
+      "currency": "CAD",
+      "title": "EXAMPLE, daily close"
+    }
+  }
+}

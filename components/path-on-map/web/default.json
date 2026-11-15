@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "path-on-map",
+  "title": "Speed around the lap, in 3D, with no basemap",
+  "description": "The Monaco racing line coloured by modelled speed on the sequential ramp, tilted 60°, on the plain ground (a host without a basemap, like Ava's app), start marker and HTML label, legend.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "dataFile": "data/monaco-speed.json",
+  "spec": {
+    "component": "path-on-map",
+    "data": {},
+    "options": {
+      "valueUnit": "km/h",
+      "bearing": -30
+    }
+  }
+}

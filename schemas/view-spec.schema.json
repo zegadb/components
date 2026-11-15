@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zega.dev/schemas/v2/view-spec.schema.json",
+  "title": "Graph-component view spec, format 2 (APS 21)",
+  "description": "One graph component with its data inline: what an assistant emits to draw a picture in an answer ({component, data, options}). Checked against the component's contract (src/validate.ts) before anything renders; a spec that fails draws nothing and its errors go back to whoever wrote it.",
+  "type": "object",
+  "required": ["component", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": 2, "description": "Optional: the view-spec format major (format 1 binds a ZQL result: view-spec.v1.schema.json)." },
+    "component": { "type": "string", "maxLength": 64, "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "description": "The component id, e.g. \"function-plot\"." },
+    "version": { "type": "string", "maxLength": 16, "pattern": "^[0-9]{1,4}(\\.[0-9]{1,4}){0,2}$", "description": "Optional: the component version the spec was written for. Its major must equal the component's." },
+    "data": { "type": "object", "description": "The data, as the contract's `data` schema says." },
+    "options": { "type": "object", "description": "Display options, as the contract's `options` say. Omitted ones take their defaults." }
+  }
+}
