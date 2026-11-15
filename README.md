@@ -61,11 +61,11 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 // path-on-map: drawn is { map: true, height }; the host's MapLibre map + drawChecked() from
 // "@zegadb/components/path-on-map/draw" (pathOnMap.plainStyle(theme) when there is no basemap)
 // the host's basemap: basemapStyle("ava", mode, lang) from "@zegadb/components/basemap"
-// (needs @protomaps/basemaps); AVA_BASEMAP.origin is the one host it reads, .credit its credit
+// (needs @protomaps/basemaps); AVA_BASEMAP (main entry, no map code) is its origin, credit, palette
 ```
 
 - **Basemaps:** a host's street map is defined once here
-  (`src/basemap.ts`), so every surface of the host shows the same map. Ava's
+  (`src/basemaps.ts`; the style in `src/basemap.ts`), so every surface of the host shows the same map. Ava's
   is tiles.addis.gg (Protomaps v4, the world archive, no key) in the "Quiet"
   palette; ava's maps and Ava's chat both draw on it. The style carries no
   attribution control: the host says the credit once, in its own type, and
