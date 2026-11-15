@@ -1,15 +1,48 @@
 {
   "name": "@zegadb/components",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Graph component specs, contracts, design tokens and conformance fixtures (APS 21). The spec is the product.",
-  "engines": { "node": ">=22" },
+  "description": "Graph components (APS 21): the specs, typed contracts, design tokens and conformance fixtures, and the web package that draws them. The spec is the product.",
+  "license": "MIT",
+  "engines": { "node": ">=24" },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./path-on-map/draw": { "types": "./dist/path-on-map/draw.d.ts", "default": "./dist/path-on-map/draw.js" },
+    "./tokens.css": "./generated/tokens.css",
+    "./themes.css": "./generated/themes.css",
+    "./components.css": "./css/components.css"
+  },
+  "files": ["dist", "generated/tokens.css", "generated/themes.css", "css/components.css", "README.md"],
+  "sideEffects": false,
+  "peerDependencies": {
+    "maplibre-gl": ">=6.11.1 <7"
+  },
+  "peerDependenciesMeta": {
+    "maplibre-gl": { "optional": true }
+  },
+  "devDependencies": {
+    "@fontsource/dm-sans": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/space-grotesk": "5.3.0",
+    "@playwright/test": "1.63.0",
+    "@types/geojson": "7946.0.16",
+    "@types/node": "26.6.6",
+    "maplibre-gl": "6.11.1",
+    "typescript": "5.9.3"
+  },
   "scripts": {
+    "generate": "node tools/tokens.mjs && node tools/generate.mjs",
     "tokens": "node tools/tokens.mjs",
+    "build": "node tools/generate.mjs --check && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
     "check": "node tools/check.mjs",
-    "test": "node --test 'tools/test/*.test.mjs'",
+    "test": "node --test 'tools/test/*.test.mjs' 'src/**/*.test.ts'",
+    "pack:vendor": "node tools/pack.mjs",
+    "render:web": "node tools/render/web.mjs",
+    "verify:web": "node tools/render/web.mjs --verify",
+    "screens": "node tools/render/screens.mjs",
     "render": "node tools/render/render.mjs",
-    "verify:web": "node tools/render/render.mjs --verify"
+    "verify:zega": "node tools/render/render.mjs --verify"
   }
 }

@@ -1,0 +1,134 @@
+{
+  "$schema": "../../schemas/contract.schema.json",
+  "format": 2,
+  "id": "price-chart",
+  "version": "1.0.0",
+  "title": "Price chart",
+  "category": "Finance",
+  "description": "A price over time: a line (one or a few series, e.g. a stock against an index, as % change when their prices differ) or candlesticks (open, high, low, close per period), with volume below when given, and annotated moments (earnings, a split, news). Times are ISO 8601 dates or date-times in UTC.",
+  "surface": { "kind": "time", "description": "Time across (UTC), price up on an axis at the right, volume in its own band underneath." },
+  "marks": ["line", "area", "candle", "bar", "point", "label"],
+  "size": { "aspect": 0.6, "minHeight": 240, "maxHeight": 440 },
+  "$defs": {
+    "time": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,3})?)?(Z|[+-]\\d{2}:\\d{2})?)?$", "description": "An ISO 8601 date (2026-11-13) or date-time (2026-11-13T14:30Z); a date-time without an offset is UTC." },
+    "price": { "type": "number", "minimum": 0, "maximum": 1e12 }
+  },
+  "data": {
+    "type": "object",
+    "required": ["series"],
+    "additionalProperties": false,
+    "properties": {
+      "series": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 4,
+        "description": "One series per instrument, in legend order. Candlesticks take exactly one.",
+        "items": {
+          "type": "object",
+          "required": ["points"],
+          "additionalProperties": false,
+          "properties": {
+            "label": { "type": "string", "maxLength": 40, "description": "Its name, e.g. a ticker (\"SHOP.TO\")." },
+            "points": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2000,
+              "description": "One per period, oldest first: `c` the close (the price for a line); `o`, `h`, `l` for candlesticks; `v` the volume.",
+              "items": {
+                "type": "object",
+                "required": ["t", "c"],
+                "additionalProperties": false,
+                "properties": {
+                  "t": { "$ref": "#/$defs/time" },
+                  "o": { "$ref": "#/$defs/price" },
+                  "h": { "$ref": "#/$defs/price" },
+                  "l": { "$ref": "#/$defs/price" },
+                  "c": { "$ref": "#/$defs/price" },
+                  "v": { "type": "number", "minimum": 0, "maximum": 1e15 }
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "type": "array",
+        "maxItems": 8,
+        "description": "Moments to point out, on the first series.",
+        "items": {
+          "type": "object",
+          "required": ["t", "label"],
+          "additionalProperties": false,
+          "properties": {
+            "t": { "$ref": "#/$defs/time" },
+            "label": { "type": "string", "minLength": 1, "maxLength": 40 }
+          }
+        }
+      }
+    }
+  },
+  "options": {
+    "kind": { "enum": ["line", "candle"], "default": "line", "description": "line: the close as a line. candle: a candlestick per period (needs o, h, l, c on every point)." },
+    "scale": { "enum": ["price", "percent"], "default": "price", "description": "price: the prices themselves. percent: change since each series' first point, so series of different prices compare on one axis." },
+    "volume": { "type": "boolean", "default": false, "description": "Volume bars underneath (needs v on every point of the first series)." },
+    "currency": { "type": ["string", "null"], "pattern": "^[A-Z]{3}$", "default": null, "description": "The ISO 4217 code the prices are in (CAD, USD…), for the axis and the tooltip." },
+    "title": { "type": ["string", "null"], "maxLength": 80, "default": null, "description": "A title above the chart." }
+  },
+  "examples": {
+    "valid": [
+      {
+        "title": "A week of closes",
+        "spec": {
+          "component": "price-chart",
+          "data": { "series": [{ "label": "SHOP.TO", "points": [
+            { "t": "2026-11-09", "c": 151.2 }, { "t": "2026-11-10", "c": 154.8 }, { "t": "2026-11-11", "c": 153.1 },
+            { "t": "2026-11-12", "c": 158.4 }, { "t": "2026-11-13", "c": 160.0 }
+          ] }] },
+          "options": { "currency": "CAD" }
+        }
+      },
+      {
+        "title": "Candlesticks with volume and an annotation",
+        "spec": {
+          "component": "price-chart",
+          "data": {
+            "series": [{ "label": "RY.TO", "points": [
+              { "t": "2026-11-09", "o": 170.1, "h": 172.0, "l": 169.4, "c": 171.5, "v": 4100000 },
+              { "t": "2026-11-10", "o": 171.5, "h": 171.9, "l": 168.2, "c": 168.9, "v": 5200000 },
+              { "t": "2026-11-11", "o": 169.0, "h": 170.6, "l": 168.5, "c": 170.2, "v": 3900000 }
+            ] }],
+            "annotations": [{ "t": "2026-11-10", "label": "Earnings" }]
+          },
+          "options": { "kind": "candle", "volume": true, "currency": "CAD" }
+        }
+      },
+      {
+        "title": "Two series as % change",
+        "spec": {
+          "component": "price-chart",
+          "data": { "series": [
+            { "label": "XIU.TO", "points": [{ "t": "2026-10-01", "c": 38.2 }, { "t": "2026-11-01", "c": 39.1 }] },
+            { "label": "SPY", "points": [{ "t": "2026-10-01", "c": 655.0 }, { "t": "2026-11-01", "c": 671.4 }] }
+          ] },
+          "options": { "scale": "percent" }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "title": "A candle whose high is under its close",
+        "spec": {
+          "component": "price-chart",
+          "data": { "series": [{ "points": [{ "t": "2026-11-09", "o": 10, "h": 11, "l": 9, "c": 12 }, { "t": "2026-11-10", "o": 12, "h": 13, "l": 11, "c": 12.5 }] }] },
+          "options": { "kind": "candle" }
+        },
+        "error": { "code": "ohlc", "at": "data.series[0].points[0]", "message": "the high (11) is under the open or the close (12)", "help": "h is the period's highest price and l its lowest: l ≤ o, c ≤ h" }
+      },
+      {
+        "title": "Points out of order",
+        "spec": { "component": "price-chart", "data": { "series": [{ "points": [{ "t": "2026-11-10", "c": 5 }, { "t": "2026-11-09", "c": 6 }] }] } },
+        "error": { "code": "order", "at": "data.series[0].points[1].t", "message": "2026-11-09 is not after 2026-11-10", "help": "give the points oldest first, one per period" }
+      }
+    ]
+  }
+}

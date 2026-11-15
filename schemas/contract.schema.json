@@ -1,160 +1,122 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://zega.dev/schemas/v1/contract.schema.json",
-  "title": "zega graph-component contract, format 1 (APS 21)",
-  "description": "What a graph component accepts. Data arrives as rows (optionally inside groups) of a ZQL result; each role reads one field per row, per group or per result, typed in ZQL's value vocabulary. Surface parameters and display options are settings: a JSON Schema from the published keyword subset below, plus a default. Agents and the /components gallery read this file; the runtime validates view specs against it.",
+  "$id": "https://zega.dev/schemas/v2/contract.schema.json",
+  "title": "Graph-component contract, format 2 (APS 21): plain typed data",
+  "description": "What a graph component accepts, as plain typed data (Sami, 15 Nov): `data` is a JSON Schema, in the interpreter's subset (src/schema.ts), for the data a view spec carries inline; `options` are its display settings. Data comes from anywhere: the assistant's own tools, the knowledge graph, the model, or a ZQL result through the optional `zql` adapter. Agents read this file to write a view spec; every host validates view specs against it (src/validate.ts) before anything renders.",
   "type": "object",
-  "required": [
-    "format",
-    "id",
-    "version",
-    "title",
-    "category",
-    "surface",
-    "mark",
-    "data",
-    "roles",
-    "surfaceParams",
-    "options",
-    "examples"
-  ],
+  "required": ["format", "id", "version", "title", "category", "description", "surface", "marks", "size", "data", "options", "examples"],
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
-    "format": {
-      "const": 1,
-      "description": "The contract format major. A breaking change to this schema is format 2."
-    },
-    "id": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
-      "maxLength": 64
-    },
+    "format": { "const": 2, "description": "The contract format major. Format 1 (schemas/contract.v1.schema.json) binds ZQL results only." },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
     "version": {
       "type": "string",
       "pattern": "^[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,4}$",
-      "description": "The component's semver. Major: an existing view spec may stop binding. Minor: something added (a role, an option). Patch: rendering only."
+      "description": "The component's semver. Major: an existing view spec may stop validating. Minor: something added (a field, an option). Patch: rendering only."
     },
     "title": { "type": "string", "minLength": 1 },
-    "category": { "enum": ["Geo", "Sports", "Network", "Charts"] },
-    "description": { "type": "string" },
-    "surface": {
-      "type": "string",
-      "description": "The surface this component draws on, e.g. \"map\"."
-    },
-    "mark": {
-      "type": "string",
-      "description": "The mark it draws, e.g. \"path\"."
-    },
-    "data": {
+    "category": { "enum": ["Math", "Finance", "Geo", "Charts", "Network", "Sports", "Anatomy"] },
+    "description": { "type": "string", "minLength": 1, "description": "When to use it, in a sentence or two: the model reads this to choose." },
+    "surface": { "$ref": "#/$defs/surface" },
+    "marks": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z-]*$" }, "description": "The marks it draws (path, line, area, point, candle, bar, heat…)." },
+    "size": {
       "type": "object",
-      "required": ["groups", "description"],
+      "required": ["aspect", "minHeight", "maxHeight"],
       "additionalProperties": false,
+      "description": "Inline in a column (a chat answer, a card): the width is the column's; the height is width × aspect, kept inside [minHeight, maxHeight] points. rixse APS 4's medium size.",
       "properties": {
-        "minRows": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "The fewest rows a group must have (e.g. 2 for a path)."
-        },
-        "groups": {
-          "enum": ["none", "optional", "required"],
-          "description": "Whether the rows may come in groups (e.g. several paths, each with its own label). Without a `groups` binding the whole result is one group."
-        },
-        "description": { "type": "string" }
+        "aspect": { "type": "number", "minimum": 0.3, "maximum": 1.5 },
+        "minHeight": { "type": "integer", "minimum": 120, "maximum": 800 },
+        "maxHeight": { "type": "integer", "minimum": 120, "maximum": 1200 }
       }
     },
-    "roles": {
-      "type": "object",
-      "description": "Data roles by name. `rows` and `groups` are reserved (they are the binding's structure).",
-      "additionalProperties": { "$ref": "#/$defs/role" }
-    },
-    "surfaceParams": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/setting" }
-    },
-    "options": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/setting" }
-    },
+    "data": { "type": "object", "description": "A JSON Schema for the view spec's `data`: properties, required, additionalProperties, items, prefixItems, min/maxItems, type, enum, const, minimum/maximum, min/maxLength, pattern, oneOf, $ref (into this contract's `$defs`)." },
+    "$defs": { "type": "object", "description": "Shared definitions the data schema refers to as #/$defs/<name>." },
+    "options": { "type": "object", "additionalProperties": { "$ref": "#/$defs/setting" } },
     "examples": {
       "type": "object",
       "required": ["valid", "invalid"],
       "additionalProperties": false,
       "properties": {
-        "sample": {
-          "type": "string",
-          "description": "A .zql file (schema + data) the examples' ZQL runs against."
+        "valid": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/example" } },
+        "invalid": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/$defs/invalidExample" } }
+      }
+    },
+    "zql": {
+      "type": "object",
+      "description": "Optional: how a ZQL result binds to this component (format 1's roles), for zega's explorer. ZQL is one source of data among several.",
+      "required": ["data", "roles", "surfaceParams", "options", "examples"],
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "type": "object",
+          "required": ["groups", "description"],
+          "additionalProperties": false,
+          "properties": {
+            "minRows": { "type": "integer", "minimum": 0 },
+            "groups": { "enum": ["none", "optional", "required"] },
+            "description": { "type": "string" }
+          }
         },
-        "zql": {
-          "type": "string",
-          "description": "The query whose result the examples bind."
-        },
-        "valid": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 3,
-          "items": { "$ref": "#/$defs/example" }
-        },
-        "invalid": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 1,
-          "items": { "$ref": "#/$defs/invalidExample" }
+        "roles": { "type": "object", "additionalProperties": { "$ref": "#/$defs/role" } },
+        "surfaceParams": { "type": "object", "additionalProperties": { "$ref": "#/$defs/setting" } },
+        "options": { "type": "object", "additionalProperties": { "$ref": "#/$defs/setting" }, "description": "Options only zega's runtime has (e.g. the basemap archive), beside the contract's own." },
+        "examples": {
+          "type": "object",
+          "required": ["valid", "invalid"],
+          "additionalProperties": false,
+          "properties": {
+            "sample": { "type": "string" },
+            "zql": { "type": "string" },
+            "valid": { "type": "array", "minItems": 2, "maxItems": 3, "items": { "$ref": "#/$defs/example" } },
+            "invalid": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/invalidExample" } }
+          }
         }
       }
     }
   },
   "$defs": {
-    "valueType": {
-      "enum": ["Point", "Float", "Int", "Bool", "String", "Enum", "XY"],
-      "description": "ZQL's value vocabulary. Point: {lat, lon}. Float: any finite number (Ints included). Int: a whole number. Bool, String. Enum: a String from the role's `enum`. XY: {x, y} in the role's planar `frame` (a rink, a court, a field)."
+    "surface": {
+      "type": "object",
+      "required": ["kind", "description"],
+      "additionalProperties": false,
+      "description": "The coordinate space the marks are drawn in. `art`: an illustrated surface (a rink, a court, a body diagram): `art` names its drawing, `frame` its coordinate system, and `regions` the named areas data may refer to by id.",
+      "properties": {
+        "kind": { "enum": ["plane", "time", "map", "globe", "art"] },
+        "description": { "type": "string" },
+        "art": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$" },
+        "frame": {
+          "type": "object",
+          "required": ["x", "y", "unit"],
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 },
+            "y": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 },
+            "unit": { "enum": ["ft", "m", "yd", "unit"] }
+          }
+        },
+        "regions": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$" }, "maxItems": 256 }
+      }
     },
-    "unit": {
-      "enum": ["ft", "m", "deg", "pct", "fraction", "km/h", "yd", "s"],
-      "description": "pct is 0-100 and fraction is 0-1; a role in either is held to that range as well as its own minimum/maximum."
-    },
+    "valueType": { "enum": ["Point", "Float", "Int", "Bool", "String", "Enum", "XY"] },
+    "unit": { "enum": ["ft", "m", "deg", "pct", "fraction", "km/h", "yd", "s"] },
     "role": {
       "type": "object",
       "required": ["per", "type", "required", "description"],
       "additionalProperties": false,
       "properties": {
-        "per": {
-          "enum": ["row", "group", "result"],
-          "description": "Where the role is read: a field of each row, of each group, or of the result."
-        },
+        "per": { "enum": ["row", "group", "result"] },
         "type": { "$ref": "#/$defs/valueType" },
-        "shape": {
-          "enum": ["one", "list", "list<list>"],
-          "description": "One value (the default), a list of values, or a list of lists."
-        },
+        "shape": { "enum": ["one", "list", "list<list>"] },
         "required": { "type": "boolean" },
-        "unit": {
-          "$ref": "#/$defs/unit",
-          "description": "Not for XY: an XY role's unit is its frame's."
-        },
-        "minimum": {
-          "type": "number",
-          "description": "For Float and Int. Not for XY: its frame gives both axes' ranges."
-        },
+        "unit": { "$ref": "#/$defs/unit" },
+        "minimum": { "type": "number" },
         "maximum": { "type": "number" },
-        "enum": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "type": "string" },
-          "description": "The allowed values of an Enum role."
-        },
-        "frame": {
-          "type": "string",
-          "description": "An XY role's planar frame, from the frames registry (frames.js): rink, court, field, pitch. It gives the unit and each axis's extent."
-        },
-        "relativeTo": {
-          "type": "string",
-          "description": "An XY role measured from a reference: a surface parameter, or a result- or group-level role (e.g. the per-play line of scrimmage, \"los\"). Its x then spans ± the frame's length."
-        },
-        "unique": {
-          "type": "boolean",
-          "description": "Each row's value may appear only once per group (e.g. one row per zone)."
-        },
+        "enum": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "frame": { "type": "string" },
+        "relativeTo": { "type": "string" },
+        "unique": { "type": "boolean" },
         "description": { "type": "string" }
       }
     },
@@ -162,20 +124,10 @@
       "type": "object",
       "required": ["default", "description"],
       "additionalProperties": false,
-      "description": "One surface parameter or option: a JSON Schema limited to exactly these keywords (the ones schema.js interprets), plus its default.",
       "properties": {
         "default": {},
         "description": { "type": "string" },
-        "type": {
-          "oneOf": [
-            { "$ref": "#/$defs/jsonType" },
-            {
-              "type": "array",
-              "minItems": 1,
-              "items": { "$ref": "#/$defs/jsonType" }
-            }
-          ]
-        },
+        "type": { "oneOf": [{ "$ref": "#/$defs/jsonType" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/jsonType" } }] },
         "enum": { "type": "array", "minItems": 1 },
         "const": {},
         "minimum": { "type": "number" },
@@ -187,31 +139,15 @@
         "prefixItems": { "type": "array", "items": { "type": "object" } },
         "minItems": { "type": "integer", "minimum": 0 },
         "maxItems": { "type": "integer", "minimum": 0 },
-        "format": {
-          "enum": ["lonlat-bounds"],
-          "description": "lonlat-bounds: [west, south, east, north] with west < east and south < north."
-        }
+        "format": { "enum": ["lonlat-bounds"] }
       }
     },
-    "jsonType": {
-      "enum": [
-        "string",
-        "number",
-        "integer",
-        "boolean",
-        "array",
-        "object",
-        "null"
-      ]
-    },
+    "jsonType": { "enum": ["string", "number", "integer", "boolean", "array", "object", "null"] },
     "example": {
       "type": "object",
       "required": ["title", "spec"],
       "additionalProperties": false,
-      "properties": {
-        "title": { "type": "string" },
-        "spec": { "type": "object" }
-      }
+      "properties": { "title": { "type": "string" }, "spec": { "type": "object" } }
     },
     "invalidExample": {
       "type": "object",
@@ -220,10 +156,7 @@
       "properties": {
         "title": { "type": "string" },
         "spec": { "type": "object" },
-        "error": {
-          "type": "object",
-          "description": "The first teaching error the validator gives, exactly (code, at, message, help, fix)."
-        }
+        "error": { "type": "object", "description": "The first error the validator gives, exactly (code, at, message, help; fix when there is one)." }
       }
     }
   }

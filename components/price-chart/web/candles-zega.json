@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "price-chart",
+  "title": "Candlesticks with volume on zega.dev",
+  "description": "Hollow rising and filled falling candles, volume bars underneath, annotations. Example data, not a real instrument.",
+  "host": "zega",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "dataFile": "data/example-daily.json",
+  "spec": {
+    "component": "price-chart",
+    "data": {},
+    "options": {
+      "kind": "candle",
+      "volume": true,
+      "currency": "USD"
+    }
+  }
+}

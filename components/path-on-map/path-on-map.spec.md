@@ -1,8 +1,8 @@
 ---
 id: path-on-map
 status: review
-version: 1.0.0
-implementation: zegadb/zega browser/components/path-on-map/ on the canvas runtime (browser/components/), at 11cff10
+version: 2.0.0
+implementation: this repository's web package, src/path-on-map/ (moved from avacanada/ava-web lib/path-on-map.ts); zega's explorer (zegadb/zega browser/components/path-on-map/ at 11cff10) renders the format-1 fixtures through the `zql` adapter
 ---
 
 # Path on map
@@ -23,9 +23,17 @@ or for routes between distant places, where the earth's curvature matters
 ## Contract
 
 [path-on-map.contract.json](path-on-map.contract.json) is the authority.
-Rows are the points of a path in path order (select them with `order by`);
-ungrouped, all rows are one path; grouped, each group is one path. At least 2
-rows per path.
+Since 2.0.0 (format 2) the data is plain and inline: `paths[]`, each
+`{ label?, points: [[lon, lat], …], values? }` (at least 2 points, one value
+per point or none), and `valueName` for the legend; `bounds` moved from the
+surface parameters into the options. Ava's maps and chat draw it with the web
+package ([web/default.json](web/default.json) on a host without a basemap).
+
+ZQL is one source among several: the contract's `zql` section keeps the
+format-1 binding below for zega's explorer, whose fixtures and references
+(below) are unchanged. Rows are the points of a path in path order (select
+them with `order by`); ungrouped, all rows are one path; grouped, each group
+is one path. At least 2 rows per path.
 
 | role | per | type | required | meaning |
 |---|---|---|---|---|
@@ -207,6 +215,14 @@ else a JSON text field checked on commit.
 | [solid-no-buildings](fixtures/solid-no-buildings.json) | accent line, buildings off, no legend | default |
 
 Each fixture renders in both themes against its two reference images.
+
+The web package's fixtures (format 2, rendered by tools/render/web.mjs on a
+host without a basemap: the plain ground, labels as HTML in the host's face):
+
+| fixture | what it proves | tolerance |
+|---|---|---|
+| [web/default](web/default.json) | sequential ramp in Ava's theme, 3D camera with bearing, start marker and HTML label, legend with unit, no basemap | default |
+| [web/diverging-zega-phone](web/diverging-zega-phone.json) | diverging ramp in zega's theme, 2D, a phone column, the framing kept clear of the legend | default |
 
 Known gaps in the reference implementation (zegadb/zega at 11cff10), which
 the web must close and other platforms must not copy: the no-GPU text reads

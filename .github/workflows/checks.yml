@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
 
+# A public repository: ordinary CI may run on GitHub-hosted runners (AGENTS.md on APS 11, Sami 10-12 Nov).
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -18,17 +19,29 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
+
+      - run: npm ci --no-audit --no-fund
 
       - name: Token drift (generated/ matches tokens/tokens.json)
         run: node tools/tokens.mjs --check
 
+      - name: Package drift (src/generated/ and generated/themes.css match the contracts and themes)
+        run: node tools/generate.mjs --check
+
       - name: Contracts, fixtures, spec files, spec lint, reference lock
         run: node tools/check.mjs
 
-      - name: The checks fail on the drift they exist to catch
+      - name: Unit tests, and the checks fail on the drift they exist to catch
         run: npm test
 
+      - name: The package type-checks and builds
+        run: |
+          npm run typecheck
+          npm run build
+
+      # iOS is paused (Sami, 15 Nov): Tokens.swift is no longer extended, but while it is generated
+      # it must still compile.
       - name: Generated Swift type-checks
         run: |
           if ! command -v swiftc >/dev/null 2>&1; then
@@ -36,3 +49,20 @@ jobs:
             exit 1
           fi
           swiftc -parse-as-library -typecheck generated/Tokens.swift
+
+  # The web package draws every web fixture in both modes and compares it with the reference PNGs
+  # (CONFORMANCE.md, "The web package"), in the same pinned image the references were rendered in.
+  web-conformance:
+    runs-on: ubuntu-latest
+    environment: public-ci
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+    env:
+      HOME: /tmp
+    steps:
+      - uses: actions/checkout@v5
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Every web fixture within tolerance of its references
+        run: node tools/render/web.mjs --verify

@@ -1,5 +1,5 @@
 {
-  "$schema": "../../schemas/contract.schema.json",
+  "$schema": "../../schemas/contract.v1.schema.json",
   "format": 1,
   "id": "globe-arcs",
   "version": "1.0.0",

@@ -50,6 +50,25 @@ export async function fixtures(root) {
   return out;
 }
 
+/**
+ * Every web fixture (format 2: plain data, drawn by this repository's web package):
+ * `components/<id>/web/<name>.json`, `{ component, name, path }`. Their renders sit beside them:
+ * `web/<name>.reference.png` and `web/<name>.reference.dark.png`.
+ */
+export async function webFixtures(root) {
+  const out = [];
+  for (const c of await components(root)) {
+    const names = await readdir(join(root, c.dir, 'web')).catch(() => []);
+    for (const file of names.filter((n) => n.endsWith('.json')).sort()) out.push({ component: c.id, name: file.slice(0, -'.json'.length), path: `${c.dir}/web/${file}` });
+  }
+  return out;
+}
+
+export function webReferencePaths({ component, name }) {
+  const base = `components/${component}/web/${name}`;
+  return { light: `${base}.reference.png`, dark: `${base}.reference.dark.png` };
+}
+
 /** Where a fixture's reference renders live: `{ light, dark }`, relative to the root. */
 export function referencePaths({ component, name }) {
   const base = name === 'default' ? `components/${component}/${component}` : `components/${component}/fixtures/${name}`;

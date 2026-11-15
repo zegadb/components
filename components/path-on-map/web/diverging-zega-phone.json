@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "path-on-map",
+  "title": "Distance along the lap from above, zega theme, phone width",
+  "description": "The diverging ramp, 2D, in the 358-point column.",
+  "host": "zega",
+  "size": {
+    "width": 358
+  },
+  "scale": 2,
+  "dataFile": "data/monaco-dist.json",
+  "spec": {
+    "component": "path-on-map",
+    "data": {},
+    "options": {
+      "view": "2d",
+      "colorScale": "diverging",
+      "valueUnit": "m",
+      "lineWidth": 5
+    }
+  }
+}

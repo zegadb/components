@@ -106,7 +106,7 @@ async function offline(context, browserRoot, origin) {
  * Returns the ratio of differing pixels and the largest connected differing
  * region, in square points.
  */
-function diffInPage(page, actual, expected, tolerance, masks, scale) {
+export function diffInPage(page, actual, expected, tolerance, masks, scale) {
   return page.evaluate(async ({ actual, expected, threshold, masks, scale }) => {
     const pixels = async (b64) => {
       const image = new Image();
@@ -252,4 +252,7 @@ async function main() {
   }
 }
 
-main().catch((error) => { console.error(error.stack || error); process.exit(1); });
+// The web package's runner (web.mjs) imports diffInPage from here: one comparator for every platform.
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  main().catch((error) => { console.error(error.stack || error); process.exit(1); });
+}

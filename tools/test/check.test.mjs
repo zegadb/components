@@ -15,7 +15,7 @@ const TOKENS = JSON.parse(await readFile(join(ROOT, 'tokens/tokens.json'), 'utf8
 async function copy() {
   await mkdir(join(ROOT, '.tmp'), { recursive: true });
   const dir = await mkdtemp(join(ROOT, '.tmp', 'check-'));
-  for (const part of ['components', 'generated', 'schemas', 'tokens', 'tools', 'TEMPLATE.spec.md', 'REFERENCES.lock.json']) {
+  for (const part of ['components', 'generated', 'schemas', 'src', 'tokens', 'tools', 'TEMPLATE.spec.md', 'REFERENCES.lock.json']) {
     await cp(join(ROOT, part), join(dir, part), { recursive: true });
   }
   return dir;
@@ -58,7 +58,7 @@ test('ramps whose themes differ in length are refused', () => {
 
 test('a raw hex colour in a spec is refused outside the Tokens section only', () => {
   const text = '## Colour and type\n\nThe path is #AC542E.\n\n## Tokens\n\n{color.accent} is #AC542E.\n';
-  assert.deepEqual(lintSpec(text, TOKENS, 's.md'), ['s.md:3: raw colour #AC542E; name a {color.…} or {ramp.…} token']);
+  assert.deepEqual(lintSpec(text, TOKENS, 's.md'), ['s.md:3: raw colour #AC542E; name a {color.…}, {ramp.…} or {theme.…} token']);
 });
 
 test('a px length in a spec is refused, and a points length is not', () => {
@@ -111,4 +111,51 @@ test('an invalid contract example must give exactly the error it states', async 
 test('a draft needs no references, but a review component does', async () => {
   const found = await broken((dir) => edit(join(dir, 'components/hockey3darena/hockey3darena.spec.md'), (t) => t.replace('status: draft', 'status: review')));
   assert.ok(found.includes('components/hockey3darena/fixtures/default.json: missing (a review component needs its default fixture)'), found.join('\n'));
+});
+
+// Format 2 (plain data) and the web package.
+
+test('a theme role a spec names must exist in every host', () => {
+  const themes = { roles: { accent: '' } };
+  assert.deepEqual(lintSpec('uses {theme.accent} and {theme.acent}\n', TOKENS, 's.md', themes), ['s.md:1: {theme.acent} is not a theme role in tokens/themes.json']);
+});
+
+test('a theme changed without regenerating leaves the package stale', async () => {
+  const found = await broken((dir) => edit(join(dir, 'tokens/themes.json'), (t) => t.replace('"accent": "#6646EE"', '"accent": "#6646EF"')));
+  for (const file of ['src/generated/themes.ts', 'generated/themes.css']) assert.ok(found.includes(`${file}: stale; run \`npm run generate\` and commit the result`), found.join('\n'));
+});
+
+test('a contract changed without regenerating leaves the package stale', async () => {
+  const found = await broken((dir) => edit(join(dir, 'components/function-plot/function-plot.contract.json'), (t) => t.replace('"maxItems": 6,\n        "description": "The curves', '"maxItems": 5,\n        "description": "The curves')));
+  assert.ok(found.includes('src/generated/contracts.ts: stale; run `npm run generate` and commit the result'), found.join('\n'));
+});
+
+test('a format-2 invalid example must give exactly the error validate() gives', async () => {
+  const found = await broken((dir) => edit(join(dir, 'components/price-chart/price-chart.contract.json'), (t) => t.replace('"help": "give the points oldest first, one per period"', '"help": "sort them"')));
+  assert.ok(found.some((m) => m.startsWith('components/price-chart/price-chart.contract.json examples.invalid[1]: the first error is')), found.join('\n'));
+});
+
+test('a web fixture whose spec fails validation is refused', async () => {
+  const found = await broken((dir) => edit(join(dir, 'components/function-plot/web/default.json'), (t) => t.replace('"fn": "4 - x^2"', '"fn": "4 - x^"')));
+  assert.ok(found.some((m) => m.startsWith('components/function-plot/web/default.json: data.functions[0].fn: the expression ends too soon')), found.join('\n'));
+});
+
+test('a web fixture needs both references, locked', async () => {
+  const missing = await broken((dir) => unlink(join(dir, 'components/price-chart/web/candles-zega.reference.dark.png')));
+  assert.ok(missing.includes('components/price-chart/web/candles-zega.reference.dark.png: missing reference render'), missing.join('\n'));
+  const swapped = await broken((dir) => cp(join(dir, 'components/price-chart/web/default.reference.png'), join(dir, 'components/price-chart/web/candles-zega.reference.png')));
+  assert.ok(swapped.some((m) => m.startsWith('components/price-chart/web/candles-zega.reference.png: not the image REFERENCES.lock.json records')), swapped.join('\n'));
+});
+
+test('a format-2 component in review needs its default web fixture', async () => {
+  const found = await broken(async (dir) => {
+    for (const f of ['default.json', 'default.reference.png', 'default.reference.dark.png']) await unlink(join(dir, 'components/function-plot/web', f));
+  });
+  assert.ok(found.includes('components/function-plot/web/default.json: missing (a review component needs its default web fixture)'), found.join('\n'));
+  assert.ok(found.includes('REFERENCES.lock.json: components/function-plot/web/default.reference.png is recorded but is no component\'s reference'), found.join('\n'));
+});
+
+test('the zql adapter is checked like a format-1 contract', async () => {
+  const found = await broken((dir) => edit(join(dir, 'components/path-on-map/fixtures/default.json'), (t) => t.replace('"path": "at"', '"pathx": "at"')));
+  assert.ok(found.includes('components/path-on-map/fixtures/default.json: required role `path` is not bound'), found.join('\n'));
 });

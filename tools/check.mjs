@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 // Every repository rule a machine can check, in one pass (CI runs this):
 //
-//   tokens      tokens.json against its schema; generated/ not stale
-//   contracts   each <id>.contract.json against the contract schema; its examples against the view-spec schema and itself
-//   fixtures    each fixture against the fixture schema; its view spec against the contract; its result file readable
-//   files       spec + contract for every component; for non-drafts, a default fixture and light + dark references
-//               for every fixture, at the fixture's pixel size, each recorded in REFERENCES.lock.json by SHA-256
+//   tokens      tokens.json and themes.json against their schemas; generated/ and src/generated/ not stale
+//   contracts   each <id>.contract.json against its format's schema (2: plain data; 1: ZQL binding);
+//               format 2: its examples through the package's own validate(), the invalid ones' first error exact;
+//               its optional `zql` adapter's examples against the format-1 view spec
+//   fixtures    format-1 fixtures (fixtures/*.json, a ZQL result, zega's renderer) as before;
+//               web fixtures (web/*.json, plain data, this package's renderer) against their schema and validate()
+//   files       spec + contract for every component; for non-drafts, the default fixture of their format and
+//               light + dark references for every fixture, at the fixture's pixel size, each recorded in
+//               REFERENCES.lock.json by SHA-256 (zega's under `images`, the web package's under `web.images`)
 //   specs       the template's sections in order; no raw hex colours or px values outside `## Tokens`;
 //               every {token.reference} names a token; every relative link resolves
 //
@@ -15,8 +19,9 @@ import { readFile, readdir, access } from 'node:fs/promises';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { check } from './lib/schema.js';
-import { components, fixtures, frontMatter, referencePaths, STATUSES, ID_PATTERN } from './lib/repo.mjs';
+import { components, fixtures, webFixtures, webReferencePaths, frontMatter, referencePaths, STATUSES, ID_PATTERN } from './lib/repo.mjs';
 import { problems as tokenProblems, render } from './tokens.mjs';
+import { generated } from './generate.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const exists = (path) => access(path).then(() => true, () => false);
@@ -43,11 +48,11 @@ export function headings(text) {
 
 const HEX = /(^|[^&\w])#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{1,5})?\b/g;
 const PX = /\b\d+(?:\.\d+)?\s?px\b/gi;
-const TOKEN_REF = /\{((?:color|ramp|space|radius|stroke|opacity|size|type|motion)\.[A-Za-z0-9.]+)\}/g;
+const TOKEN_REF = /\{((?:color|ramp|space|radius|stroke|opacity|size|type|motion|theme)\.[A-Za-z0-9.]+)\}/g;
 export const EXEMPT_SECTION = 'Tokens';
 
 /** Lint one spec's text: raw colours and px lengths outside `## Tokens`, unknown token references. Returns messages. */
-export function lintSpec(text, tokens, where) {
+export function lintSpec(text, tokens, where, themes = null) {
   const out = [];
   let section = '', fenced = false;
   text.split('\n').forEach((line, i) => {
@@ -55,10 +60,16 @@ export function lintSpec(text, tokens, where) {
     if (!fenced && line.startsWith('## ')) section = line.slice(3).trim();
     const at = `${where}:${i + 1}`;
     if (section !== EXEMPT_SECTION) {
-      for (const m of line.matchAll(HEX)) out.push(`${at}: raw colour ${m[0].trim()}; name a {color.…} or {ramp.…} token`);
+      for (const m of line.matchAll(HEX)) out.push(`${at}: raw colour ${m[0].trim()}; name a {color.…}, {ramp.…} or {theme.…} token`);
       for (const m of line.matchAll(PX)) out.push(`${at}: px length "${m[0]}"; lengths are points (pt) or a {space.…}/{size.…} token`);
     }
     for (const m of line.matchAll(TOKEN_REF)) {
+      const [group, ...rest] = m[1].split('.');
+      if (group === 'theme') {
+        // {theme.<role>}: a role every host's theme defines (tokens/themes.json `roles`).
+        if (!themes || rest.length !== 1 || !Object.hasOwn(themes.roles, rest[0])) out.push(`${at}: {${m[1]}} is not a theme role in tokens/themes.json`);
+        continue;
+      }
       const node = m[1].split('.').reduce((n, key) => (n && typeof n === 'object' && Object.hasOwn(n, key) ? n[key] : undefined), tokens);
       const leaf = node && typeof node === 'object' && (Object.hasOwn(node, 'value') || Object.hasOwn(node, 'light'));
       if (!leaf) out.push(`${at}: {${m[1]}} is not a token in tokens/tokens.json`);
@@ -67,8 +78,8 @@ export function lintSpec(text, tokens, where) {
   return out;
 }
 
-/** Check a view spec (from a fixture or a contract example) against the view-spec schema and its contract. */
-function checkSpec(spec, contract, viewSchema, where) {
+/** Check a format-1 view spec (a fixture's or a ZQL example's) against the view-spec v1 schema and a format-1 contract. */
+function checkSpecV1(spec, contract, viewSchema, where) {
   const out = fmt(check(spec, viewSchema)).map((m) => `${where}: ${m}`);
   if (out.length) return out;
   if (spec.component !== contract.id) out.push(`${where}: component "${spec.component}" is not ${contract.id}`);
@@ -90,16 +101,38 @@ function checkSpec(spec, contract, viewSchema, where) {
   return out;
 }
 
+/** A format-2 contract's ZQL adapter, seen as the format-1 contract it binds like. */
+const zqlContract = (c) => ({ id: c.id, version: c.version.replace(/^\d+/, '1'), data: c.zql.data, roles: c.zql.roles, surfaceParams: c.zql.surfaceParams, options: { ...c.options, ...c.zql.options }, examples: c.zql.examples });
+
+/** Check every reference image a fixture renders to: present, a PNG of the right size, the image the lock records. */
+async function checkReferences(root, paths, want, locked, lockImages, out) {
+  for (const path of paths) {
+    const bytes = await readFile(join(root, path)).catch(() => null);
+    if (!bytes) { out.push(`${path}: missing reference render`); continue; }
+    const size = pngSize(bytes);
+    if (!size) out.push(`${path}: not a PNG`);
+    else if (size.width !== want.width || (want.height !== undefined && size.height !== want.height)) out.push(`${path}: ${size.width}×${size.height} px, the fixture needs ${want.width}×${want.height ?? 'any'}`);
+    const sha = createHash('sha256').update(bytes).digest('hex');
+    locked.add(path);
+    if (lockImages?.[path] !== sha) out.push(`${path}: not the image REFERENCES.lock.json records; references change only through the renderers and Sami's approval`);
+  }
+}
+
 export async function checkRepo(root = ROOT) {
   const out = [];
+  // The package's own validate(), from this root's src/: the check and every host run the same code.
+  const { validate } = await import(join(root, 'src/validate.ts'));
   const schemas = {
     tokens: await json(join(root, 'schemas/tokens.schema.json')),
+    themes: await json(join(root, 'schemas/themes.schema.json')),
     contract: await json(join(root, 'schemas/contract.schema.json')),
-    view: await json(join(root, 'schemas/view-spec.schema.json')),
+    contractV1: await json(join(root, 'schemas/contract.v1.schema.json')),
+    viewV1: await json(join(root, 'schemas/view-spec.v1.schema.json')),
     fixture: await json(join(root, 'schemas/fixture.schema.json')),
+    webFixture: await json(join(root, 'schemas/web-fixture.schema.json')),
   };
 
-  // tokens
+  // tokens and themes
   const tokens = await json(join(root, 'tokens/tokens.json'));
   const tokenErrors = fmt(check(tokens, schemas.tokens)).map((m) => `tokens/tokens.json: ${m}`);
   out.push(...tokenErrors);
@@ -113,13 +146,29 @@ export async function checkRepo(root = ROOT) {
       }
     }
   }
+  const themes = await json(join(root, 'tokens/themes.json'));
+  const themeErrors = fmt(check(themes, schemas.themes)).map((m) => `tokens/themes.json: ${m}`);
+  out.push(...themeErrors);
+  for (const [host, h] of Object.entries(themes.hosts || {})) {
+    for (const mode of ['light', 'dark']) {
+      for (const role of Object.keys(themes.roles || {})) if (!Object.hasOwn(h[mode] || {}, role)) out.push(`tokens/themes.json: hosts.${host}.${mode} has no ${role}`);
+    }
+  }
+  if (!themeErrors.length) {
+    for (const [path, text] of Object.entries(await generated(root))) {
+      const current = await readFile(join(root, path), 'utf8').catch(() => null);
+      if (current !== text) out.push(`${path}: stale; run \`npm run generate\` and commit the result`);
+    }
+  }
 
   // the template, and each component's files
   const template = await readFile(join(root, 'TEMPLATE.spec.md'), 'utf8');
   const sections = headings(template);
-  out.push(...lintSpec(template, tokens, 'TEMPLATE.spec.md'));
+  out.push(...lintSpec(template, tokens, 'TEMPLATE.spec.md', themes));
   const lock = await json(join(root, 'REFERENCES.lock.json')).catch(() => ({ images: {} }));
   const locked = new Set();
+  const allFixtures = await fixtures(root);
+  const allWeb = await webFixtures(root);
 
   for (const c of await components(root)) {
     const base = join(root, c.dir, c.id);
@@ -138,7 +187,7 @@ export async function checkRepo(root = ROOT) {
       const missing = sections.filter((s) => !found.includes(s)), extra = found.filter((s) => !sections.includes(s));
       out.push(`${where('.spec.md')}: sections must be the template's, in order${missing.length ? `; missing: ${missing.join(', ')}` : ''}${extra.length ? `; not in the template: ${extra.join(', ')}` : ''}${!missing.length && !extra.length ? '; order differs' : ''}`);
     }
-    out.push(...lintSpec(specText, tokens, where('.spec.md')));
+    out.push(...lintSpec(specText, tokens, where('.spec.md'), themes));
     for (const m of specText.matchAll(/\]\((?!https?:|#|mailto:)([^)#\s]+)(?:#[^)]*)?\)/g)) {
       if (!(await exists(normalize(join(dirname(base), m[1]))))) out.push(`${where('.spec.md')}: link to ${m[1]} does not resolve`);
     }
@@ -146,62 +195,97 @@ export async function checkRepo(root = ROOT) {
     const contract = await json(`${base}.contract.json`).catch((error) => (error.code === 'ENOENT' ? null : { parseError: error.message }));
     if (!contract) { out.push(`${where('.contract.json')}: missing`); continue; }
     if (contract.parseError) { out.push(`${where('.contract.json')}: ${contract.parseError}`); continue; }
-    const contractErrors = fmt(check(contract, schemas.contract)).map((m) => `${where('.contract.json')}: ${m}`);
+    const v2 = contract.format === 2;
+    const contractErrors = fmt(check(contract, v2 ? schemas.contract : schemas.contractV1)).map((m) => `${where('.contract.json')}: ${m}`);
     out.push(...contractErrors);
     if (contractErrors.length) continue;
     if (contract.id !== c.id) out.push(`${where('.contract.json')}: id "${contract.id}" is not the directory name`);
     if (meta && meta.version !== contract.version) out.push(`${where('.spec.md')}: version ${meta.version} is not the contract's ${contract.version}`);
-    for (const [field, declared] of [['surfaceParams', contract.surfaceParams], ['options', contract.options]]) {
+    const settings = v2 ? [['options', contract.options], ...(contract.zql ? [['zql.surfaceParams', contract.zql.surfaceParams]] : [])] : [['surfaceParams', contract.surfaceParams], ['options', contract.options]];
+    for (const [field, declared] of settings) {
       for (const [key, setting] of Object.entries(declared)) out.push(...fmt(check(setting.default, setting, `${field}.${key}.default`)).map((m) => `${where('.contract.json')}: ${m}`));
     }
-    contract.examples.valid.forEach((example, i) => out.push(...checkSpec(example.spec, contract, schemas.view, `${where('.contract.json')} examples.valid[${i}]`)));
-    // An invalid example whose error is a setting's must be exactly the error the shared interpreter gives.
-    contract.examples.invalid.forEach((example, i) => {
-      const [field] = String(example.error.at).split('.');
-      const declared = field === 'surface' ? contract.surfaceParams : field === 'options' ? contract.options : null;
-      if (!declared) return;
-      const got = Object.entries(example.spec[field] || {}).flatMap(([key, value]) => (Object.hasOwn(declared, key) ? check(value, declared[key], `${field}.${key}`) : []))[0];
-      if (JSON.stringify(got) !== JSON.stringify(example.error)) out.push(`${where('.contract.json')} examples.invalid[${i}]: the error is ${JSON.stringify(got)}, not the one written`);
-    });
+    const v1 = v2 ? (contract.zql ? zqlContract(contract) : null) : contract;
+    if (v2) {
+      contract.examples.valid.forEach((example, i) => {
+        const v = validate(example.spec);
+        if (!v.ok) out.push(`${where('.contract.json')} examples.valid[${i}]: ${fmt(v.errors).join('; ')}`);
+      });
+      contract.examples.invalid.forEach((example, i) => {
+        const v = validate(example.spec);
+        if (v.ok) out.push(`${where('.contract.json')} examples.invalid[${i}]: validates; an invalid example must fail`);
+        else if (JSON.stringify(v.errors[0]) !== JSON.stringify(example.error)) out.push(`${where('.contract.json')} examples.invalid[${i}]: the first error is ${JSON.stringify(v.errors[0])}, not the one written`);
+      });
+    }
+    if (v1) {
+      const label = v2 ? `${where('.contract.json')} zql.examples` : `${where('.contract.json')} examples`;
+      v1.examples.valid.forEach((example, i) => out.push(...checkSpecV1(example.spec, v1, schemas.viewV1, `${label}.valid[${i}]`)));
+      // An invalid example whose error is a setting's must be exactly the error the shared interpreter gives.
+      v1.examples.invalid.forEach((example, i) => {
+        const [field] = String(example.error.at).split('.');
+        const declared = field === 'surface' ? v1.surfaceParams : field === 'options' ? v1.options : null;
+        if (!declared) return;
+        const got = Object.entries(example.spec[field] || {}).flatMap(([key, value]) => (Object.hasOwn(declared, key) ? check(value, declared[key], `${field}.${key}`) : []))[0];
+        if (JSON.stringify(got) !== JSON.stringify(example.error)) out.push(`${label}.invalid[${i}]: the error is ${JSON.stringify(got)}, not the one written`);
+      });
+    }
 
     const draft = meta?.status === 'draft';
-    const own = (await fixtures(root)).filter((f) => f.component === c.id);
-    if (!draft && !own.some((f) => f.name === 'default')) out.push(`${c.dir}/fixtures/default.json: missing (a ${meta?.status} component needs its default fixture)`);
-    for (const f of own) {
+    // Format-1 fixtures: a ZQL result bound by a format-1 view spec, rendered by zega (render.mjs).
+    const own = allFixtures.filter((f) => f.component === c.id);
+    if (!draft && !v2 && !own.some((f) => f.name === 'default')) out.push(`${c.dir}/fixtures/default.json: missing (a ${meta?.status} component needs its default fixture)`);
+    if (own.length && !v1) out.push(`${c.dir}/fixtures: format-1 fixtures need the contract's \`zql\` adapter`);
+    for (const f of v1 ? own : []) {
       const fixture = await json(join(root, f.path)).catch((error) => ({ parseError: error.message }));
       if (fixture.parseError) { out.push(`${f.path}: ${fixture.parseError}`); continue; }
       const errors = fmt(check(fixture, schemas.fixture)).map((m) => `${f.path}: ${m}`);
       out.push(...errors);
       if (errors.length) continue;
       if (fixture.component !== c.id) out.push(`${f.path}: component "${fixture.component}" is not ${c.id}`);
-      out.push(...checkSpec(fixture.spec, contract, schemas.view, f.path));
+      out.push(...checkSpecV1(fixture.spec, v1, schemas.viewV1, f.path));
       const resultPath = join(root, dirname(f.path), fixture.resultFile);
       await json(resultPath).catch((error) => out.push(`${f.path}: resultFile ${fixture.resultFile}: ${error.code === 'ENOENT' ? 'missing' : error.message}`));
       for (const m of fixture.masks || []) {
         if (m.x + m.width > fixture.size.width || m.y + m.height > fixture.size.height) out.push(`${f.path}: mask at (${m.x}, ${m.y}) runs off the ${fixture.size.width}×${fixture.size.height} canvas`);
       }
       if (draft) continue;
-      for (const path of Object.values(referencePaths(f))) {
-        const bytes = await readFile(join(root, path)).catch(() => null);
-        if (!bytes) { out.push(`${path}: missing reference render`); continue; }
-        const size = pngSize(bytes);
-        const want = { width: fixture.size.width * fixture.scale, height: fixture.size.height * fixture.scale };
-        if (!size) out.push(`${path}: not a PNG`);
-        else if (size.width !== want.width || size.height !== want.height) out.push(`${path}: ${size.width}×${size.height} px, the fixture needs ${want.width}×${want.height}`);
-        const sha = createHash('sha256').update(bytes).digest('hex');
-        locked.add(path);
-        if (lock.images?.[path] !== sha) out.push(`${path}: not the image REFERENCES.lock.json records; references change only through tools/render/render.mjs and Sami's approval`);
-      }
+      await checkReferences(root, Object.values(referencePaths(f)), { width: fixture.size.width * fixture.scale, height: fixture.size.height * fixture.scale }, locked, lock.images, out);
     }
+
+    // Web fixtures: plain data, drawn by this repository's web package (web.mjs).
+    const web = allWeb.filter((f) => f.component === c.id);
+    if (!draft && v2 && !web.some((f) => f.name === 'default')) out.push(`${c.dir}/web/default.json: missing (a ${meta?.status} component needs its default web fixture)`);
+    if (web.length && !v2) out.push(`${c.dir}/web: web fixtures need a format-2 contract`);
+    for (const f of v2 ? web : []) {
+      const fixture = await json(join(root, f.path)).catch((error) => ({ parseError: error.message }));
+      if (fixture.parseError) { out.push(`${f.path}: ${fixture.parseError}`); continue; }
+      const errors = fmt(check(fixture, schemas.webFixture)).map((m) => `${f.path}: ${m}`);
+      out.push(...errors);
+      if (errors.length) continue;
+      if (fixture.component !== c.id || fixture.spec.component !== c.id) out.push(`${f.path}: component is not ${c.id}`);
+      if (!Object.hasOwn(themes.hosts, fixture.host)) out.push(`${f.path}: host "${fixture.host}" is not in tokens/themes.json`);
+      const spec = structuredClone(fixture.spec);
+      if (fixture.dataFile) {
+        const data = await json(join(root, dirname(f.path), fixture.dataFile)).catch((error) => { out.push(`${f.path}: dataFile ${fixture.dataFile}: ${error.code === 'ENOENT' ? 'missing' : error.message}`); return null; });
+        if (!data) continue;
+        spec.data = data;
+      }
+      const v = validate(spec);
+      if (!v.ok) out.push(...fmt(v.errors).map((m) => `${f.path}: ${m}`));
+      if (draft) continue;
+      await checkReferences(root, Object.values(webReferencePaths(f)), { width: fixture.size.width * fixture.scale }, locked, lock.web?.images, out);
+    }
+
     // Reference images with no fixture behind them.
     const loose = [
       ...(await readdir(join(root, c.dir))).filter((n) => n.endsWith('.png')).map((n) => `${c.dir}/${n}`),
       ...(await readdir(join(root, c.dir, 'fixtures')).catch(() => [])).filter((n) => n.endsWith('.png')).map((n) => `${c.dir}/fixtures/${n}`),
+      ...(await readdir(join(root, c.dir, 'web')).catch(() => [])).filter((n) => n.endsWith('.png')).map((n) => `${c.dir}/web/${n}`),
     ];
-    const expected = new Set(own.flatMap((f) => Object.values(referencePaths(f))));
+    const expected = new Set([...own.flatMap((f) => Object.values(referencePaths(f))), ...web.flatMap((f) => Object.values(webReferencePaths(f)))]);
     for (const path of loose) if (!expected.has(path)) out.push(`${path}: no fixture renders to this image`);
   }
-  for (const path of Object.keys(lock.images || {})) if (!locked.has(path)) out.push(`REFERENCES.lock.json: ${path} is recorded but is no component's reference`);
+  for (const path of [...Object.keys(lock.images || {}), ...Object.keys(lock.web?.images || {})]) if (!locked.has(path)) out.push(`REFERENCES.lock.json: ${path} is recorded but is no component's reference`);
   return out;
 }
 
@@ -213,5 +297,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(1);
   }
   const all = await components(ROOT);
-  console.log(`ok: tokens, ${all.length} components (${all.map((c) => `${c.id} [${c.status}]`).join(', ')}), ${(await fixtures(ROOT)).length} fixtures`);
+  console.log(`ok: tokens, themes, ${all.length} components (${all.map((c) => `${c.id} [${c.status}]`).join(', ')}), ${(await fixtures(ROOT)).length} zega fixtures, ${(await webFixtures(ROOT)).length} web fixtures`);
 }

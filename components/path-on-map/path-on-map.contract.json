@@ -1,80 +1,91 @@
 {
   "$schema": "../../schemas/contract.schema.json",
-  "format": 1,
+  "format": 2,
   "id": "path-on-map",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Path on map",
   "category": "Geo",
-  "description": "Ordered paths (a race lap, a route, a track) on the street map with 3D buildings, coloured by an optional value per point, each with a start marker and label.",
-  "surface": "map",
-  "mark": "path",
+  "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; 3D tilts the camera so buildings stand up. Points are [longitude, latitude], in path order.",
+  "surface": {
+    "kind": "map",
+    "description": "The host’s street map (MapLibre): its basemap, or the plain ground where there is none. The component adds the paths, their casing, start markers, labels, the legend and the extruded buildings."
+  },
+  "marks": [
+    "path",
+    "point",
+    "label"
+  ],
+  "size": {
+    "aspect": 0.62,
+    "minHeight": 240,
+    "maxHeight": 460
+  },
   "data": {
-    "groups": "optional",
-    "minRows": 2,
-    "description": "Each row is one point of a path, in path order: select it with `order by`. Ungrouped, the rows are one path; grouped, each group's rows are one path."
-  },
-  "roles": {
-    "path": {
-      "per": "row",
-      "type": "Point",
-      "required": true,
-      "description": "The row's position. The first row of each path is its start."
-    },
-    "value": {
-      "per": "row",
-      "type": "Float",
-      "required": false,
-      "description": "A number per point (speed, distance, sector…). Each segment takes its start point's colour."
-    },
-    "label": {
-      "per": "group",
-      "type": "String",
-      "required": false,
-      "description": "The path's name, shown at its start."
-    }
-  },
-  "surfaceParams": {
-    "bounds": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "prefixItems": [
-        {
-          "type": "number",
-          "minimum": -180,
-          "maximum": 180
-        },
-        {
-          "type": "number",
-          "minimum": -85.0511,
-          "maximum": 85.0511
-        },
-        {
-          "type": "number",
-          "minimum": -180,
-          "maximum": 180
-        },
-        {
-          "type": "number",
-          "minimum": -85.0511,
-          "maximum": 85.0511
+    "type": "object",
+    "required": [
+      "paths"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "paths": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 8,
+        "description": "One or more paths, each its own line.",
+        "items": {
+          "type": "object",
+          "required": [
+            "points"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "type": "string",
+              "maxLength": 60,
+              "description": "The path’s name, shown at its start."
+            },
+            "points": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 5000,
+              "description": "[longitude, latitude] per point, in path order; the first is the start.",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -85.0511,
+                    "maximum": 85.0511
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "values": {
+              "type": "array",
+              "maxItems": 5000,
+              "description": "A number per point (null: none), one per point; each segment takes its start point’s colour.",
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          }
         }
-      ],
-      "minItems": 4,
-      "maxItems": 4,
-      "format": "lonlat-bounds",
-      "default": null,
-      "description": "[west, south, east, north] to frame; null frames the paths."
-    },
-    "basemap": {
-      "enum": [
-        "auto",
-        "cities",
-        "monaco"
-      ],
-      "default": "auto",
-      "description": "Which street-map archive to draw under the paths. auto picks the one that covers them."
+      },
+      "valueName": {
+        "type": "string",
+        "maxLength": 40,
+        "description": "What the values are, for the legend (\"speed\")."
+      }
     }
   },
   "options": {
@@ -132,59 +143,108 @@
       "type": "boolean",
       "default": true,
       "description": "Extrude buildings to their OSM heights."
+    },
+    "bounds": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        {
+          "type": "number",
+          "minimum": -85.0511,
+          "maximum": 85.0511
+        },
+        {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        {
+          "type": "number",
+          "minimum": -85.0511,
+          "maximum": 85.0511
+        }
+      ],
+      "minItems": 4,
+      "maxItems": 4,
+      "format": "lonlat-bounds",
+      "default": null,
+      "description": "[west, south, east, north] to frame; null frames the paths."
     }
   },
   "examples": {
-    "sample": "samples/monaco.zql",
-    "zql": "query {\n  Circuit(name: \"Circuit de Monaco\") {\n    name\n    points <- TrackPoint order by seq { at speed dist }\n  }\n}",
     "valid": [
       {
-        "title": "Speed around the lap, in 3D",
+        "title": "Speed along a short run, in 3D",
         "spec": {
-          "format": 1,
           "component": "path-on-map",
-          "version": "1",
-          "binding": {
-            "rows": "points",
-            "path": "at",
-            "value": "speed",
-            "label": "name"
+          "data": {
+            "valueName": "speed",
+            "paths": [
+              {
+                "label": "Seawall",
+                "points": [
+                  [
+                    -123.1405,
+                    49.2936
+                  ],
+                  [
+                    -123.144,
+                    49.299
+                  ],
+                  [
+                    -123.149,
+                    49.302
+                  ],
+                  [
+                    -123.14,
+                    49.305
+                  ]
+                ],
+                "values": [
+                  11,
+                  13,
+                  12,
+                  14
+                ]
+              }
+            ]
           },
           "options": {
-            "valueUnit": "km/h",
-            "bearing": -30
+            "valueUnit": "km/h"
           }
         }
       },
       {
-        "title": "Distance along the lap, from above",
+        "title": "A route from above, one colour",
         "spec": {
-          "format": 1,
           "component": "path-on-map",
-          "version": "1",
-          "binding": {
-            "rows": "points",
-            "path": "at",
-            "value": "dist"
-          },
-          "options": {
-            "view": "2d",
-            "colorScale": "diverging",
-            "valueUnit": "m",
-            "lineWidth": 8
-          }
-        }
-      },
-      {
-        "title": "The line alone, no buildings",
-        "spec": {
-          "format": 1,
-          "component": "path-on-map",
-          "version": "1",
-          "binding": {
-            "rows": "points",
-            "path": "at",
-            "label": "name"
+          "data": {
+            "paths": [
+              {
+                "label": "To the station",
+                "points": [
+                  [
+                    7.4212,
+                    43.735
+                  ],
+                  [
+                    7.423,
+                    43.738
+                  ],
+                  [
+                    7.426,
+                    43.7395
+                  ]
+                ]
+              }
+            ]
           },
           "options": {
             "view": "2d",
@@ -196,34 +256,191 @@
     ],
     "invalid": [
       {
-        "title": "A misspelt row field",
+        "title": "A path with one point",
         "spec": {
-          "format": 1,
           "component": "path-on-map",
-          "version": "1",
-          "binding": {
-            "rows": "points",
-            "path": "at",
-            "value": "sped"
-          }
-        },
-        "error": {
-          "code": "unresolved",
-          "at": "binding.value",
-          "message": "`sped` is not in each row of `points`",
-          "help": "did you mean `speed`?",
-          "fix": {
-            "kind": "safe",
-            "patch": [
+          "data": {
+            "paths": [
               {
-                "op": "replace",
-                "path": "/binding/value",
-                "value": "speed"
+                "points": [
+                  [
+                    7.42,
+                    43.73
+                  ]
+                ]
               }
             ]
           }
+        },
+        "error": {
+          "code": "length",
+          "at": "data.paths[0].points",
+          "message": "needs at least 2 items, got 1",
+          "help": "[longitude, latitude] per point, in path order; the first is the start."
+        }
+      },
+      {
+        "title": "Values that do not match the points",
+        "spec": {
+          "component": "path-on-map",
+          "data": {
+            "paths": [
+              {
+                "points": [
+                  [
+                    7.42,
+                    43.73
+                  ],
+                  [
+                    7.43,
+                    43.74
+                  ]
+                ],
+                "values": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        "error": {
+          "code": "values-length",
+          "at": "data.paths[0].values",
+          "message": "path 0 has 2 points and 1 values",
+          "help": "one value per point (null for a point with none), or no values at all"
         }
       }
     ]
+  },
+  "zql": {
+    "data": {
+      "groups": "optional",
+      "minRows": 2,
+      "description": "Each row is one point of a path, in path order: select it with `order by`. Ungrouped, the rows are one path; grouped, each group's rows are one path."
+    },
+    "roles": {
+      "path": {
+        "per": "row",
+        "type": "Point",
+        "required": true,
+        "description": "The row's position. The first row of each path is its start."
+      },
+      "value": {
+        "per": "row",
+        "type": "Float",
+        "required": false,
+        "description": "A number per point (speed, distance, sector…). Each segment takes its start point's colour."
+      },
+      "label": {
+        "per": "group",
+        "type": "String",
+        "required": false,
+        "description": "The path's name, shown at its start."
+      }
+    },
+    "surfaceParams": {
+      "basemap": {
+        "enum": [
+          "auto",
+          "cities",
+          "monaco"
+        ],
+        "default": "auto",
+        "description": "Which street-map archive to draw under the paths. auto picks the one that covers them."
+      }
+    },
+    "options": {},
+    "examples": {
+      "sample": "samples/monaco.zql",
+      "zql": "query {\n  Circuit(name: \"Circuit de Monaco\") {\n    name\n    points <- TrackPoint order by seq { at speed dist }\n  }\n}",
+      "valid": [
+        {
+          "title": "Speed around the lap, in 3D",
+          "spec": {
+            "format": 1,
+            "component": "path-on-map",
+            "version": "1",
+            "binding": {
+              "rows": "points",
+              "path": "at",
+              "value": "speed",
+              "label": "name"
+            },
+            "options": {
+              "valueUnit": "km/h",
+              "bearing": -30
+            }
+          }
+        },
+        {
+          "title": "Distance along the lap, from above",
+          "spec": {
+            "format": 1,
+            "component": "path-on-map",
+            "version": "1",
+            "binding": {
+              "rows": "points",
+              "path": "at",
+              "value": "dist"
+            },
+            "options": {
+              "view": "2d",
+              "colorScale": "diverging",
+              "valueUnit": "m",
+              "lineWidth": 8
+            }
+          }
+        },
+        {
+          "title": "The line alone, no buildings",
+          "spec": {
+            "format": 1,
+            "component": "path-on-map",
+            "version": "1",
+            "binding": {
+              "rows": "points",
+              "path": "at",
+              "label": "name"
+            },
+            "options": {
+              "view": "2d",
+              "colorScale": "solid",
+              "showBuildings": false
+            }
+          }
+        }
+      ],
+      "invalid": [
+        {
+          "title": "A misspelt row field",
+          "spec": {
+            "format": 1,
+            "component": "path-on-map",
+            "version": "1",
+            "binding": {
+              "rows": "points",
+              "path": "at",
+              "value": "sped"
+            }
+          },
+          "error": {
+            "code": "unresolved",
+            "at": "binding.value",
+            "message": "`sped` is not in each row of `points`",
+            "help": "did you mean `speed`?",
+            "fix": {
+              "kind": "safe",
+              "patch": [
+                {
+                  "op": "replace",
+                  "path": "/binding/value",
+                  "value": "speed"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
   }
 }

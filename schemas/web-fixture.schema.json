@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zega.dev/schemas/components/web-fixture.schema.json",
+  "title": "Graph-component web fixture, format 2",
+  "description": "One input the web package renders at the stated width, scale 2, in both modes of one host's theme, and compares with its reference PNGs (CONFORMANCE.md, \"The web package\"). The height is the component's own (its contract's size rule), so it is not given.",
+  "type": "object",
+  "required": ["fixture", "component", "title", "description", "host", "size", "scale", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "fixture": { "const": 2 },
+    "component": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "host": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "Whose theme (tokens/themes.json hosts)." },
+    "size": {
+      "type": "object",
+      "required": ["width"],
+      "additionalProperties": false,
+      "properties": { "width": { "type": "integer", "minimum": 240, "maximum": 2048, "description": "The column's width in points: 358 is a 390-point phone's chat column." } }
+    },
+    "scale": { "enum": [2] },
+    "dataFile": { "type": "string", "pattern": "^data/[a-z0-9][a-z0-9-]*\\.json$", "description": "The view spec's `data`, from a file beside the fixture (for data too long to read inline)." },
+    "tolerance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxDiffRatio": { "type": "number", "minimum": 0, "maximum": 0.05 },
+        "maxCluster": { "type": "number", "minimum": 0, "maximum": 256 }
+      }
+    },
+    "masks": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["x", "y", "width", "height", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "x": { "type": "number", "minimum": 0 }, "y": { "type": "number", "minimum": 0 },
+          "width": { "type": "number", "minimum": 1 }, "height": { "type": "number", "minimum": 1 },
+          "reason": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "spec": { "type": "object", "description": "The view spec (schemas/view-spec.schema.json); with dataFile, its `data` is replaced by the file's." }
+  }
+}
