@@ -1,152 +1,141 @@
-# zega graph components: specs
+# zega graph components
 
-The single definition of every zega graph component (APS 21), for every
-platform that draws one:
+The single definition of every graph component (APS 21: surface × mark ×
+encoding, typed contracts, chosen by the agent), and **the web package that
+draws them**, `@zegadb/components`. Ava's chat and ava's maps import it;
+zega.dev's catalogue reads its contracts.
 
-| platform | stack | map surface |
+| platform | status | stack |
 |---|---|---|
-| web | Next.js | MapLibre GL JS |
-| desktop | Tauri (Rust + the same Next.js build) | MapLibre GL JS in the webview |
-| iOS | Swift / SwiftUI | native map SDK (open question 2) |
+| web | **built** (this package) | SVG for charts, MapLibre GL JS for maps; React or plain DOM hosts |
+| desktop (Tauri) | built | the same web build in the webview (Ava's app) |
+| iOS | **paused** (Sami, 15 Nov) | `generated/Tokens.swift` and `tokens.rs` stay as they were and are not extended; no iOS specs are written |
 
 ## The rule
 
 **The spec is the product.** A component is what its spec, contract, tokens
-and fixtures here say it is. An implementation on any platform is
-**conforming** only if it renders every one of that component's fixtures, in
-both themes, within tolerance of the reference images
-([CONFORMANCE.md](CONFORMANCE.md)). Nothing else makes it done.
+and fixtures here say it is. An implementation is **conforming** only if it
+renders every one of that component's fixtures, in both themes, within
+tolerance of the reference images ([CONFORMANCE.md](CONFORMANCE.md)).
 
-- **No platform-specific design decisions.** A platform chooses *how* to draw
-  (which API, which layer type), never *what*: no different size, colour,
-  spacing, timing, gesture, wording or behaviour.
-- **Deviations need a spec change first.** If a platform cannot do what the
-  spec says, open a PR here that changes the spec (and its fixtures and
-  references); once Sami approves it, every platform follows. Never ship the
-  deviation and document it afterwards.
-- **Values come from tokens.** Colours, type, spacing, radii, strokes,
-  opacity and motion come from [tokens/tokens.json](tokens/tokens.json)
-  through the generated files, never typed in by hand on a platform.
-- **Contracts are typed.** What a component accepts (roles, types, units,
-  frames, parameters, ranges, defaults) is its `.contract.json`; an
-  implementation validates view specs against it and draws nothing it
-  refuses.
-- **Known gaps are named.** Where today's reference implementation falls
-  short of its spec, the spec's Conformance section says so; other platforms
-  build the spec, not the gap.
+- **Contracts are plain typed data** (Sami, 15 Nov). A view spec is
+  `{ component, data, options }`: the data inline, held to the contract's
+  `data` JSON Schema; the options to its `options`. Data comes from anywhere:
+  the assistant's tools, the knowledge graph, the model itself, or a ZQL
+  result through a contract's optional `zql` adapter (format 1's binding,
+  kept for zega's explorer). ZQL is one source, never the shape.
+- **Validate, then draw.** Every host runs the package's `validate()` before
+  anything renders. A spec that fails draws nothing; its errors (teaching
+  errors: where, what, what to do) go back to whoever wrote it. People never
+  see raw errors.
+- **Colour follows each product's brand** (Sami, 15 Nov):
+  [tokens/themes.json](tokens/themes.json) has one theme per host (`ava`:
+  the Lilac/Night violet, DM Sans; `zega`: the paper ground, zega green,
+  Space Grotesk), light and dark, the same roles everywhere. Categorical
+  orders were checked with a palette validator (lightness band, chroma,
+  colour-blind separation) against each ground.
+- **Values come from tokens**; specs name `{theme.<role>}` and
+  `{group.name}` tokens, never raw hex or px.
+- **Known gaps are named** in each spec's Conformance section.
+
+## Components
+
+| component | category | status | web reference (light, dark) |
+|---|---|---|---|
+| [function-plot](components/function-plot/function-plot.spec.md): y = f(x), areas, points, asymptotes | Math | review | <img src="components/function-plot/web/default.reference.png" width="240"> <img src="components/function-plot/web/default.reference.dark.png" width="240"> |
+| [price-chart](components/price-chart/price-chart.spec.md): line or candlesticks, volume, annotations | Finance | review | <img src="components/price-chart/web/default.reference.png" width="240"> <img src="components/price-chart/web/candles-zega.reference.dark.png" width="240"> |
+| [path-on-map](components/path-on-map/path-on-map.spec.md): ordered paths on the map | Geo | review | <img src="components/path-on-map/web/default.reference.png" width="240"> <img src="components/path-on-map/web/diverging-zega-phone.reference.dark.png" width="140"> |
+| [globe-arcs](components/globe-arcs/globe-arcs.spec.md): routes as arcs on the globe | Network | review (format 1, zega's explorer) | <img src="components/globe-arcs/globe-arcs.reference.png" width="240"> |
+| [hockey3darena](components/hockey3darena/hockey3darena.spec.md): rink heat | Sports | draft (format 1) | none yet |
+
+## Using the package
+
+```ts
+import { validate, explain, render, theme, toElements, attachHover, toolDefinitions } from "@zegadb/components";
+
+const checked = validate(spec);                       // anything: a model's JSON
+if (!checked.ok) return explain(checked.errors);       // to the model, never to people
+const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
+// charts: drawn.svg is a tree of SVG elements → toElements(drawn.svg, React.createElement) or toDom()
+// then attachHover(svgElement, drawn.hover, theme) for the crosshair and tooltip
+// path-on-map: drawn is { map: true, height }; the host's MapLibre map + drawChecked() from
+// "@zegadb/components/path-on-map/draw" (pathOnMap.plainStyle(theme) when there is no basemap)
+```
+
+- **Never markup.** Charts are SVG node trees a host turns into its own
+  elements; model-written text is always text. Expressions (function-plot)
+  are parsed by `src/expr.ts`, never `eval` or `Function`.
+- **Tools for an assistant:** `toolDefinitions()` gives one tool per
+  component (`draw_function_plot`, …) whose input schema is the contract's
+  own `{ data, options }`; the host adds the component from the tool's name.
+- **Sizing:** inline in a column (rixse APS 4's medium size), the width is the
+  column's and the height is width × the contract's `size.aspect`, within its
+  `minHeight`–`maxHeight`. Fixtures render at 640 pt (a desktop chat column)
+  and 358 pt (a 390 pt phone's column).
+- **Styles:** `@zegadb/components/themes.css` (`--zc-*` variables under
+  `[data-zc-host]`) and `@zegadb/components/components.css` (the map legend
+  and labels).
+
+**Packaging (APS 10):** hosts install the package from a registry by version.
+Until it is on npm they vendor the exact `npm pack` tarball
+(`node tools/pack.mjs <dir>` prints its sha256, integrity and commit; packing
+is reproducible) and depend on it with `file:` plus a drift test. **Needs
+Sami: npm publishing for @zegadb/components (release env).**
+
+## Illustrated surfaces (anatomy, sports): how they fit
+
+A contract's `surface` is `{ kind, art?, frame?, regions? }`. A body diagram
+or a rink is `kind: "art"`: `art` names the drawing (an SVG the package ships
+per surface, themed from the same roles), `frame` its coordinate system
+(`{ x: [-100, 100], y: [-42.5, 42.5], unit: "ft" }` for a rink), and
+`regions` the named areas data may refer to (`left-knee`, `slot`). The data
+schema then uses plain numbers in the frame (`{ x, y, value }`) or an `enum`
+of the regions (`{ region: "left-knee", value }`). Nothing in the contract
+format, the validator, the view spec or the chat changes: a new surface is a
+new contract, a new drawing and its fixtures.
 
 ## Layout
 
 ```
 components/<id>/
-  <id>.spec.md                  the spec: TEMPLATE.spec.md's sections, in order
-  <id>.contract.json            the typed contract (schemas/contract.schema.json)
-  <id>.reference.png            render of fixtures/default.json, light
-  <id>.reference.dark.png       the same, dark
-  fixtures/<name>.json          one input: view spec + result file + size (schemas/fixture.schema.json)
-  fixtures/<name>.reference.png, <name>.reference.dark.png   its renders (all but default)
-  fixtures/data/*.json          result snapshots the fixtures bind
-tokens/tokens.json              design tokens: the only source of visual values
-generated/                      tokens.css, tokens.js, Tokens.swift, tokens.rs (never edited by hand)
-schemas/                        contract + view-spec (from zegadb/zega), fixture, tokens
-tools/                          token generator, repo checks, web reference renderer + comparator
-REFERENCES.lock.json            what rendered the references, and each image's SHA-256
+  <id>.spec.md, <id>.contract.json      the spec (TEMPLATE.spec.md's sections) and the contract
+  web/<name>.json, web/data/*.json      web fixtures (format 2: plain data, a host theme, a width)
+  web/<name>.reference(.dark).png       their renders by the web package
+  fixtures/…                            format-1 fixtures (a ZQL result), rendered by zega's explorer
+src/                                    the web package (TypeScript; src/generated/ from contracts + themes)
+tokens/tokens.json, tokens/themes.json  design tokens; host themes
+generated/                              tokens.css/js (+ paused Tokens.swift, tokens.rs), themes.css
+schemas/                                contract (2) and v1, view spec (2) and v1, fixtures, tokens, themes
+tools/                                  checks, generators, renderers, the comparator, pack
 ```
-
-**Names.** Every file in a component's folder is named with the component's
-contract `id`, exactly: `path-on-map/path-on-map.spec.md`, like Sami's
-`hockey3darena.spec.md` + `hockey3darena.reference.png`. One name everywhere
-(folder, files, contract, view specs, code) means no mapping table and a grep
-finds everything. Ids are lower case letters and digits with optional hyphens
-(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`, the view-spec schema's own pattern), so the
-shipped `path-on-map` and a flat `hockey3darena` both fit; see open
-question 5.
-
-**Status.** Each spec's front matter has `status`:
-
-- `draft`: being written. Needs a spec and a contract; no references; no
-  platform implements it.
-- `review`: complete. Every section filled, at least a default fixture, light
-  and dark references for every fixture. Platforms build to it.
-- `stable`: Sami has accepted it on every platform. Changes need a version
-  bump in the contract.
-
-**Units.** Lengths are points: 1 pt = 1 CSS px = 1 iOS point. Specs never
-write px. References are rendered at scale 2.
-
-## Components
-
-| component | status | reference (light, dark) |
-|---|---|---|
-| [path-on-map](components/path-on-map/path-on-map.spec.md): ordered paths on the street map with 3D buildings | review | <img src="components/path-on-map/path-on-map.reference.png" width="240"> <img src="components/path-on-map/path-on-map.reference.dark.png" width="240"> |
-| [globe-arcs](components/globe-arcs/globe-arcs.spec.md): routes as arcs lifted off the globe | review | <img src="components/globe-arcs/globe-arcs.reference.png" width="240"> <img src="components/globe-arcs/globe-arcs.reference.dark.png" width="240"> |
-| [hockey3darena](components/hockey3darena/hockey3darena.spec.md): rink heat, 2D or 3D | draft | none yet |
 
 ## Working here
 
-Node 22 or newer; no dependencies.
+Node 24 or newer.
 
 ```sh
-npm run tokens          # tokens/tokens.json -> generated/*
-npm run check           # every rule below; CI runs it
-npm test                # proves each check fails on the drift it exists to catch
-npm run render -- --zega ../zega            # re-render references from a zegadb/zega checkout
-npm run verify:web -- --zega ../zega        # web conformance: render and compare, write nothing
+npm install
+npm run generate        # tokens + src/generated (contracts, themes) + generated/themes.css
+npm run check           # every repository rule; CI runs it
+npm test                # unit tests (validator, parser, renderers) and the checks' own drift tests
+npm run typecheck && npm run build
+node tools/render/container.mjs tools/render/web.mjs            # (re)render web references in the pinned image
+node tools/render/container.mjs tools/render/web.mjs --verify   # web conformance, as CI runs it
+npm run verify:zega -- --zega ../zega                           # zega's explorer against format-1 references
 ```
 
-`npm run check` enforces: tokens.json against its schema and generated files
-current; each contract against the contract schema, its example specs against
-the view-spec schema and the contract, and its invalid example's error exact;
-each fixture against the fixture schema and its contract, with its result
-file present; a spec, contract, default fixture and light and dark references
-for every non-draft component, at the fixture's pixel size and matching
-REFERENCES.lock.json; every spec with the template's sections in order, no raw
-hex colour or px length outside its `## Tokens` section, every `{token}`
-reference real, and every relative link resolving.
-
 **Adding a component:** copy `TEMPLATE.spec.md` to
-`components/<id>/<id>.spec.md` with `status: draft`, write the contract, and
-open a PR. To move it to `review`: fixtures, a web implementation, rendered
-references, every section filled.
-
-**Where things come from.** The contract and view-spec schemas and the JSON
-Schema interpreter (`tools/lib/schema.js`) are copied from zegadb/zega
-`browser/components/` at 11cff10, so a contract here is checked by the same
-code the runtime uses. Token values are the web implementation's
-(`browser/theme.js`, `components/canvas.css`, `path-on-map/index.js`,
-`arcs.js`, `globe.js`); `generated/tokens.js` matches `theme.js`'s palettes
-exactly.
+`components/<id>/<id>.spec.md` with `status: draft`, write the format-2
+contract, then the renderer in `src/`, web fixtures and references.
 
 ## Open questions for Sami
 
-1. **Which accent do graph components use?** The component tokens are the
-   explorer's palette: the same paper ground as zega.dev, but a terracotta
-   accent (`{color.accent}`), while zega.dev and zega.earth use green.
-   *Recommendation:* keep terracotta for data marks (it is what every
-   rendered component and the explorer already show, and at 4.49:1 on the
-   ground it clears the 3:1 that marks need) and add the site's green as a
-   separate brand token for chrome such as share-card wordmarks, so marks and
-   brand never compete.
-2. **Mapbox or MapLibre Native on iOS?** Identical maps need the same style
-   JSON, the same PMTiles archives, the same glyphs and a custom-layer API for
-   the arcs. MapLibre Native reads the style MapLibre GL JS reads; the Mapbox
-   SDK requires its own logo and attribution, has its own style-spec
-   extensions, and would need our tiles served its way. *Recommendation:*
-   MapLibre Native on iOS; keep Mapbox only for a product reason (its data or
-   search), and accept a wider mask and tolerance if so.
-3. **One bundled UI face.** Chrome text (legend, gear, badges) uses the
-   system face, so it differs between macOS, Windows, Linux and iOS, and the
-   references can only be rendered on a Mac. *Recommendation:* bundle one
-   face on every platform (Space Grotesk, already the wordmark face, or IBM
-   Plex Sans for small sizes), set `{type.family.ui}` to it, and re-render
-   the references once.
-4. **Which repo owns the contracts?** Today `path-on-map`'s contract lives in
-   zegadb/zega and is copied here. *Recommendation:* this repo owns
-   contracts, tokens and fixtures; zegadb/zega vendors them at a pinned
-   commit (as it vendors the wasm), and its CI fails when its copy differs.
-5. **Naming.** Shipped ids are hyphenated (`path-on-map`; renaming is a
-   breaking contract major with a migration), your example is flat
-   (`hockey3darena`). *Recommendation:* one rule, file name = contract id,
-   hyphens allowed; keep `path-on-map` and `globe-arcs`, and name the rink
-   component `rink-heat` (APS 21's name) with 2D/3D as its `view` option
-   rather than a separate 3D component.
+1. **zega's ramps.** The zega theme's sequential ramp is a new green one (to
+   match zega.dev's accent); the diverging ramp is the explorer's. Proposal
+   until approved.
+2. **Ava's app vs Ava's brand.** Charts in Ava's app use the brand book's
+   violet; the app's own chrome is still the older warm orange. Recommend the
+   app moves to the brand palette.
+3. **Contract ownership** (format-1 question 4) stands: this repo owns the
+   contracts; zega's explorer should vendor them with a drift check.
+4. **Naming:** rename `hockey3darena` to `rink-heat` when it becomes format 2.

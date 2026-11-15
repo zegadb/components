@@ -115,6 +115,25 @@ in `.tmp/`. zegadb/zega's CI should run it on every PR that touches
 components move into a Next.js package, the harness imports that package
 instead; nothing else changes.
 
+### The web package (format 2)
+
+The components this repository draws itself (`src/`, `@zegadb/components`)
+have **web fixtures**: `components/<id>/web/<name>.json`, plain data (the
+view spec inline, or its `data` from `web/data/`), a host theme
+(tokens/themes.json) and a column width; the height is the component's own.
+`tools/render/web.mjs` draws each in both modes exactly as a host does
+(`validate`, `render`, `toDom`; for a map, MapLibre with
+`pathOnMap.plainStyle` and `drawChecked`), offline, at scale 2, and judges it
+with the same `diffInPage` and default tolerance.
+
+Text differs between operating systems, so the references are rendered and
+verified in **one pinned image**, `mcr.microsoft.com/playwright:v1.63.0-noble`
+(software GL, the faces self-hosted from `@fontsource`): CI's
+`web-conformance` job runs in it, and locally
+`node tools/render/container.mjs tools/render/web.mjs [--verify]` runs the
+same command there. The lock records them under `web` (renderer and SHA-256
+per image). New web references are proposals until Sami approves them.
+
 ### Desktop (Tauri)
 
 The same web build, in the platform webview: WKWebView on macOS, WebView2
@@ -131,7 +150,9 @@ node tools/render/render.mjs --zega ../zega --compare <renders dir>
 WebKit differs from Chromium in WebGL rasterisation and text, so the macOS
 desktop is a real conformance run, not a formality.
 
-### iOS (SwiftUI)
+### iOS (SwiftUI): paused (Sami, 15 Nov)
+
+Kept for when iOS resumes; nothing below is being built.
 
 XCTest in the app's test target, one test per fixture and theme:
 
