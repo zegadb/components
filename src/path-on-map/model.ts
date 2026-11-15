@@ -102,10 +102,38 @@ export function colourOf(p: Paths, theme: Theme): (v: number | null | undefined)
 }
 
 type Line = Feature<LineString, { g: number; c: string }>;
-type Start = Feature<Point, { g: number; label: string }>;
+type Start = Feature<Point, { g: number; label: string; anchor: LabelAnchor; offset: [number, number] }>;
+
+export type LabelAnchor = "left" | "right" | "top" | "bottom";
+
+/**
+ * Where a path's name goes beside its start marker: off the path, not on it. The label sits
+ * across the path's direction at the start (it runs along the line there), on the side away
+ * from the middle of all its points (outside a lap's loop, beside a route), in the screen's
+ * axes at the camera's bearing. `offset` is in ems from the start, the way MapLibre's text-offset
+ * reads it (x right, y down); `anchor` is the side of the label that faces the start.
+ */
+export function labelPlacement(points: readonly LonLat[], bearing: number): { anchor: LabelAnchor; offset: [number, number] } {
+  const r = (bearing * Math.PI) / 180;
+  const screen = (p: LonLat) => { const [x, y] = mercator(p); return [x * Math.cos(r) + y * Math.sin(r), -x * Math.sin(r) + y * Math.cos(r)] as const; };
+  const s = points.map(screen);
+  const [x0, y0] = s[0]!;
+  // The direction at the start: towards the first point a little way along (a twentieth of the points, at least the next).
+  const [x1, y1] = s[Math.min(s.length - 1, Math.max(1, Math.floor(s.length / 20)))]!;
+  let [dx, dy] = [x1 - x0, y1 - y0];
+  const len = Math.hypot(dx, dy) || 1;
+  [dx, dy] = [dx / len, dy / len];
+  // Across it, towards the side away from the points' middle.
+  const cx = s.reduce((a, p) => a + p[0], 0) / s.length - x0, cy = s.reduce((a, p) => a + p[1], 0) / s.length - y0;
+  let [nx, ny] = [-dy, dx];
+  if (nx * cx + ny * cy > 0) [nx, ny] = [-nx, -ny];
+  const o = MEASURES.labelOffset;
+  if (Math.abs(nx) >= Math.abs(ny)) return nx > 0 ? { anchor: "left", offset: [o, 0] } : { anchor: "right", offset: [-o, 0] };
+  return ny > 0 ? { anchor: "top", offset: [0, o] } : { anchor: "bottom", offset: [0, -o] };
+}
 
 /** The GeoJSON drawn: one line per segment (consecutive points), coloured by its start point's value; one start per path. */
-export function pathFeatures(p: Paths, theme: Theme): { segments: FeatureCollection<LineString, { g: number; c: string }>; starts: FeatureCollection<Point, { g: number; label: string }> } {
+export function pathFeatures(p: Paths, theme: Theme): { segments: FeatureCollection<LineString, { g: number; c: string }>; starts: FeatureCollection<Point, { g: number; label: string; anchor: LabelAnchor; offset: [number, number] }> } {
   const colour = colourOf(p, theme);
   const segments: Line[] = [];
   const starts: Start[] = [];
@@ -114,7 +142,7 @@ export function pathFeatures(p: Paths, theme: Theme): { segments: FeatureCollect
     for (let i = 1; i < points.length; i++) {
       segments.push({ type: "Feature", properties: { g, c: colour(values?.[i - 1]) }, geometry: { type: "LineString", coordinates: [[...points[i - 1]!], [...points[i]!]] } });
     }
-    starts.push({ type: "Feature", properties: { g, label: path.label ?? "" }, geometry: { type: "Point", coordinates: [...points[0]!] } });
+    starts.push({ type: "Feature", properties: { g, label: path.label ?? "", ...labelPlacement(points, p.options.bearing) }, geometry: { type: "Point", coordinates: [...points[0]!] } });
   });
   return { segments: { type: "FeatureCollection", features: segments }, starts: { type: "FeatureCollection", features: starts } };
 }
@@ -139,7 +167,7 @@ export function pathLayers(theme: Theme, options: PathOptions, labels = true): L
   ];
   if (labels) out.push({
     id: PATH_LAYERS.label, type: "symbol", source: PATH_SOURCES.starts,
-    layout: { "text-field": ["get", "label"], "text-font": [theme.font.map], "text-size": MEASURES.labelSize, "text-anchor": "left", "text-offset": [MEASURES.labelOffset, 0], "text-allow-overlap": true, "text-ignore-placement": false },
+    layout: { "text-field": ["get", "label"], "text-font": [theme.font.map], "text-size": MEASURES.labelSize, "text-anchor": ["get", "anchor"], "text-offset": ["get", "offset"], "text-allow-overlap": true, "text-ignore-placement": false },
     paint: { "text-color": c.ink, "text-halo-color": c.halo, "text-halo-width": MEASURES.labelHalo },
   });
   return out;

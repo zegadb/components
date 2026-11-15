@@ -111,7 +111,9 @@ export function render(data: PriceChartData, options: PriceChartOptions, ctx: Re
   // Grid, price axis at the right, time axis at the bottom.
   const grid = yTicks.map((t) => el("line", { x1: left, x2: right, y1: sy(t), y2: sy(t), stroke: theme.rule, "stroke-width": 1 }));
   const lastY = sy(last.c);
-  const yLabels = yTicks.filter((t) => Math.abs(sy(t) - lastY) > 14).map((t) => el("text", { x: right + 8, y: sy(t) + 4, "font-size": TYPE.tick, fill: theme.soft, "font-family": font }, priceText(t)));
+  // Price labels keep clear of the last price and of the volume band's own label (its maximum) below them.
+  const volLabelY = volH ? plotBottomGuess - volH + 10 : null;
+  const yLabels = yTicks.filter((t) => Math.abs(sy(t) - lastY) > 14 && (volLabelY === null || volLabelY - (sy(t) + 4) > 16)).map((t) => el("text", { x: right + 8, y: sy(t) + 4, "font-size": TYPE.tick, fill: theme.soft, "font-family": font }, priceText(t)));
   const tTicks = timeTicks(t0, t1, Math.max(2, Math.floor((right - left) / 76)), locale);
   const tickX = (t: number) => {
     if (!xAt) return sx(t);
@@ -181,7 +183,7 @@ export function render(data: PriceChartData, options: PriceChartOptions, ctx: Re
       volume.push(el("rect", { x: x - w / 2, y: vy(r.v ?? 0), width: w, height: Math.max(0.5, plotBottomGuess - vy(r.v ?? 0)), fill: withAlpha(rising ? theme.up : theme.down, 0.45), "data-part": "volume" }));
     });
     volume.push(el("line", { x1: left, x2: right, y1: plotBottomGuess, y2: plotBottomGuess, stroke: theme.axis, "stroke-width": 1 }));
-    volume.push(el("text", { x: right + 8, y: plotBottomGuess - volH + 10, "font-size": TYPE.small, fill: theme.soft, "font-family": font }, formatNumber(vmax, locale, { compact: true })));
+    volume.push(el("text", { x: right + 8, y: volLabelY!, "font-size": TYPE.small, fill: theme.soft, "font-family": font }, formatNumber(vmax, locale, { compact: true })));
   }
 
   // Annotations: a dashed rule from the moment's point up to its label, labels staggered so they don't overlap.
