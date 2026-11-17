@@ -65,6 +65,127 @@ export async function shoot(browser, origin, fixturePath, fixture, mode, extra =
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
+/**
+ * The body's runtime, in a real page: twenty stills hold no WebGL context and all stay drawn; a body
+ * mounted hidden waits and then draws at its size; a resize re-lays the picture and the labels; an
+ * interactive body asks for no frames while idle; a cancelled mount leaves nothing behind. Returns
+ * the problems found.
+ */
+export async function bodyRuntime(browser, origin) {
+  const context = await browser.newContext({ viewport: { width: 900, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+  await context.route('**/*', (route) => (new URL(route.request().url()).origin === origin ? route.continue() : route.abort()));
+  const page = await context.newPage();
+  await page.goto(`${origin}/tools/render/web.html?fixture=none`);
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(['the runtime checks did not finish in 3 minutes (a mount never resolved)']), 180_000).unref());
+  const problems = await Promise.race([timeout, page.evaluate(async () => {
+    const out = [];
+    const { drawBody } = await import('/dist/body/draw.js');
+    const { theme, validate } = await import('/dist/index.js');
+    const t = theme('ava', 'light');
+    document.body.innerHTML = '';
+    const spec = (options = {}) => validate({ component: 'body', data: { highlight: [{ region: 'liver' }, { region: 'gallbladder', role: 'related' }] }, options }).view;
+    const box = (w, h) => { const el = document.createElement('div'); el.dataset.zcHost = 'ava'; el.style.cssText = `width:${w}px;height:${h}px;display:inline-block`; document.body.appendChild(el); return el; };
+    const asset = (b) => `/assets/body/${b}.glb`;
+    const litIn = (canvas) => { const g = canvas.getContext('2d'); const d = g.getImageData(0, 0, canvas.width, canvas.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 0x66) + Math.abs(d[i + 1] - 0x46) + Math.abs(d[i + 2] - 0xee) < 90) n++; return n; };
+    // Each check runs on its own: one that throws or hangs (20 s) is reported, and the next still runs.
+    const within = (promise, ms = 20000) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`no answer in ${ms / 1000} s`)), ms))]);
+    const step = async (name, fn) => { try { await fn(); } catch (e) { out.push(`${name}: ${e.message}`); } document.body.innerHTML = ''; };
+    const v = spec();
+    await step('twenty stills', async () => {
+      const stills = [];
+      for (let i = 0; i < 20; i++) { const s = spec(); stills.push(await within(drawBody(box(160, 160), s.data, s.options, { theme: t, asset, reducedMotion: true }))); }
+      const pictures = [...document.querySelectorAll('canvas.zc-body-canvas')];
+      if (pictures.length !== 20) out.push(`20 stills made ${pictures.length} pictures`);
+      // A plain 2D picture per still: a WebGL canvas would hold one of the browser's ~16 contexts.
+      const flat = pictures.filter((c) => c.getContext('2d') !== null);
+      if (flat.length !== pictures.length) out.push(`${pictures.length - flat.length} of 20 stills kept a WebGL canvas (and its context)`);
+      const blank = flat.filter((c) => litIn(c) < 20).length;
+      if (blank) out.push(`${blank} of 20 stills are blank`);
+      for (const h of stills) h.dispose();
+      if (document.querySelectorAll('.zc-body').length) out.push('dispose left a body behind');
+    });
+    await step('hidden mount and resize', async () => {
+      const hidden = box(358, 380); hidden.style.display = 'none';
+      const pending = drawBody(hidden, v.data, v.options, { theme: t, asset, reducedMotion: true });
+      await new Promise((r) => setTimeout(r, 300));
+      hidden.style.display = 'inline-block';
+      const h2 = await within(pending);
+      const pic = hidden.querySelector('canvas');
+      if (!pic || pic.clientWidth !== 358) out.push(`hidden mount drew at ${pic?.clientWidth} px`);
+      if ([...hidden.querySelectorAll('.zc-body-lines circle, svg circle')].some((c) => !Number.isFinite(Number(c.getAttribute('cx'))))) out.push('hidden mount: a leader at NaN');
+      hidden.style.width = '640px'; hidden.style.height = '600px';
+      await new Promise((r) => setTimeout(r, 300));
+      const stage = (hidden.querySelector('.zc-body-stage') ?? hidden).getBoundingClientRect();
+      if (Math.abs(hidden.querySelector('canvas').getBoundingClientRect().width - 640) > 1) out.push('resize: the picture kept its old width');
+      for (const l of hidden.querySelectorAll('.zc-body-label')) { const r = l.getBoundingClientRect(); if (r.right > stage.right + 1 || r.bottom > stage.bottom + 1) { out.push('resize: a label left the picture'); break; } }
+      h2.dispose();
+    });
+    await step('interactive idle', async () => {
+      const vi = spec({ mode: 'interactive' });
+      const h3 = await within(drawBody(box(400, 400), vi.data, vi.options, { theme: t, asset, reducedMotion: true }));
+      await new Promise((r) => setTimeout(r, 500));
+      let frames = 0; const raf = window.requestAnimationFrame;
+      window.requestAnimationFrame = (f) => { frames++; return raf(f); };
+      await new Promise((r) => setTimeout(r, 600));
+      window.requestAnimationFrame = raf;
+      if (frames > 2) out.push(`interactive idle asked for ${frames} frames in 0.6 s`);
+      h3.dispose();
+    });
+    await step('cancelled mount', async () => {
+      const ac = new AbortController();
+      const el = box(200, 200);
+      const p = drawBody(el, v.data, v.options, { theme: t, asset, reducedMotion: true, signal: ac.signal });
+      ac.abort();
+      try { const h = await within(p); h.dispose?.(); out.push('a cancelled mount resolved'); } catch (e) { if (e.name !== 'AbortError') out.push(`a cancelled mount threw ${e.name}: ${e.message}`); }
+      if (el.children.length) out.push('a cancelled mount left elements behind');
+    });
+    await step('failed load', async () => {
+      const bad = box(200, 200);
+      try { await within(drawBody(bad, v.data, v.options, { theme: t, asset: () => '/assets/body/none.glb', reducedMotion: true })); out.push('a failed load resolved'); } catch { /* expected */ }
+      const status = bad.querySelector('[role=status]');
+      if (!status || status.getAttribute('aria-label') === 'Loading the body') out.push('the failure kept the loading label');
+      if (bad.querySelector('canvas')) out.push('the failure left a canvas');
+    });
+    return out;
+  })]);
+  await context.close();
+  return problems;
+}
+
+/**
+ * A draft's smoke check, in the page that drew it: something lit in the focus colour (or pain's, if
+ * nothing is the focus) on the screenshot, and every visible label inside the stage. Returns a
+ * problem, or null.
+ */
+export async function smoke(page, png, fixture, mode) {
+  const roles = (fixture.spec.data.highlight ?? []).map((h) => h.role ?? 'focus');
+  return page.evaluate(async ({ png, roles, mode, host }) => {
+    const { theme } = await import('/dist/index.js');
+    const t = theme(host, mode);
+    const want = roles.includes('focus') ? t.accent : roles.includes('pain') ? t.down : t.soft;
+    const rgb = [1, 3, 5].map((i) => parseInt(want.slice(i, i + 2), 16));
+    const img = new Image();
+    img.src = `data:image/png;base64,${png}`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let lit = 0;
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - rgb[0]) + Math.abs(d[i + 1] - rgb[1]) + Math.abs(d[i + 2] - rgb[2]) < 90) lit++;
+    if (lit < 200) return `only ${lit} pixels near ${want}: nothing lit`;
+    const stage = document.querySelector('.zc-body-stage')?.getBoundingClientRect();
+    if (!stage) return 'no stage';
+    for (const el of document.querySelectorAll('.zc-body-label:not([hidden]), .zc-body-key:not([hidden])')) {
+      const r = el.getBoundingClientRect();
+      if (r.left < stage.left - 1 || r.right > stage.right + 1 || r.top < stage.top - 1 || r.bottom > stage.bottom + 1) return `a label is off the stage (${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}×${Math.round(r.height)})`;
+    }
+    for (const el of document.querySelectorAll('.zc-body-lines circle')) if (el.getAttribute('visibility') !== 'hidden' && [el.getAttribute('cx'), el.getAttribute('cy')].some((v) => !Number.isFinite(Number(v)))) return 'a leader has no position';
+    return null;
+  }, { png: png.toString('base64'), roles, mode, host: fixture.host });
+}
+
 async function main() {
   const verify = process.argv.includes('--verify');
   const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
@@ -77,11 +198,26 @@ async function main() {
   let failed = 0, gl = null;
   await mkdir(join(REPO, '.tmp'), { recursive: true });
   try {
-    // A draft has no references yet (tools/check.mjs asks for none): its fixtures render with screens.mjs for review.
+    // A draft has no references yet (tools/check.mjs asks for none), but it is still drawn: every one of
+    // its fixtures must draw without an error, light something in its focus colour, and keep its labels on screen.
     const drafts = new Set((await components(REPO)).filter((c) => c.status === 'draft').map((c) => c.id));
     for (const fx of await webFixtures(REPO)) {
       if (only && fx.component !== only) continue;
-      if (drafts.has(fx.component)) { console.log(`skip ${fx.path}  (draft)`); continue; }
+      if (drafts.has(fx.component)) {
+        if (!verify) { console.log(`skip ${fx.path}  (draft: no reference)`); continue; }
+        const fixture = JSON.parse(await readFile(join(REPO, fx.path), 'utf8'));
+        for (const mode of ['light', 'dark']) {
+          let problem = null;
+          try {
+            const { png, page, context, errors } = await shoot(browser, origin, fx.path, fixture, mode);
+            problem = errors.length ? `page errors: ${errors.join(' | ')}` : await smoke(page, png, fixture, mode);
+            await context.close();
+          } catch (error) { problem = String(error.message || error).split('\n')[0]; }
+          if (problem) failed++;
+          console.log(`${problem ? 'FAIL' : 'ok  '} ${fx.path} (${mode}, draft smoke)${problem ? `  ${problem}` : ''}`);
+        }
+        continue;
+      }
       const fixture = JSON.parse(await readFile(join(REPO, fx.path), 'utf8'));
       const refs = webReferencePaths(fx);
       for (const mode of ['light', 'dark']) {
@@ -104,6 +240,12 @@ async function main() {
         if (errors.length) console.warn(`  page errors: ${errors.join(' | ')}`);
         await context.close();
       }
+    }
+    if (verify && (!only || only === 'body')) {
+      const problems = await bodyRuntime(browser, origin);
+      for (const p of problems) console.log(`FAIL body runtime: ${p}`);
+      if (!problems.length) console.log('ok   body runtime (stills hold no context, hidden mount, resize, idle, cancel, failure)');
+      failed += problems.length;
     }
     if (!verify) {
       lock.web.renderer = {

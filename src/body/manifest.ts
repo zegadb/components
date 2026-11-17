@@ -3,7 +3,7 @@
 // each mesh file's size, and what the child bodies measured out to (components/body/references.json).
 export const MANIFEST = {
   "man": {
-    "bytes": 444732,
+    "bytes": 445012,
     "meshes": [
       "appendix",
       "bladder",
@@ -30,10 +30,13 @@ export const MANIFEST = {
       "spleen",
       "tibia__left",
       "tibia__right"
-    ]
+    ],
+    "neutralForm": {
+      "verticesMoved": 423
+    }
   },
   "woman": {
-    "bytes": 449444,
+    "bytes": 449760,
     "meshes": [
       "appendix",
       "bladder",
@@ -60,10 +63,13 @@ export const MANIFEST = {
       "spleen",
       "tibia__left",
       "tibia__right"
-    ]
+    ],
+    "neutralForm": {
+      "verticesMoved": 0
+    }
   },
   "boy": {
-    "bytes": 444316,
+    "bytes": 447632,
     "meshes": [
       "appendix",
       "bladder",
@@ -91,10 +97,13 @@ export const MANIFEST = {
       "spleen",
       "tibia__left",
       "tibia__right"
-    ]
+    ],
+    "neutralForm": {
+      "verticesMoved": 0
+    }
   },
   "girl": {
-    "bytes": 448792,
+    "bytes": 451204,
     "meshes": [
       "appendix",
       "bladder",
@@ -122,7 +131,10 @@ export const MANIFEST = {
       "spleen",
       "tibia__left",
       "tibia__right"
-    ]
+    ],
+    "neutralForm": {
+      "verticesMoved": 0
+    }
   }
 } as const;
 
@@ -130,33 +142,60 @@ export const CHILD_REPORT = {
   "boy": {
     "stature": 1.281000018119812,
     "headShare": 0.15127999999999964,
-    "adultHeadShare": 0.11680000000000058,
+    "adultHeadShare": 0.11672000000000055,
     "legShare": 0.44400000000000034,
-    "adultLegShare": 0.43999999999999984,
+    "adultLegShare": 0.4559999999999998,
     "organs": {
+      "brain": {
+        "clampedTo": 0.951
+      },
+      "heart": {},
+      "lung__right": {},
+      "lung__left": {},
       "liver": {
         "adult": 15.9,
         "child": 11.9,
-        "scale": 0.747,
-        "bodyScale": 0.639
+        "scale": 0.746
       },
+      "gallbladder": {},
+      "pancreas": {},
       "spleen": {
         "adult": 13.8,
         "child": 8.2,
-        "scale": 0.594,
-        "bodyScale": 0.639
+        "scale": 0.594
       },
       "kidney__right": {
         "adult": 12.5,
         "child": 8.8,
-        "scale": 0.701,
-        "bodyScale": 0.639
+        "scale": 0.701
       },
       "kidney__left": {
         "adult": 12.4,
         "child": 8.8,
-        "scale": 0.71,
-        "bodyScale": 0.639
+        "scale": 0.71
+      },
+      "small-intestine": {},
+      "large-intestine": {
+        "clampedTo": 0.865
+      },
+      "appendix": {},
+      "bladder": {},
+      "organs": {}
+    },
+    "nudged": {
+      "spine": {
+        "outsideBefore": 0.007,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "tibia__right": {
+        "outsideBefore": 0.01,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": -3,
+        "dzMm": 0
       }
     }
   },
@@ -167,29 +206,78 @@ export const CHILD_REPORT = {
     "legShare": 0.4439999999999995,
     "adultLegShare": 0.4419999999999996,
     "organs": {
+      "brain": {
+        "clampedTo": 0.965
+      },
+      "heart": {},
+      "lung__right": {},
+      "lung__left": {},
       "liver": {
         "adult": 15.2,
         "child": 11.7,
         "scale": 0.772,
-        "bodyScale": 0.719
+        "clampedTo": 0.829
       },
+      "gallbladder": {},
+      "pancreas": {},
       "spleen": {
         "adult": 11.7,
         "child": 8.2,
-        "scale": 0.703,
-        "bodyScale": 0.719
+        "scale": 0.703
       },
       "kidney__right": {
         "adult": 11.1,
         "child": 8.7,
-        "scale": 0.789,
-        "bodyScale": 0.719
+        "scale": 0.789
       },
       "kidney__left": {
         "adult": 13.4,
         "child": 8.7,
-        "scale": 0.655,
-        "bodyScale": 0.719
+        "scale": 0.655
+      },
+      "small-intestine": {},
+      "large-intestine": {
+        "clampedTo": 0.909
+      },
+      "appendix": {},
+      "bladder": {},
+      "organs": {}
+    },
+    "nudged": {
+      "brain": {
+        "outsideBefore": 0.007,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "spine": {
+        "outsideBefore": 0.017,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "patella__right": {
+        "outsideBefore": 0.144,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "tibia__left": {
+        "outsideBefore": 0.01,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 3,
+        "dzMm": 0
+      },
+      "skeleton": {
+        "outsideBefore": 0.023,
+        "outsideAfter": 0,
+        "shrink": 0.97,
+        "dxMm": 3,
+        "dzMm": -3
       }
     }
   }

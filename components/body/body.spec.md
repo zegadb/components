@@ -60,53 +60,49 @@ Back to front.
 | 4 | **faint skeleton** | the skeleton, barely there, when only organs are lit (for orientation) | translucent mesh |
 | 5 | **skin** | the body's outline, a veil over everything | translucent mesh, front faces |
 | 6 | **leaders** | a line and dot from each label to each side of its region | SVG over the canvas |
-| 7 | **labels** | the region's name with a swatch, the note (or the role in words) under it | HTML text over the canvas, in a column either side |
+| 7 | **labels** | the region's name with its role's mark, the role in words and the note under it; pointing at a point of the region that faces the camera (not its box's middle). When they do not fit the height (a phone, many regions): names alone, then numbered markers with a key | HTML text over the canvas, in a column either side |
 | 8 | **title** | `title`, when given | HTML text |
 | 9 | **controls** | interactive only: zoom in, zoom out, whole body, top-right as on the globe | HTML buttons |
-| 10 | **credit** | the source's credit, once, bottom-right, plain text, no links | HTML text |
+| 10 | **credit** | the sources' credit, once, in its own band under the picture (never over the body), plain text, no links | HTML text |
 
-**The meshes.** Four files, each loaded only when its body is drawn,
-meshopt-compressed and quantised: man 434 KB, woman 439 KB, boy 434 KB,
-girl 438 KB (1.75 MB together; the tests hold each under 480 KB and all
-four under 1.8 MB). tools/body/build.mjs makes them all:
+**The meshes.** There are four files. Each is loaded only when its body is drawn, and all are meshopt-compressed and quantised:
 
-- **The man and the woman** are cut from the Human Reference Atlas's 3D
-  reference objects, the Visible Human male and female (HuBMAP CCF release
-  v2.0), licensed CC BY 4.0. That licence asks for credit, which the
-  component shows once; it is not share-alike, so the code stays MIT.
-- **The boy and the girl (8 years)** are the man and the woman morphed
-  organ by organ into a MakeHuman outline (CC0) at age 8, never a uniform
-  scale. Every number comes from [references.json](references.json), with
-  its citation, value and age. The outline is MakeHuman's own child (larger
-  head, shorter trunk), scaled to the CDC 2000 median stature. A map from
-  the adult's outline to the child's (through the sole, knee, crotch, neck
-  and crown, each band with its own width and depth, the chest broader than
-  the abdomen) places everything. Then the liver, spleen and kidneys take
-  their measured paediatric sizes (Dhingra 2010, Obrycki 2022). The thymus
-  takes its CT size (Francis 1985). Across the trunk, everything inside
-  scales with the room inside the child's body wall (1.5 cm a side, a
-  modelling value), not with the outline: an adult's organs sit inside a
-  thicker wall of muscle and fat. The head is the outline's own and is
-  checked, not set: crown to neck it is 1.20 to 1.29 times the adults'
-  share, against 1.26 from Medawar 1944 (1/6.3 of stature at 8, 1/8 in the
-  adult). The bladder takes its expected volume
-  (Hakenberg 1983) and rises out of the pelvis (Moore). The heart follows
-  the chest (a child's cardiothoracic ratio is an adult's, Maresh 1938). On
-  the skeleton, gaps are cut at the distal femoral and proximal and distal
-  tibial growth plates, the pelvis shows ilium, ischium and pubis apart (the
-  triradiate cartilage), and the kneecap is its smaller ossified part.
+| body | size |
+|---|---|
+| man | 434 KB |
+| woman | 439 KB |
+| boy | 437 KB |
+| girl | 440 KB |
+| all four | 1.75 MB |
 
-Known limits, said plainly:
+The tests hold each under 480 KB and all four under 1.8 MB. tools/body/build.mjs makes them all.
+
+**The man and the woman** are cut from the Human Reference Atlas's 3D reference objects, the Visible Human male and female (HuBMAP CCF release v2.0, CC BY 4.0). The brain in every body is the Allen Human Reference Atlas – 3D, 2020 (© 2019 Allen Institute for Brain Science, CC BY 4.0). Those licences ask for credit, which the component shows once; neither is share-alike, so the code stays MIT. `assets/body/LICENSE` and each file's glTF `asset.copyright` carry the full credit.
+
+**The boy and the girl (8 years)** are the man and the woman morphed organ by organ into a MakeHuman outline (CC0) at age 8, never a uniform scale. Every number comes from [references.json](references.json), with its citation, value and age.
+- **Outline.** MakeHuman's own child, scaled to the CDC 2000 median stature.
+- **Placement.** A map from the adult's outline to the child's places everything. It runs through the sole, knee, crotch, neck and crown, and the leg through ankle, shin and thigh sections. Each band has its own width and depth.
+  - Bones follow the outline.
+  - Organs follow the room inside the child's body wall across the trunk (1.5 cm a side, a modelling value), since an adult's organs sit inside a thicker wall.
+- **Measured organs.**
+  - The liver, spleen and kidneys take their measured paediatric sizes (Dhingra 2010, Obrycki 2022). The thymus takes its CT size (Francis 1985). The brain takes about 95 % of adult volume (Lenroot 2007), kept inside the head.
+  - Each organ is then kept inside the trunk's room. The liver keeps its measured span and narrows only across.
+- **Bladder.** Scaled with the pelvis, not to a full capacity: the atlas adults' bladders are near empty. Then raised out of the pelvis (our paraphrase of Moore).
+- **Heart.** Follows the chest; no separate value.
+- **Skeleton.**
+  - Cartilage bands at the distal femoral and the proximal and distal tibial growth plates.
+  - Cartilage only where ilium, ischium and pubis meet (the triradiate cartilage, the ischiopubic seam).
+  - The kneecap is its smaller ossified part.
+- **Inside the outline.** A piece still poking through the outline is nudged by the smallest move or shrink that brings it inside (reported by the builder). A point-in-mesh test holds every organ and bone of every body inside its skin.
+
+The child's head is the outline's own and is checked, not set. Crown to neck, it is 1.20 to 1.29 times the adults' share. Medawar 1944 gives about 1.26; that series is reproduced widely, but we have not checked it against the paper, so it is marked unconfirmed.
+
+Known limits:
 - the atlas has no ribs, so a child's more horizontal ribs are not shown;
 - the proximal femoral growth plate is not cut;
-- the arms stay as the sources hold them, about 45° from the body (relaxing
-  them needs a rig and skin weights, not done); whole-body frames fit the
-  height, so the arms cost no height;
-- the woman's own liver is large, so the girl's comes out only about 1.05×
-  relatively larger against the trunk (the boy's 1.2×);
-- the atlas's adult "thymus" is the fat-replaced thymic region (the woman's
-  is 8.6 cm across), so the child's CT-sized gland is not visibly larger
-  than it.
+- the arms stay about 45° from the body (relaxing them needs a rig and skin weights). Whole-body frames fit the height, so the arms cost no height;
+- the atlas's adult "thymus" is the fat-replaced thymic region (the woman's is 8.6 cm across), so the child's CT-sized gland is not visibly larger than it;
+- **the neutral form (Sami, 17 Nov):** every outline is drawn without external genitalia, as in a medical illustration app. The builder folds anything hanging between the thighs into the crotch (`neutralise` in tools/body/build.mjs, using `hanging` in src/body/geometry.ts) and brings a pubic protrusion back to the line of the skin beside it. This moves 423 vertices on the man; the woman's, boy's and girl's outlines are already neutral (0 moved, recorded per body as `neutralForm` in the manifest). A test holds every built outline to nothing hanging (before: 252 points on the man).
 
 The sources (about 500 MB) are downloaded by the builder and checked against
 their SHA-256; they are never committed.
@@ -130,8 +126,11 @@ within 380–600 pt. The fixtures are 640 pt (a desktop chat column) and 358 pt
 
 ## Colour and type
 
-The focus is {theme.accent}; pain is {theme.down}; related is the accent
-halfway to {theme.ground}. A child's cartilage (open growth plates, the
+The focus is {theme.accent}, solid; pain is {theme.down}, solid; related is
+{theme.soft} at 45 %, translucent so it never hides the focus. The role is
+never colour alone: a filled disc, a ring or a square beside the name, the
+role in words ("related", "pain"; French "en rapport", "douleur", which agree
+with any region), and a dashed leader for related. A child's cartilage (open growth plates, the
 pelvis's seams) is {theme.cartilage}, a pale blue-grey apart from every
 bone and organ colour, solid whenever the skeleton is shown. Dimmed layers and the faint skeleton are
 {theme.axis}, at 30 % (22 % on a dark ground); the skin is {theme.soft} at
@@ -192,13 +191,24 @@ None yet: inline answers have no gear. The options are the model's to set.
   `drawBody(container, data, options, { theme, asset })` from
   `@zegadb/components/body/draw`; `render()` says `{ body: true, height }`.
   Labels are HTML text set with textContent, never markup.
+  - **Contexts:** a still borrows a WebGL context only while it paints, then copies the frame into a 2D canvas and releases the context (`forceContextLoss`), so a chat full of stills never loses a picture. An interactive body keeps one context, renders only on the controls' changes and during a flight, handles `webglcontextlost`, and releases the context on `dispose()`.
+  - **Mounting:** a `ResizeObserver` follows the column, re-framing until the reader touches the camera. A body mounted while hidden waits for a size. An `AbortSignal` cancels a mount; nothing is left behind.
+  - **Theme:** `theme` may be a function; the body re-reads it when the system's or the page's light and dark switch.
+  - **Failure:** a load that fails shows a plain sentence (its accessible name too) and no canvas.
+  - **Accessible name:** the picture has one, saying what is lit.
 - **Desktop (Tauri):** the same web build (Ava's app).
 - **iOS:** paused (Sami, 15 Nov).
 
 ## Conformance
 
 Draft: no references yet. The fixtures render with `npm run screens -- --only
-body` for review; references come when Sami approves the look.
+body` for review; references come when Sami approves the look. Until then
+`tools/render/web.mjs --verify` (CI's web-conformance job) still draws every
+fixture in both modes and fails when one throws, lights nothing or puts a
+label off the picture. It also runs the body's runtime checks:
+- twenty stills keep no WebGL context;
+- a hidden mount, a resize, an idle interactive body, a cancelled mount and
+  a failed load each behave.
 
 | fixture | what it proves | tolerance |
 |---|---|---|
@@ -208,6 +218,8 @@ body` for review; references come when Sami approves the look.
 | [web/knee-pain-zega-fr.json](web/knee-pain-zega-fr.json) | the skeleton layer, pain and related, French, zega, a phone column | default |
 | [web/whole-man-phone.json](web/whole-man-phone.json), [woman](web/whole-woman-phone.json), [boy](web/whole-boy-phone.json), [girl](web/whole-girl-phone.json) | each whole body with the liver lit (`frame: body`): the four bodies' proportions side by side | default |
 | [web/girl-liver.json](web/girl-liver.json), [phone](web/girl-liver-phone.json) | a child's liver (relatively larger), the bladder risen, the child's credit | default |
+| [web/girl-bones-front.json](web/girl-bones-front.json), [side](web/girl-bones-side.json) | the girl's skeleton inside her outline, front and side; cartilage at the seams and plates | default |
+| [web/twelve-phone.json](web/twelve-phone.json) | twelve highlights on a phone: the labels fall back instead of overflowing | default |
 | [web/boy-knee.json](web/boy-knee.json), [phone](web/boy-knee-phone.json) | a child's knee: open growth plates in the femur and tibia, the smaller ossified kneecap | default |
 
 ## Tokens

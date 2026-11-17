@@ -28,12 +28,19 @@ async function main() {
   if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
   const drawn = render(checked.view, { width: fixture.size.width, theme: t, id: 'fx' });
   if ('body' in drawn) {
-    const { drawBody, showLoading } = await import('/dist/body/draw.js');
+    const { drawBody } = await import('/dist/body/draw.js');
     const box = document.createElement('div');
     box.style.height = `${drawn.height}px`;
     stage.appendChild(box);
-    // &loading=1: the state a reader sees while the mesh comes (review screenshots only).
-    if (params.get('loading')) { box.className = 'zc-body'; showLoading(box, fixture.locale ?? 'en'); await frames(2); root.dataset.ready = '1'; return; }
+    // &loading=1: the real loading state, drawBody waiting on a mesh that never comes (review screenshots only).
+    if (params.get('loading')) {
+      const realFetch = window.fetch.bind(window);
+      window.fetch = (url, init) => (String(url).includes('/never/') ? new Promise(() => {}) : realFetch(url, init));
+      drawBody(box, checked.view.data, checked.view.options, { theme: t, asset: (body) => `/never/${body}.glb`, locale: fixture.locale ?? 'en', reducedMotion: true });
+      await frames(3);
+      root.dataset.ready = '1';
+      return;
+    }
     await drawBody(box, checked.view.data, checked.view.options, { theme: t, asset: (body) => `/assets/body/${body}.glb`,locale: fixture.locale ?? 'en', reducedMotion: true });
     await frames(3);
   } else if ('map' in drawn) {

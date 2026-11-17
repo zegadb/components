@@ -31,7 +31,7 @@ import { ALL_EXTENSIONS, EXTMeshoptCompression } from '@gltf-transform/extension
 import { quantize, reorder, prune } from '@gltf-transform/functions';
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import { REGIONS, LAYER_NODES, LAYERS, BODIES, meshName, femaleNode } from '../../src/body/regions.ts';
-import { principalLength } from '../../src/body/geometry.ts';
+import { principalLength, insideTest, hanging } from '../../src/body/geometry.ts';
 
 const REPO = fileURLToPath(new URL('../../', import.meta.url));
 const REFERENCES = JSON.parse(await readFile(join(REPO, 'components/body/references.json'), 'utf8'));
@@ -153,6 +153,45 @@ async function makehumanChild(dir, sex) {
   return { positions, indices };
 }
 
+/**
+ * A neutral form (Sami, 17 Nov): the outline with no external genitalia, as in a medical illustration.
+ * Below the crotch, anything hanging between the thighs near the midline (a section loop of its own,
+ * narrow, apart from both legs) is folded flat into the crotch; above it, the front of the pubic
+ * region is brought back to the line of the skin beside it. Works on a welded mesh, in place; returns
+ * how many vertices it moved. On an outline with nothing there it moves nothing.
+ */
+export function neutralise(positions, indices) {
+  const b = bounds(positions), H = b.size[1], cx = b.centre[0];
+  const P = (i, k) => positions[i * 3 + k];
+  // The crotch, and what hangs below it: the same test the tests hold the built bodies to (src/body/geometry.ts).
+  const { crotch, vertices: moved } = hanging(positions, indices);
+  // The front and back of the trunk at the crotch, near the midline: where folded vertices go.
+  let zf = -Infinity, zb = Infinity;
+  for (let i = 0; i < positions.length / 3; i++) if (Math.abs(P(i, 1) - crotch - 0.01) < 0.006 && Math.abs(P(i, 0) - cx) < 0.04 && !moved.has(i)) { zf = Math.max(zf, P(i, 2)); zb = Math.min(zb, P(i, 2)); }
+  for (const i of moved) { positions[i * 3 + 1] = crotch + 0.002; positions[i * 3 + 2] = Math.max(zb, Math.min(zf, P(i, 2))); }
+  // An outline with nothing hanging is already neutral: leave it as it is.
+  if (!moved.size) return 0;
+  // Above it, up to 5 % of the height: the front near the midline no further forward than the skin 5-8 % of the height either side.
+  const bins = new Map();
+  for (let i = 0; i < positions.length / 3; i++) {
+    const y = P(i, 1), dx = Math.abs(P(i, 0) - cx);
+    if (y < crotch || y > crotch + 0.05 * H || dx < 0.028 * H || dx > 0.045 * H) continue;
+    const k = Math.floor((y - crotch) / 0.005);
+    bins.set(k, Math.max(bins.get(k) ?? -Infinity, P(i, 2)));
+  }
+  let flattened = 0;
+  for (let i = 0; i < positions.length / 3; i++) {
+    const y = P(i, 1);
+    if (y < crotch || y > crotch + 0.05 * H || Math.abs(P(i, 0) - cx) >= 0.028 * H) continue;
+    const front = bins.get(Math.floor((y - crotch) / 0.005));
+    // Only a real protrusion (over 1.2 cm proud of the skin beside it): an ordinary mons stays as it is.
+    if (front !== undefined && P(i, 2) > front + 0.012) { positions[i * 3 + 2] = front + 0.004; flattened++; }
+  }
+  // The folded part stays as a flat sheet in the crotch (seen edge-on from any ordinary view): dropping
+  // its faces would open a hole in the outline, and the outline must stay closed (organs are tested inside it).
+  return moved.size + flattened;
+}
+
 /** Landmarks and widths of an outline: the sole, knee, crotch, neck and crown heights, and slices of the trunk, head and leg. */
 export function measure(positions, indices) {
   const b = bounds(positions), H = b.size[1], cx = b.centre[0];
@@ -197,6 +236,7 @@ export function measure(positions, indices) {
     head: central(neck + 0.5 * (b.max[1] - neck)),
     thigh: leg(b.min[1] + 0.75 * (crotch - b.min[1])),
     shin: leg(b.min[1] + 0.3 * (crotch - b.min[1])),
+    ankle: leg(b.min[1] + 0.08 * (crotch - b.min[1])),
     /** The trunk's width a fraction `f` of the way from crotch to neck. */
     trunkWidthAt: (f) => central(crotch + f * (neck - crotch))?.width ?? null,
     // Across the shoulders (arms and all): the midclavicular line is a quarter of this from the midline.
@@ -228,14 +268,26 @@ export function bodyMap(A, C, cavity = null) {
     const toTrunk = smooth(A.crotch - 0.25 * legLength, A.crotch, v), toHead = smooth(A.neck - 0.01, A.neck + 0.02, v);
     return { trunk: toTrunk * (1 - toHead), head: toHead, leg: 1 - toTrunk };
   };
-  const sx = { head: C.head.width / A.head.width, leg: C.thigh.width / A.thigh.width };
-  const sz = { head: C.head.depth / A.head.depth, leg: C.thigh.depth / A.thigh.depth };
+  const sx = { head: C.head.width / A.head.width };
+  const sz = { head: C.head.depth / A.head.depth };
+  // The leg through three sections, ankle, shin and thigh: its middle, width and depth at each, in between by height.
+  const STATIONS = [['ankle', 0.08], ['shin', 0.3], ['thigh', 0.75]];
+  const legAt = (v) => {
+    const f = (v - A.sole) / (A.crotch - A.sole);
+    let k = 0;
+    while (k < STATIONS.length - 2 && f > STATIONS[k + 1][1]) k++;
+    const [n0, f0] = STATIONS[k], [n1, f1] = STATIONS[k + 1];
+    const t = Math.max(0, Math.min(1, (f - f0) / (f1 - f0)));
+    const mix = (key, src) => src[n0][key] + t * (src[n1][key] - src[n0][key]);
+    return { xA: mix('xc', A), xC: mix('xc', C), sx: mix('width', C) / mix('width', A), zA: mix('zc', A), zC: mix('zc', C), sz: mix('depth', C) / mix('depth', A) };
+  };
   // The trunk's width, depth and middle run from the abdomen's to the chest's (a child's chest is relatively broader).
   const yAbdomen = A.crotch + TRUNK_AT.abdomen * (A.neck - A.crotch), yChest = A.crotch + TRUNK_AT.chest * (A.neck - A.crotch);
   // Across the trunk, what is inside it scales with the cavity, not the outline: an adult's organs sit
   // inside a thicker wall of muscle and fat than a child's (cavity: the child's room across over the adult's organs' width).
+  const outline = (v) => { const t = Math.max(0, Math.min(1, (v - yAbdomen) / (yChest - yAbdomen))); return C.trunk.width / A.trunk.width + t * (C.chest.width / A.chest.width - C.trunk.width / A.trunk.width); };
   const across = (v) => {
-    if (!cavity) { const t = Math.max(0, Math.min(1, (v - yAbdomen) / (yChest - yAbdomen))); return C.trunk.width / A.trunk.width + t * (C.chest.width / A.chest.width - C.trunk.width / A.trunk.width); }
+    if (!cavity) return outline(v);
     const f = (v - A.crotch) / (A.neck - A.crotch);
     if (f <= cavity[0][0]) return cavity[0][1];
     for (let k = 1; k < cavity.length; k++) if (f <= cavity[k][0]) { const [f0, r0] = cavity[k - 1], [f1, r1] = cavity[k]; return r0 + ((f - f0) * (r1 - r0)) / (f1 - f0); }
@@ -246,16 +298,21 @@ export function bodyMap(A, C, cavity = null) {
     const mix = (a, b) => a + t * (b - a);
     return { sx: across(v), sz: mix(C.trunk.depth / A.trunk.depth, C.chest.depth / A.chest.depth), zA: mix(A.trunk.zc, A.chest.zc), zC: mix(C.trunk.zc, C.chest.zc) };
   };
-  const map = ([x, v, z]) => {
-    const w = band(v), tr = trunk(v);
-    const side = x < A.cx ? 1 : -1;
-    const legX = (C.cx + side * (C.thigh.xc - C.cx)) + (x - (A.cx + side * (A.thigh.xc - A.cx))) * sx.leg;
-    const nx = w.leg * legX + w.trunk * (C.cx + (x - A.cx) * tr.sx) + w.head * (C.cx + (x - A.cx) * sx.head);
-    const nz = w.leg * (C.thigh.zc + (z - A.thigh.zc) * sz.leg) + w.trunk * (tr.zC + (z - tr.zA) * tr.sz) + w.head * (C.head.zc + (z - A.head.zc) * sz.head);
-    return [nx, y(v), nz];
+  // Two maps: organs scale across the trunk with the cavity; bones (and everything else) with the outline.
+  const make = (inner) => {
+    const trunkX = (v) => (inner ? across(v) : outline(v));
+    const map = ([x, v, z]) => {
+      const w = band(v), tr = trunk(v), lg = legAt(v);
+      const side = x < A.cx ? 1 : -1;
+      const legX = (C.cx + side * (lg.xC - C.cx)) + (x - (A.cx + side * (lg.xA - A.cx))) * lg.sx;
+      const nx = w.leg * legX + w.trunk * (C.cx + (x - A.cx) * trunkX(v)) + w.head * (C.cx + (x - A.cx) * sx.head);
+      const nz = w.leg * (lg.zC + (z - lg.zA) * lg.sz) + w.trunk * (tr.zC + (z - tr.zA) * tr.sz) + w.head * (C.head.zc + (z - A.head.zc) * sz.head);
+      return [nx, y(v), nz];
+    };
+    const scale = ([, v]) => { const w = band(v), tr = trunk(v), lg = legAt(v); return [w.leg * lg.sx + w.trunk * trunkX(v) + w.head * sx.head, dy(v), w.leg * lg.sz + w.trunk * tr.sz + w.head * sz.head]; };
+    return { map, scale };
   };
-  const scale = ([, v]) => { const w = band(v), tr = trunk(v); return [w.leg * sx.leg + w.trunk * tr.sx + w.head * sx.head, dy(v), w.leg * sz.leg + w.trunk * tr.sz + w.head * sz.head]; };
-  return { map, scale };
+  return { organs: make(true), bones: make(false) };
 }
 
 /** Move a piece: its centre by the body map, its shape by `S` (three axis scales) about that centre. */
@@ -308,6 +365,13 @@ function cutAt(piece, y, gap) {
   return plate;
 }
 
+/** A mesh's extent across (x) and front to back (z) at height y, and its middle front to back. */
+function sectionBox({ positions }, y, h = 0.006) {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (let i = 0; i < positions.length; i += 3) if (Math.abs(positions[i + 1] - y) < h) { x0 = Math.min(x0, positions[i]); x1 = Math.max(x1, positions[i]); z0 = Math.min(z0, positions[i + 2]); z1 = Math.max(z1, positions[i + 2]); }
+  return { width: x1 - x0, depth: z1 - z0, zc: (z0 + z1) / 2 };
+}
+
 /** Append one mesh to another. */
 const append = (into, { positions, indices }) => { const base = into.positions.length / 3; for (const v of positions) into.positions.push(v); for (const i of indices) into.indices.push(i + base); };
 
@@ -332,6 +396,13 @@ async function atlasPieces(dir, body) {
     for (const r of p.roots) collect(r, p.skip, geo);
     if (!geo.indices.length) throw new Error(`${body} ${p.name}: no triangles`);
     Object.assign(p, geo);
+    // The outline in its neutral form: welded (so its sections join up), then the genitalia smoothed away.
+    if (p.name === 'skin') {
+      const w = weldPositions(p);
+      const positions = Array.from(w.positions), indices = Array.from(w.indices);
+      p.neutralised = neutralise(positions, indices);
+      Object.assign(p, { positions, indices });
+    }
     // What the child needs from the atlas's finer parts: the pelvis's three bones, the femur's condyles.
     if (p.region === 'pelvis') p.parts = ['VH_M_ilium', 'VH_M_ischium', 'VH_M_pubis', 'VH_M_sacrum', 'VH_M_coccyx'].map((n) => ({ name: n, ...collect(find(n), new Set()) }));
     if (p.region === 'femur') {
@@ -356,6 +427,8 @@ async function childPieces(dir, body, adult) {
     skin.positions[i + 1] = (skin.positions[i + 1] - sb.min[1]) * k - VALUE(body, 'stature') / 200;
     skin.positions[i + 2] = (skin.positions[i + 2] - sb.centre[2]) * k;
   }
+  // The neutral form, as for the adults (MakeHuman's body is already neutral, so this should move nothing).
+  skin.neutralised = neutralise(skin.positions, skin.indices);
   const adultSkin = adult.find((p) => p.name === 'skin');
   // Measured on welded copies: the sections follow shared edges.
   const welded = (m) => { const w = weldPositions(m); return [w.positions, w.indices]; };
@@ -370,31 +443,66 @@ async function childPieces(dir, body, adult) {
   // Up the trunk, from the pelvis to the lower chest (above it the arms meet the trunk): the child's room over the adult's organs.
   const cavity = CAVITY_AT.map((f) => [f, (C.trunkWidthAt(f) - 2 * wall) / organsWide(A.crotch + f * (A.neck - A.crotch))]);
   console.log(`${body}: across the trunk ${JSON.stringify(cavity.map(([f, r]) => [f, +r.toFixed(3)]))} (outline ratio ${(C.trunk.width / A.trunk.width).toFixed(3)})`);
-  const { map, scale } = bodyMap(A, C, cavity);
+  // Bones follow the outline (they must stay inside it); organs follow the cavity across the trunk.
+  const { organs: O, bones: { map, scale } } = bodyMap(A, C, cavity);
+  /** The child's room across the trunk at height y: the outline less its body wall (below where the arms meet it). */
+  const roomAt = (y) => { const f = Math.max(0.1, Math.min(0.6, (y - C.crotch) / (C.neck - C.crotch))); return (C.trunkWidthAt(f) ?? C.trunk.width) - 2 * wall; };
   const round = (o) => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'number' ? +v.toFixed(3) : v)));
   console.log(`${body}: adult landmarks ${JSON.stringify(round(A))}\n${body}: child landmarks ${JSON.stringify(round(C))}`);
   const report = { stature:C.crown - C.sole, headShare: (C.crown - C.neck) / (C.crown - C.sole), adultHeadShare: (A.crown - A.neck) / (A.crown - A.sole), legShare: (C.crotch - C.sole) / (C.crown - C.sole), adultLegShare: (A.crotch - A.sole) / (A.crown - A.sole), organs: {} };
   const uniform = (s) => [s, s, s];
   const out = [];
   const cartilage = { name: 'cartilage', layer: 'skeleton', region: null, positions: [], indices: [] };
+  // Everything must end inside the outline. Where a piece still pokes through it (the outline's own
+  // shape differs from the atlas's), it is nudged: the smallest move (a few mm front-back or across) or
+  // shrink (to 91 %) that brings it inside, taken with its growth plates. Each nudge is reported.
+  const ws = weldPositions(skin), insideSkin = insideTest(ws.positions, ws.indices);
+  const outside = (positions, dx = 0, dz = 0, k = 1, c = [0, 0, 0]) => {
+    const n = positions.length / 3, step = Math.max(1, Math.floor(n / 300));
+    let o = 0, t = 0;
+    for (let i = 0; i < n; i += step) { t++; const p = [0, 1, 2].map((j) => c[j] + (positions[i * 3 + j] - c[j]) * k + (j === 0 ? dx : j === 2 ? dz : 0)); if (!insideSkin(p)) o++; }
+    return o / t;
+  };
+  const settle = (p, extras = []) => {
+    const before = outside(p.positions);
+    if (before <= 0.002) return;
+    const c = bounds(p.positions).centre;
+    const moves = [];
+    for (const k of [1, 0.97, 0.94, 0.91]) for (const dz of [0, 3, -3, 6, -6, 9, -9, 12, -12, 15, -15]) for (const dx of [0, 3, -3, 6, -6]) moves.push({ k, dz: dz / 1000, dx: dx / 1000, cost: (1 - k) * 100 + Math.abs(dz) + Math.abs(dx) });
+    moves.sort((a, b) => a.cost - b.cost);
+    let best = { k: 1, dx: 0, dz: 0, f: before };
+    for (const m of moves) { const f = outside(p.positions, m.dx, m.dz, m.k, c); if (f < best.f - 1e-9) best = { ...m, f }; if (f <= 0.002) { best = { ...m, f }; break; } }
+    for (const g of [p, ...extras]) for (let i = 0; i < g.positions.length; i += 3) for (let j = 0; j < 3; j++) g.positions[i + j] = c[j] + (g.positions[i + j] - c[j]) * best.k + (j === 0 ? best.dx : j === 2 ? best.dz : 0);
+    report.nudged[p.name] = { outsideBefore: +before.toFixed(3), outsideAfter: +best.f.toFixed(3), shrink: best.k, dxMm: best.dx * 1000, dzMm: best.dz * 1000 };
+  };
+  report.nudged = {};
   for (const a of adult) {
     const p = { ...a, positions: [...a.positions], indices: [...a.indices] };
-    if (p.name === 'skin') { out.push({ ...p, positions: skin.positions, indices: skin.indices }); continue; }
+    if (p.name === 'skin') { out.push({ ...p, positions: skin.positions, indices: skin.indices, neutralised: skin.neutralised }); continue; }
     const c = bounds(p.positions).centre;
     if (p.layer === 'skeleton') {
       // Bones follow the body point by point; then the child's own skeleton: growth plates, the pelvis's three bones, a smaller ossified patella.
       const follow = (positions) => { for (let i = 0; i < positions.length; i += 3) { const m = map([positions[i], positions[i + 1], positions[i + 2]]); positions[i] = m[0]; positions[i + 1] = m[1]; positions[i + 2] = m[2]; } };
       if (p.parts) {
-        // The pelvis as its separate bones, each a little smaller about its own middle: the cartilage between them shows.
+        // The pelvis as its separate bones, each a little smaller about its own middle, and cartilage where
+        // two of ilium, ischium and pubis meet (the triradiate cartilage in the acetabulum, the ischiopubic
+        // seam): those faces of each bone at full size, so they fill exactly the seams the shrinking opens.
+        const hip = p.parts.filter((part) => /ilium|ischium|pubis/.test(part.name));
+        const near = (part) => {
+          const cell = 0.005, grid = new Set();
+          for (const other of hip) if (other !== part) for (let i = 0; i < other.positions.length; i += 3) grid.add(`${Math.floor(other.positions[i] / cell)},${Math.floor(other.positions[i + 1] / cell)},${Math.floor(other.positions[i + 2] / cell)}`);
+          const close = (j) => { const x = Math.floor(part.positions[j * 3] / cell), y = Math.floor(part.positions[j * 3 + 1] / cell), z = Math.floor(part.positions[j * 3 + 2] / cell); for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) if (grid.has(`${x + dx},${y + dy},${z + dz}`)) return true; return false; };
+          const out = [];
+          for (let t = 0; t < part.indices.length; t += 3) if ([0, 1, 2].every((k) => close(part.indices[t + k]))) out.push(part.indices[t], part.indices[t + 1], part.indices[t + 2]);
+          return out;
+        };
         p.positions = []; p.indices = [];
         for (const part of p.parts) {
           const q = [...part.positions];
           follow(q);
           const qc = bounds(q).centre;
-          const shrunk = (k) => q.map((v, i) => qc[i % 3] + (v - qc[i % 3]) * k);
-          append(p, { positions: shrunk(0.97), indices: part.indices });
-          // Inside each bone, a cartilage core a little smaller still: it shows through the seams between them.
-          if (/ilium|ischium|pubis/.test(part.name)) append(cartilage, { positions: shrunk(0.94), indices: part.indices });
+          append(p, { positions: q.map((v, i) => qc[i % 3] + (v - qc[i % 3]) * 0.97), indices: part.indices });
+          if (hip.includes(part)) append(cartilage, { positions: q, indices: near(part) });
         }
       } else if (p.region === 'femur' || p.region === 'tibia') {
         // The growth plates are cut in the adult bone, at the adult's proportions, the plate's width
@@ -418,14 +526,18 @@ async function childPieces(dir, body, adult) {
           }
         };
         straight(p.positions);
-        for (const plate of plates) { straight(plate.positions); append(cartilage, plate); }
+        for (const plate of plates) straight(plate.positions);
+        settle(p, plates);
+        for (const plate of plates) append(cartilage, plate);
       } else follow(p.positions);
       if (p.region === 'patella') place(p, (v) => v, uniform(VALUE(body, 'patella')));
+      if (p.region !== 'femur' && p.region !== 'tibia') settle(p);
       out.push(p);
       continue;
     }
-    // Organs: each moves with the body; its size is the measured one where there is a reference, else the body's own scale where it sits.
-    const S = scale(c);
+    // Organs: each moves with the body (across the trunk, with the cavity); its size is the measured one
+    // where there is a reference, else the body's own scale where it sits; then it is kept inside the cavity.
+    const S = O.scale(c);
     let measured = null;
     if (p.region === 'liver') {
       const mcl = A.cx - A.shoulders.width / 4;
@@ -433,17 +545,38 @@ async function childPieces(dir, body, adult) {
       measured = { target: VALUE(body, 'liver') / 100, adult: Math.max(...ysAt) - Math.min(...ysAt) };
     } else if (p.region === 'spleen') measured = { target: VALUE(body, 'spleen') / 100, adult: principalLength(p.positions) };
     else if (p.region === 'kidney') measured = { target: VALUE(body, 'kidney') / 100, adult: principalLength(p.positions) };
-    if (measured) place(p, map, uniform(measured.target / measured.adult));
-    else if (p.name === 'organs') { const t = VALUE(body, 'thymus'), s = bounds(p.positions).size; place(p, map, [t[0] / 100 / s[0], t[1] / 100 / s[1], t[2] / 100 / s[2]]); }
-    else if (p.region === 'bladder') {
-      // The atlas's bladder is several open surfaces, so its volume is taken as the ellipsoid in its box.
-      const box = bounds(p.positions).size;
-      const s = Math.cbrt((VALUE(body, 'bladder') * 1e-6) / ((Math.PI / 6) * box[0] * box[1] * box[2]));
-      place(p, map, uniform(s));
-      const lift = VALUE(body, 'bladder position') * bounds(p.positions).size[1];
+    if (measured) place(p, O.map, uniform(measured.target / measured.adult));
+    else if (p.name === 'organs') { const t = VALUE(body, 'thymus'), s = bounds(p.positions).size; place(p, O.map, [t[0] / 100 / s[0], t[1] / 100 / s[1], t[2] / 100 / s[2]]); }
+    else if (p.region === 'brain') {
+      // The brain at 8 is near its adult volume (references.json), so it takes its own scale, not the head's;
+      // kept inside the child's head with room for the skull.
+      place(p, O.map, uniform(Math.cbrt(VALUE(body, 'brain'))));
+    } else if (p.region === 'bladder') {
+      // The atlas adults' bladders are near empty, so the child's is scaled with the pelvis around it (not
+      // to a full capacity), then raised out of the pelvis.
+      place(p, O.map, scale(c));
+      const pelvis = bounds(adult.find((q) => q.region === 'pelvis').positions);
+      const lift = VALUE(body, 'bladder position') * (map([0, pelvis.max[1], 0])[1] - map([0, pelvis.min[1], 0])[1]);
       for (let i = 1; i < p.positions.length; i += 3) p.positions[i] += lift;
-    } else place(p, map, S);
-    report.organs[p.name] = measured ? { adult: +(measured.adult * 100).toFixed(1), child: +(measured.target * 100).toFixed(1), scale: +(measured.target / measured.adult).toFixed(3), bodyScale: +S[1].toFixed(3) } : undefined;
+    } else place(p, O.map, S);
+    // Inside the cavity: no wider than the room at its height (less a margin), and not past either side of it.
+    const pb = bounds(p.positions), room = roomAt(pb.centre[1]) * 0.95;
+    let clamp = 1;
+    // The liver keeps its measured span (craniocaudal) and narrows only across; others shrink evenly.
+    if (p.name !== 'brain' && pb.size[0] > room) { clamp = room / pb.size[0]; place(p, (v) => v, p.region === 'liver' ? [clamp, 1, 1] : uniform(clamp)); }
+    const qb = bounds(p.positions), shift = Math.max(0, (C.cx - room / 2) - qb.min[0]) - Math.max(0, qb.max[0] - (C.cx + room / 2));
+    if (p.region !== 'brain' && shift) for (let i = 0; i < p.positions.length; i += 3) p.positions[i] += shift;
+    if (p.region === 'brain') {
+      // The skull: the brain no larger than 90 % of the head's outline at its height.
+      const head = sectionBox(skin, pb.centre[1]), fit = Math.min(1, (0.9 * head.width) / pb.size[0], (0.9 * head.depth) / pb.size[2]);
+      if (fit < 1) { clamp = fit; place(p, (v) => v, uniform(fit)); }
+      const nb = bounds(p.positions), dz = head.zc - nb.centre[2];
+      for (let i = 2; i < p.positions.length; i += 3) p.positions[i] += dz;
+      const top = C.crown - 0.012 - bounds(p.positions).max[1];
+      if (top < 0) for (let i = 1; i < p.positions.length; i += 3) p.positions[i] += top;
+    }
+    settle(p);
+    report.organs[p.name] = { ...(measured ? { adult: +(measured.adult * 100).toFixed(1), child: +(measured.target * 100).toFixed(1), scale: +(measured.target / measured.adult).toFixed(3) } : {}), ...(clamp < 1 ? { clampedTo: +clamp.toFixed(3) } : {}) };
     out.push(p);
   }
   out.push(cartilage);
@@ -482,7 +615,13 @@ function reduce({ positions, indices }, budget) {
 async function write(body, pieces, credit) {
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
   const doc = new Document();
-  doc.getRoot().getAsset().extras = { body, credit, built: 'tools/body/build.mjs' };
+  doc.getRoot().getAsset().extras = { body, built: 'tools/body/build.mjs', licence: 'CC-BY-4.0' };
+  // The credit the licences ask for travels with the file (assets/body/LICENSE has it in full).
+  doc.getRoot().getAsset().copyright = [
+    'Human Reference Atlas 3D reference objects (HuBMAP CCF v2.0; Herr et al., Sci Data 2023;10:171), CC BY 4.0; Visible Human data courtesy of the U.S. National Library of Medicine',
+    'brain: Allen Human Reference Atlas - 3D, 2020 (RRID:SCR_017764), © 2019 Allen Institute for Brain Science, CC BY 4.0',
+    ...(credit === 'adapted' ? ['adapted using paediatric reference measurements (components/body/references.json); outline from MakeHuman, CC0 1.0'] : []),
+  ].join('; ');
   const buffer = doc.createBuffer();
   const root = doc.createNode('body');
   doc.createScene('body').addChild(root);
@@ -501,7 +640,8 @@ async function write(body, pieces, credit) {
   await writeFile(join(REPO, output(body)), bytes);
   console.log(lines.join('\n'));
   console.log(`wrote ${output(body)}: ${(bytes.length / 1024).toFixed(0)} KB, sha256 ${sha(bytes)}`);
-  return { bytes: bytes.length, meshes: pieces.map((p) => p.name).sort() };
+  // The neutral form is recorded: how many outline vertices the builder moved to make it (Sami, 17 Nov).
+  return { bytes: bytes.length, meshes: pieces.map((p) => p.name).sort(), neutralForm: { verticesMoved: pieces.find((p) => p.name === 'skin').neutralised ?? 0 } };
 }
 
 async function main() {

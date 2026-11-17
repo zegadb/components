@@ -70,8 +70,8 @@
         "spec": { "component": "body", "data": { "highlight": [{ "region": "liver" }] }, "options": { "body": "girl" } }
       },
       {
-        "title": "A broken right femur",
-        "spec": { "component": "body", "data": { "highlight": [{ "region": "femur", "side": "right", "role": "pain" }] } }
+        "title": "Where knee pain is felt: the right kneecap, the thigh bone above it",
+        "spec": { "component": "body", "data": { "highlight": [{ "region": "patella", "side": "right", "role": "pain" }, { "region": "femur", "side": "right", "role": "related" }] }, "options": { "focus": "patella" } }
       }
     ],
     "invalid": [

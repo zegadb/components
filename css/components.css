@@ -20,7 +20,9 @@
 
 /* body (components/body/): the labels, title, credit and controls over the 3D body.
    Placed like the globe's: controls top-right, the credit bottom-right. */
+/* The host sizes the box (any display); the stage fills it above the credit's band (its bottom set from the band's height). */
 .zc-body { position: relative; overflow: hidden; background: var(--zc-ground); }
+.zc-body-stage { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
 .zc-body-canvas { display: block; }
 .zc-body-overlay { position: absolute; inset: 0; pointer-events: none; font: 12px/1.3 var(--zc-font-ui); color: var(--zc-ink); }
 .zc-body-lines { position: absolute; inset: 0; overflow: visible; }
@@ -30,11 +32,23 @@
   background: color-mix(in srgb, var(--zc-panel) 90%, transparent);
   border: 1px solid var(--zc-rule);
 }
+.zc-body-label[hidden] { display: none; }
 .zc-body-label-name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.zc-body-swatch { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.zc-body-number { display: none; }
+/* The role's mark beside the name, never colour alone: focus a filled disc, related a ring, pain a square. */
+.zc-body-swatch { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--zc-accent); }
+.zc-body-swatch[data-role="related"] { background: none; box-shadow: inset 0 0 0 1.5px var(--zc-soft); }
+.zc-body-swatch[data-role="pain"] { border-radius: 1px; background: var(--zc-down); }
 .zc-body-label-note { color: var(--zc-soft); font-size: 11px; margin-top: 1px; padding-left: 14px; }
-.zc-body-title { position: absolute; left: 10px; top: 8px; font-size: 14px; font-weight: 600; }
-.zc-body-credit { position: absolute; right: 8px; bottom: 5px; max-width: calc(100% - 16px); text-align: right; font-size: 10.5px; line-height: 1.3; color: var(--zc-soft); }
+.zc-body-label-short .zc-body-label-note { display: none; }
+.zc-body-key {
+  position: absolute; left: 10px; top: 10px; margin: 0; padding: 4px 8px 4px 26px; border-radius: 6px;
+  font-size: 11px; line-height: 16px; background: color-mix(in srgb, var(--zc-panel) 90%, transparent); border: 1px solid var(--zc-rule);
+}
+.zc-body-key[hidden] { display: none; }
+.zc-body-title { position: absolute; left: 10px; top: 8px; right: 50px; font-size: 14px; font-weight: 600; }
+/* The credit's own band under the picture, never over the body. */
+.zc-body-credit { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 8px 5px; text-align: right; font: 10.5px/1.3 var(--zc-font-ui); color: var(--zc-soft); }
 .zc-body-loading {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 14px;
   color: var(--zc-soft); font: 12px/1.4 var(--zc-font-ui);

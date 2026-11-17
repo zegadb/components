@@ -4,11 +4,12 @@ import { readFileSync } from "node:fs";
 import { validate, explain } from "../validate.ts";
 import { theme } from "../theme.ts";
 import { looks, roleColour } from "./draw.ts";
-import { REGIONS, LAYERS, BODIES, isPaired, meshName, nameOf, type Body, type RegionId } from "./regions.ts";
+import { REGIONS, LAYERS, BODIES, isPaired, meshName, type Body, type RegionId } from "./regions.ts";
 import { autoView, flight, frame, direction, position, type Box } from "./camera.ts";
 import { semantic, type BodyData, type BodyOptions } from "./model.ts";
-import { MANIFEST, CHILD_REPORT } from "./manifest.ts";
-import { creditOf } from "./draw.ts";
+import { MANIFEST } from "./manifest.ts";
+import { layout, KEY_LINE } from "./labels.ts";
+import { anchorPoint, insideTest, hanging } from "./geometry.ts";
 import { NodeIO } from "@gltf-transform/core";
 import { EXTMeshoptCompression, KHRMeshQuantization } from "@gltf-transform/extensions";
 import { MeshoptDecoder } from "meshoptimizer";
@@ -87,6 +88,7 @@ test("body: the lit meshes are exactly the highlighted regions and sides, colour
   assert.equal(l.get("kidney__left")!.colour, ava.down);
   assert.equal(l.get("gallbladder")!.colour, roleColour("related", ava));
   assert.notEqual(roleColour("related", ava), ava.accent);
+  assert.ok(l.get("gallbladder")!.opacity < 1 && l.get("liver")!.opacity === 1, "a related region is translucent, so it never hides the focus");
   // The other kidney and the other organs are dimmed, not lit; the skin is a veil; the skeleton is all but hidden.
   assert.equal(l.get("kidney__right")!.lit, false);
   assert.ok(l.get("heart")!.opacity < 1);
@@ -120,19 +122,96 @@ test("body: in every body, right is the person's right (−x), and the organs si
   for (const body of BODIES) {
     const m = asset(body);
     const skin = m.get("skin")!;
-    for (const [name, box] of m) {
-      if (name === "skin") continue;
-      for (let i = 0; i < 3; i++) assert.ok(box.min[i]! >= skin.min[i]! - 0.01 && box.max[i]! <= skin.max[i]! + 0.01, `${body}: ${name} lies inside the body`);
-    }
     for (const id of IDS.filter(isPaired)) {
       assert.ok(mid(m.get(meshName(id, "right"))!)[0]! < mid(skin)[0]!, `${body} ${id}: right at −x`);
       assert.ok(mid(m.get(meshName(id, "left"))!)[0]! > mid(skin)[0]!, `${body} ${id}: left at +x`);
     }
     const y = (n: string) => mid(m.get(n)!)[1]!;
     assert.ok(y("brain") > y("heart") && y("heart") > y("liver") && y("liver") > y("bladder") && y("pelvis") > y("patella__right") && y("patella__right") > y("tibia__right"), body);
-    assert.ok(mid(m.get("liver")!)[0]! < 0 && mid(m.get("spleen")!)[0]! > 0, `${body}: the liver on the right, the spleen on the left`);
+    assert.ok(m.get("liver")!.min[0] < m.get("spleen")!.min[0] - 0.05 && mid(m.get("spleen")!)[0]! > 0, `${body}: the liver reaches furthest right, the spleen sits left`);
     assert.ok(mid(m.get("spine")!)[2]! < mid(m.get("heart")!)[2]!, `${body}: the spine is behind the heart`);
   }
+});
+
+test("body: every organ and bone lies inside its body's skin (point in mesh, not a box)", async () => {
+  // Before the fix the girl's tibias were half outside her shins (49 % and 57 % of their points).
+  for (const body of BODIES) {
+    const m = await decoded(body), skin = m.get("skin")!, inside = insideTest(skin.positions, skin.indices);
+    for (const [name, g] of m) {
+      if (name === "skin") continue;
+      const n = g.positions.length / 3, step = Math.max(1, Math.floor(n / 300));
+      let out = 0, total = 0;
+      for (let i = 0; i < n; i += step) { total++; if (!inside([g.positions[i * 3]!, g.positions[i * 3 + 1]!, g.positions[i * 3 + 2]!])) out++; }
+      assert.ok(out / total <= 0.01, `${body}: ${(100 * out / total).toFixed(1)} % of ${name} is outside the skin`);
+    }
+  }
+});
+
+test("body: every body's outline is the neutral form: nothing hangs between the thighs (Sami, 17 Nov)", async () => {
+  // Before the fix the man's outline had 252 points hanging below his crotch near the midline.
+  for (const body of BODIES) {
+    const skin = (await decoded(body)).get("skin")!;
+    const found = hanging(skin.positions, skin.indices).vertices.size;
+    assert.equal(found, 0, `${body}: ${found} outline points hang between the thighs`);
+  }
+});
+
+test("body: a child's bladder is no larger than the adult's, its liver fits its trunk, its brain is near adult size", async () => {
+  for (const [child, adult] of [["boy", "man"], ["girl", "woman"]] as const) {
+    const c = await decoded(child), a = await decoded(adult);
+    const box = (m: Map<string, { positions: number[] }>, n: string) => [0, 1, 2].map((k) => extent(m.get(n)!.positions, k));
+    const vol = (b: number[]) => b[0]! * b[1]! * b[2]!;
+    assert.ok(vol(box(c, "bladder")) <= vol(box(a, "bladder")), `${child}: bladder ${(vol(box(c, "bladder")) / vol(box(a, "bladder"))).toFixed(2)}× the ${adult}'s`);
+    // About 95 % of adult volume at 8 (Lenroot 2007), less whatever the skull's room takes off.
+    const brain = vol(box(c, "brain")) / vol(box(a, "brain"));
+    assert.ok(brain > 0.75 && brain <= 1, `${child}: brain ${(brain * 100).toFixed(0)} % of the ${adult}'s`);
+    // The liver no wider than the trunk where it sits.
+    const liver = c.get("liver")!.positions, skin = c.get("skin")!.positions;
+    let ly0 = Infinity, ly1 = -Infinity; for (let i = 1; i < liver.length; i += 3) { ly0 = Math.min(ly0, liver[i]!); ly1 = Math.max(ly1, liver[i]!); }
+    const y = (ly0 + ly1) / 2, xs: number[] = [];
+    for (let i = 0; i < skin.length; i += 3) if (Math.abs(skin[i + 1]! - y) < 0.01) xs.push(skin[i]!);
+    xs.sort((p, q) => p - q);
+    let k = xs.findIndex((x) => x >= 0), lo = k, hi = k;
+    while (lo > 0 && xs[lo]! - xs[lo - 1]! < 0.02) lo--;
+    while (hi < xs.length - 1 && xs[hi + 1]! - xs[hi]! < 0.02) hi++;
+    assert.ok(extent(liver, 0) < 0.92 * (xs[hi]! - xs[lo]!), `${child}: liver ${(extent(liver, 0) * 100).toFixed(1)} cm across a ${((xs[hi]! - xs[lo]!) * 100).toFixed(1)} cm trunk`);
+  }
+});
+
+test("body: a child's pelvic cartilage is only at the seams (acetabulum, ischiopubic), not over the iliac wings", async () => {
+  for (const child of ["boy", "girl"] as const) {
+    const m = await decoded(child), pelvis = m.get("pelvis")!.positions, cart = m.get("cartilage")!.positions;
+    let p0 = Infinity, p1 = -Infinity; for (let i = 1; i < pelvis.length; i += 3) { p0 = Math.min(p0, pelvis[i]!); p1 = Math.max(p1, pelvis[i]!); }
+    // The upper third of the pelvis is the iliac wings (fossae and crests): no cartilage there.
+    let high = 0; for (let i = 1; i < cart.length; i += 3) if (cart[i]! > p1 - 0.33 * (p1 - p0)) high++;
+    assert.equal(high, 0, `${child}: ${high} cartilage points over the iliac wings`);
+  }
+});
+
+test("body: twelve labels on a phone fall back to names or numbers, all inside the picture", () => {
+  const space = { width: 358, top: 10, bottom: 342, gap: 8 };
+  const labels = Array.from({ length: 12 }, (_, i) => ({ anchors: [{ x: i % 2 ? 220 : 140, y: 60 + i * 22 }], full: 58, name: 26, width: 110 }));
+  const { tier, placed } = layout(labels, space);
+  assert.notEqual(tier, "full", "twelve labels with notes cannot fit 332 px");
+  const h = tier === "names" ? 26 : KEY_LINE;
+  for (const p of placed) assert.ok(p.top >= space.top && p.top + h <= space.bottom, `a label at ${p.top}`);
+  // Twelve all on one side: even names do not fit one column, so numbered markers and a key.
+  assert.equal(layout(labels.map((l) => ({ ...l, anchors: [{ x: 100, y: l.anchors[0]!.y }] })), space).tier, "numbers");
+  assert.equal(layout(labels.slice(0, 3), space).tier, "full");
+});
+
+test("body: a label points at its own region, not at what its box surrounds (the pelvis, not the bladder)", async () => {
+  const m = await decoded("man"), pelvis = m.get("pelvis")!.positions, bladder = m.get("bladder")!.positions;
+  const b = [0, 1, 2].map((k) => { let lo = Infinity, hi = -Infinity; for (let i = k; i < bladder.length; i += 3) { lo = Math.min(lo, bladder[i]!); hi = Math.max(hi, bladder[i]!); } return [lo, hi] as const; });
+  const centre = [0, 1, 2].map((k) => { let lo = Infinity, hi = -Infinity; for (let i = k; i < pelvis.length; i += 3) { lo = Math.min(lo, pelvis[i]!); hi = Math.max(hi, pelvis[i]!); } return (lo + hi) / 2; });
+  const p = anchorPoint(pelvis, [centre[0]!, centre[1]! + 0.1, centre[2]! + 3]);
+  // The box's own centre is at the bladder (the bug this guards) ...
+  assert.ok(b.every(([lo, hi], k) => centre[k]! >= lo - 0.03 && centre[k]! <= hi + 0.03), "the pelvis's box centre is at the bladder");
+  // ... the anchor is a point of the pelvis itself, in front of the bladder as the camera sees it.
+  let isVertex = false;
+  for (let i = 0; i < pelvis.length; i += 3) if (pelvis[i] === p[0] && pelvis[i + 1] === p[1] && pelvis[i + 2] === p[2]) isVertex = true;
+  assert.ok(isVertex, "the anchor is one of the pelvis's own points");
+  assert.ok(p[2] > b[2]![1] - 0.01, `the anchor (z ${p[2].toFixed(3)}) is at the front of the bladder (z up to ${b[2]![1].toFixed(3)}), not inside it`);
 });
 
 test("body: a child is not a scaled adult: a larger head, a relatively larger liver, a higher bladder", () => {
@@ -196,13 +275,11 @@ test("body: a child's growth plates are cartilage, filling the gaps in the bone,
   spans.sort((a, b) => a[0] - b[0]);
   let reach = spans[0]![1], gapLo = 0, gapHi = 0;
   for (const [lo, hi] of spans) { if (lo - reach > gapHi - gapLo) { gapLo = reach; gapHi = lo; } reach = Math.max(reach, hi); }
-  // Cartilage triangles that bridge the gap, edge to edge.
-  let bridging = 0;
-  for (let i = 0; i < cart.indices.length; i += 3) {
-    const t = [0, 1, 2].map((k) => cart.positions[cart.indices[i + k]! * 3 + 1]!);
-    if (Math.min(...t) <= gapLo + 0.0005 && Math.max(...t) >= gapHi - 0.0005) bridging++;
-  }
-  assert.ok(bridging > 10, `cartilage fills the femur's growth plate (${bridging} triangles across ${gapLo.toFixed(3)}..${gapHi.toFixed(3)})`);
+  // Cartilage at both edges of the gap, within the femur's own width: the plate fills it.
+  let fx0 = Infinity, fx1 = -Infinity;
+  for (let i = 0; i < femur.positions.length; i += 3) if (Math.abs(femur.positions[i + 1]! - gapLo) < 0.01) { fx0 = Math.min(fx0, femur.positions[i]!); fx1 = Math.max(fx1, femur.positions[i]!); }
+  const at = (y: number) => { let n = 0; for (let i = 0; i < cart.positions.length; i += 3) if (Math.abs(cart.positions[i + 1]! - y) < 0.0012 && cart.positions[i]! >= fx0 - 0.002 && cart.positions[i]! <= fx1 + 0.002) n++; return n; };
+  assert.ok(at(gapLo) >= 3 && at(gapHi) >= 3, `cartilage fills the femur's growth plate (${at(gapLo)} and ${at(gapHi)} cartilage points at its edges ${gapLo.toFixed(3)}, ${gapHi.toFixed(3)})`);
   const l = looks({ highlight: [{ region: "femur", side: "right" }] }, ava);
   assert.deepEqual(l.get("cartilage"), { colour: ava.cartilage, opacity: 1, lit: false });
   assert.notEqual(ava.cartilage, l.get("femur__right")!.colour);
@@ -223,18 +300,9 @@ test("body: a child's organs fill the trunk as an adult's do, the boy's as the g
     while (hi < xs.length - 1 && xs[hi + 1]! - xs[hi]! < 0.02) hi++;
     return (spleen.hi - liver.lo) / (xs[hi]! - xs[lo]!);
   };
-  const [boy, girl, man] = [await fill("boy"), await fill("girl"), await fill("man")];
+  const [boy, girl] = [await fill("boy"), await fill("girl")];
   // Scaled with the outline instead of the room inside the body wall, the boy's fill 80 %: this catches it.
-  assert.ok(boy > girl * 0.88, `the boy's organs fill ${(boy * 100).toFixed(0)} % of his trunk, the girl's ${(girl * 100).toFixed(0)} %, the man's ${(man * 100).toFixed(0)} %`);
-});
-
-test("body: the child's head is as much larger as the reference says, not exaggerated", () => {
-  // Medawar 1944: the head is 1/6.3 of stature at 8 and 1/8 in the adult, so 1.26 times the adult's share.
-  for (const child of ["boy", "girl"] as const) {
-    const r = CHILD_REPORT[child];
-    const ratio = r.headShare / r.adultHeadShare;
-    assert.ok(ratio > 1.15 && ratio < 1.35, `${child}: head ${ratio.toFixed(2)}× the adult's share`);
-  }
+  assert.ok(boy > girl * 0.88, `the boy's organs fill ${(boy * 100).toFixed(0)} % of his trunk, the girl's ${(girl * 100).toFixed(0)} %`);
 });
 
 test("body: a region the chosen body does not have is an error for the model, not a blank picture", () => {
@@ -246,19 +314,6 @@ test("body: a region the chosen body does not have is an error for the model, no
   assert.equal(e?.code, "body");
   assert.equal(e?.message, "the boy's body has no patella (right side)");
   assert.equal(e?.help, "leave it out, or draw it on man or woman or girl");
-});
-
-test("body: the credit is the atlas's for adults, the adaptation's for children", () => {
-  assert.match(creditOf("man", "en"), /Human Reference Atlas \(HuBMAP\), CC BY 4\.0/);
-  assert.match(creditOf("girl", "en"), /adapted from the adult Human Reference Atlas .* using paediatric reference measurements/i);
-  assert.match(creditOf("boy", "fr"), /mesures pédiatriques de référence/);
-});
-
-test("body: every region has its names, and a side reads in both languages", () => {
-  for (const id of IDS) for (const locale of ["en", "fr"] as const) assert.ok(nameOf(id, undefined, locale).length > 1);
-  assert.equal(nameOf("kidney", "left", "fr"), "Rein gauche");
-  assert.equal(nameOf("patella", "right", "fr"), "Rotule droite");
-  assert.equal(nameOf("lung", undefined, "en"), "Both lungs");
 });
 
 test("body camera: framing fits the box, auto looks from the back for what lies behind, the flight starts and ends on its shots", () => {

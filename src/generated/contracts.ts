@@ -212,17 +212,25 @@ export const CONTRACTS = {
           }
         },
         {
-          "title": "A broken right femur",
+          "title": "Where knee pain is felt: the right kneecap, the thigh bone above it",
           "spec": {
             "component": "body",
             "data": {
               "highlight": [
                 {
-                  "region": "femur",
+                  "region": "patella",
                   "side": "right",
                   "role": "pain"
+                },
+                {
+                  "region": "femur",
+                  "side": "right",
+                  "role": "related"
                 }
               ]
+            },
+            "options": {
+              "focus": "patella"
             }
           }
         }
