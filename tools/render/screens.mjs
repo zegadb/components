@@ -30,6 +30,21 @@ try {
       await context.close();
     }
   }
+  // --pairs a:b,c:d  also puts two fixtures' screenshots side by side, per mode (for comparing bodies).
+  for (const pair of (arg('--pairs') ?? '').split(',').filter(Boolean)) {
+    const [a, b] = pair.split(':');
+    for (const mode of ['light', 'dark']) {
+      const component = only ?? 'body';
+      const images = await Promise.all([a, b].map((n) => readFile(join(out, component, `${n}.${mode}.png`))));
+      const size = (png) => ({ width: png.readUInt32BE(16), height: png.readUInt32BE(20) });
+      const page = await browser.newPage({ deviceScaleFactor: 1, viewport: { width: images.reduce((w, png) => w + size(png).width + 2, 0), height: Math.max(...images.map((png) => size(png).height)) } });
+      await page.setContent(`<body style="margin:0;display:flex;background:#888">${images.map((png) => `<img style="display:block;margin-right:2px" src="data:image/png;base64,${png.toString('base64')}">`).join('')}</body>`);
+      const path = join(out, component, `${a}+${b}.${mode}.png`);
+      await writeFile(path, await page.locator('body').screenshot());
+      console.log(`wrote ${path}`);
+      await page.close();
+    }
+  }
 } finally {
   await browser.close();
   server.close();

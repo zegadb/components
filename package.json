@@ -10,7 +10,7 @@
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./path-on-map/draw": { "types": "./dist/path-on-map/draw.d.ts", "default": "./dist/path-on-map/draw.js" },
     "./body/draw": { "types": "./dist/body/draw.d.ts", "default": "./dist/body/draw.js" },
-    "./body/adult.glb": "./assets/body/adult.glb",    "./tokens.css": "./generated/tokens.css",
+    "./body/*.glb": "./assets/body/*.glb",    "./tokens.css": "./generated/tokens.css",
     "./themes.css": "./generated/themes.css",
     "./components.css": "./css/components.css"
   },

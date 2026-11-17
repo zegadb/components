@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "Where a girl's liver is, at a phone's width",
+  "description": "The girl's liver still, in the 358-point column of a 390-point phone.",
+  "host": "ava",
+  "size": { "width": 358 },
+  "scale": 2,
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "liver" }] }, "options": { "body": "girl" } }
+}

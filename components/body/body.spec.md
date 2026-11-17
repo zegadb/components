@@ -1,8 +1,8 @@
 ---
 id: body
 status: draft
-version: 0.1.0
-implementation: this repository's web package, src/body/ (draw.ts with three.js; camera.ts, model.ts, regions.ts), and its mesh assets/body/adult.glb (tools/body/build.mjs)
+version: 0.2.0
+implementation: this repository's web package, src/body/ (draw.ts with three.js; camera.ts, model.ts, regions.ts, geometry.ts, manifest.ts), and its meshes assets/body/{man,woman,boy,girl}.glb (tools/body/build.mjs, from components/body/references.json)
 ---
 
 # Body
@@ -17,10 +17,10 @@ the rest dims, and the camera frames the focus, either as one still picture
 flying to the focus. It is not for diagnosis, injuries or anything graphic,
 and not for data over the body (a heat map of the body is a later surface).
 
-Phase 1 of zegadb/components#5: one adult body, three layers (skin,
-skeleton, organs). The woman, boy and girl, the muscles layer, surface
-regions on the skin and streamed levels of detail are later phases (the
-issue's plan).
+Phases 1 and 2 of zegadb/components#5: four bodies (a man, a woman, a boy
+and a girl of 8), three layers (skin, skeleton, organs). The muscles layer,
+surface regions on the skin and streamed levels of detail are later phases
+(the issue's plan).
 
 ## Contract
 
@@ -30,9 +30,15 @@ issue's plan).
 |---|---|---|---|
 | `highlight[]` | `{ region, side?, role?, note? }`, 1–12 | yes | `region` from the fixed vocabulary; `side` for paired regions only; `role` focus (default), related or pain |
 
-Options: `body` (`adult` only for now), `focus` (the highlighted region the
-camera frames), `mode` (`still` or `interactive`), `view` (`auto`, `front`,
-`back`, `left`, `right`), `labels`, `title`.
+Options: `body` (`man` by default, `woman`, `boy`, `girl`), `focus` (the
+highlighted region the camera frames), `mode` (`still` or `interactive`),
+`frame` (`focus`, or `body` for the whole body with the regions lit),
+`view` (`auto`, `front`, `back`, `left`, `right`), `labels`, `title`.
+
+A region the chosen body does not have is an error back to the model, never
+a blank picture: the validator checks each highlight against the body's
+built meshes (src/body/manifest.ts, written by the builder). Today every
+region exists in all four bodies.
 
 **Vocabulary.** Organs: brain, heart, lung\*, liver, gallbladder, pancreas,
 spleen, kidney\*, small-intestine, large-intestine, appendix, bladder.
@@ -59,13 +65,42 @@ Back to front.
 | 9 | **controls** | interactive only: zoom in, zoom out, whole body, top-right as on the globe | HTML buttons |
 | 10 | **credit** | the source's credit, once, bottom-right, plain text, no links | HTML text |
 
-**The mesh.** assets/body/adult.glb (545 KB, meshopt-compressed and
-quantised) is cut by tools/body/build.mjs from the Human Reference Atlas's 3D
-reference objects, the Visible Human male (HuBMAP CCF release v2.0,
-`3d-vh-m-united.glb`), licensed CC BY 4.0. That licence asks for credit,
-which the component shows once; it is not share-alike, so the drawing code
-stays MIT. The source (154 MB) is downloaded by the builder and checked
-against its SHA-256; it is never committed.
+**The meshes.** Four files, each loaded only when its body is drawn,
+meshopt-compressed and quantised: man 434 KB, woman 439 KB, boy 419 KB,
+girl 423 KB (1.72 MB together; the tests hold each under 480 KB and all
+four under 1.8 MB). tools/body/build.mjs makes them all:
+
+- **The man and the woman** are cut from the Human Reference Atlas's 3D
+  reference objects, the Visible Human male and female (HuBMAP CCF release
+  v2.0), licensed CC BY 4.0. That licence asks for credit, which the
+  component shows once; it is not share-alike, so the code stays MIT.
+- **The boy and the girl (8 years)** are the man and the woman morphed
+  organ by organ into a MakeHuman outline (CC0) at age 8, never a uniform
+  scale. Every number comes from [references.json](references.json), with
+  its citation, value and age. The outline is MakeHuman's own child (larger
+  head, shorter trunk), scaled to the CDC 2000 median stature. A map from
+  the adult's outline to the child's (through the sole, knee, crotch, neck
+  and crown, each band with its own width and depth, the chest broader than
+  the abdomen) places everything. Then the liver, spleen and kidneys take
+  their measured paediatric sizes (Dhingra 2010, Obrycki 2022). The thymus
+  takes its CT size (Francis 1985). The bladder takes its expected volume
+  (Hakenberg 1983) and rises out of the pelvis (Moore). The heart follows
+  the chest (a child's cardiothoracic ratio is an adult's, Maresh 1938). On
+  the skeleton, gaps are cut at the distal femoral and proximal and distal
+  tibial growth plates, the pelvis shows ilium, ischium and pubis apart (the
+  triradiate cartilage), and the kneecap is its smaller ossified part.
+
+Known limits, said plainly:
+- the atlas has no ribs, so a child's more horizontal ribs are not shown;
+- the proximal femoral growth plate is not cut;
+- the woman's own liver is large, so the girl's comes out only about 1.05×
+  relatively larger against the trunk (the boy's 1.2×);
+- the atlas's adult "thymus" is the fat-replaced thymic region (the woman's
+  is 8.6 cm across), so the child's CT-sized gland is not visibly larger
+  than it.
+
+The sources (about 500 MB) are downloaded by the builder and checked against
+their SHA-256; they are never committed.
 
 ## Measurements
 
@@ -98,7 +133,7 @@ the host's UI face.
 | state | when | what shows |
 |---|---|---|
 | empty | never: a spec needs a highlight | — |
-| loading | the mesh is loading (545 KB) | the ground; the host may show a still poster (phase 2) |
+| loading | the body's mesh is loading (about 430 KB) | the ground; the host may show a still poster (later) |
 | error | the spec fails validation | nothing; the errors go back to whoever wrote the spec |
 | selected | — | None. |
 | hover / press | interactive: dragging | the body orbits; labels follow their regions |
@@ -160,6 +195,9 @@ body` for review; references come when Sami approves the look.
 | [web/kidneys-interactive.json](web/kidneys-interactive.json) | interactive, after the flight: both kidneys from the back, one label with a leader to each, the controls | default |
 | [web/heart-phone.json](web/heart-phone.json) | a still on the heart with both lungs related, a phone column | default |
 | [web/knee-pain-zega-fr.json](web/knee-pain-zega-fr.json) | the skeleton layer, pain and related, French, zega, a phone column | default |
+| [web/whole-man-phone.json](web/whole-man-phone.json), [woman](web/whole-woman-phone.json), [boy](web/whole-boy-phone.json), [girl](web/whole-girl-phone.json) | each whole body with the liver lit (`frame: body`): the four bodies' proportions side by side | default |
+| [web/girl-liver.json](web/girl-liver.json), [phone](web/girl-liver-phone.json) | a child's liver (relatively larger), the bladder risen, the child's credit | default |
+| [web/boy-knee.json](web/boy-knee.json), [phone](web/boy-knee-phone.json) | a child's knee: open growth plates in the femur and tibia, the smaller ossified kneecap | default |
 
 ## Tokens
 

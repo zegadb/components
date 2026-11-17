@@ -32,7 +32,7 @@ async function main() {
     const box = document.createElement('div');
     box.style.height = `${drawn.height}px`;
     stage.appendChild(box);
-    await drawBody(box, checked.view.data, checked.view.options, { theme: t, asset: '/assets/body/adult.glb', locale: fixture.locale ?? 'en', reducedMotion: true });
+    await drawBody(box, checked.view.data, checked.view.options, { theme: t, asset: (body) => `/assets/body/${body}.glb`,locale: fixture.locale ?? 'en', reducedMotion: true });
     await frames(3);
   } else if ('map' in drawn) {
     const { default: maplibregl } = await import('/node_modules/maplibre-gl/dist/maplibre-gl.mjs').then((m) => ({ default: m.default ?? m }));

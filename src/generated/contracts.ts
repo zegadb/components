@@ -5,14 +5,14 @@ export const CONTRACTS = {
   "body": {
     "format": 2,
     "id": "body",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "title": "Body",
     "category": "Anatomy",
     "description": "A 3D human body with its organs and skeleton, for showing where something is in the body while explaining it (\"where the liver is\", \"the kidneys\", \"the right thigh bone\"). Highlight regions from the fixed list; the camera frames the focus. Not for diagnosis, injuries or anything graphic.",
     "surface": {
       "kind": "art",
-      "art": "body-adult-1",
-      "description": "One adult body (the Human Reference Atlas's Visible Human male, CC BY 4.0) in three layers: skin, skeleton and organs. The layers a highlight lives on are drawn solid; the skin over them turns translucent. Left and right are the person's own. Units are metres, y up, the body facing +z, its right at −x."
+      "art": "body-2",
+      "description": "Four bodies in three layers (skin, skeleton, organs): a man and a woman (the Human Reference Atlas's Visible Human male and female, CC BY 4.0), and a boy and a girl of 8 built from them with paediatric reference measurements (components/body/references.json). The layers a highlight lives on are drawn solid; the skin over them turns translucent. Left and right are the person's own. Units are metres, y up, the body facing +z, its right at −x."
     },
     "marks": [
       "mesh",
@@ -99,10 +99,13 @@ export const CONTRACTS = {
     "options": {
       "body": {
         "enum": [
-          "adult"
+          "man",
+          "woman",
+          "boy",
+          "girl"
         ],
-        "default": "adult",
-        "description": "Which body. Only the adult body exists so far."
+        "default": "man",
+        "description": "Which body: an adult man or woman, or a boy or girl of 8 (a child's organs and growth plates). Use the person's own when you know it."
       },
       "focus": {
         "type": [
@@ -120,6 +123,14 @@ export const CONTRACTS = {
         ],
         "default": "still",
         "description": "still: one framed picture, everything but the highlights dimmed. interactive: the reader can orbit and zoom; the camera flies to the focus."
+      },
+      "frame": {
+        "enum": [
+          "focus",
+          "body"
+        ],
+        "default": "focus",
+        "description": "focus: the camera frames the focus region. body: the whole body, with the regions lit where they are."
       },
       "view": {
         "enum": [
@@ -181,6 +192,22 @@ export const CONTRACTS = {
             "options": {
               "mode": "interactive",
               "view": "back"
+            }
+          }
+        },
+        {
+          "title": "Where a girl's liver is",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "liver"
+                }
+              ]
+            },
+            "options": {
+              "body": "girl"
             }
           }
         },

@@ -1,5 +1,5 @@
 // Draws body (components/body/) with three.js in the browser: the mesh
-// (assets/body/adult.glb, built by tools/body/build.mjs), the highlighted
+// (assets/body/<body>.glb, built by tools/body/build.mjs), the highlighted
 // regions lit, everything else dimmed, a label for each, and either one
 // framed still or a body the reader can orbit and zoom, the camera flying to
 // the focus the way our globe flies (camera.ts).
@@ -12,22 +12,29 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { autoView, direction, duration, ease, flight, frame, position, type Box, type Shot, type Vec3 } from "./camera.ts";
 import { focusOf, layersOf, sidesOf, type BodyData, type BodyOptions, type Highlight, type Role } from "./model.ts";
-import { LAYERS, REGIONS, meshName, nameOf, type Layer } from "./regions.ts";
+import { LAYERS, REGIONS, meshName, nameOf, type Body, type Layer } from "./regions.ts";
 import type { Locale } from "../scale.ts";
 import type { Theme } from "../types.ts";
 
-/** The credit the source's licence asks for: shown once, under the body, as text (no links). */
-export const CREDIT: Record<Locale, string> = {
-  en: "3D body: Human Reference Atlas (HuBMAP), CC BY 4.0",
-  fr: "Corps 3D : Human Reference Atlas (HuBMAP), CC BY 4.0",
+/** The credit the sources' licences ask for: shown once, under the body, as text (no links). */
+export const CREDIT: Record<"adult" | "child", Record<Locale, string>> = {
+  adult: {
+    en: "3D body: Human Reference Atlas (HuBMAP), CC BY 4.0",
+    fr: "Corps 3D : Human Reference Atlas (HuBMAP), CC BY 4.0",
+  },
+  child: {
+    en: "Adapted from the adult Human Reference Atlas (HuBMAP, CC BY 4.0) using paediatric reference measurements · outline MakeHuman, CC0",
+    fr: "Adapté du Human Reference Atlas adulte (HuBMAP, CC BY 4.0) d’après des mesures pédiatriques de référence · silhouette MakeHuman, CC0",
+  },
 };
+export const creditOf = (body: Body, locale: Locale) => CREDIT[body === "boy" || body === "girl" ? "child" : "adult"][locale];
 const FOV = 30;
 const ROLE_NAMES: Record<Locale, Record<Role, string>> = { en: { focus: "", related: "related", pain: "pain" }, fr: { focus: "", related: "associé", pain: "douleur" } };
 
 export interface DrawBodyContext {
   theme: Theme;
-  /** Where the mesh is: the package's assets/body/adult.glb, served by the host. */
-  asset: string;
+  /** Where a body's mesh is: the package's assets/body/<body>.glb, served by the host (load only the one drawn). */
+  asset: (body: Body) => string;
   locale?: Locale;
   /** Jump instead of flying (prefers-reduced-motion); the default asks the browser. */
   reducedMotion?: boolean;
@@ -102,7 +109,7 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
   scene.add(camera);
 
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const gltf = await loader.loadAsync(ctx.asset);
+  const gltf = await loader.loadAsync(ctx.asset(options.body));
   const meshes = new Map<string, THREE.Mesh>();
   gltf.scene.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.set(o.name, o as THREE.Mesh); });
   const look = looks(data, theme);
@@ -122,20 +129,34 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
     mesh.userData.lit = l.lit;
   }
   scene.add(gltf.scene);
+  gltf.scene.updateMatrixWorld(true);
 
   // Framing: the whole body, or the focus (all its sides), from the view asked for or the one auto chooses.
   const bodyBox = boxOf([meshes.get("skin")!]);
   const meshesOf = (h: Highlight) => sidesOf(h).map((side) => meshes.get(meshName(h.region, side))).filter((m): m is THREE.Mesh => Boolean(m));
   const aspect = width / height;
+  // The body's depth at a region's height (the feet and the face reach further forward than the trunk):
+  // what auto measures "behind the midline" against.
+  const skin = meshes.get("skin")!;
+  const depthAt = (box: Box): Box => {
+    const pos = skin.geometry.getAttribute("position"), v = new THREE.Vector3();
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(skin.matrixWorld);
+      if (v.y >= box.min[1] && v.y <= box.max[1]) { lo = Math.min(lo, v.z); hi = Math.max(hi, v.z); }
+    }
+    return lo < hi ? { min: [bodyBox.min[0], box.min[1], lo], max: [bodyBox.max[0], box.max[1], hi] } : bodyBox;
+  };
+  const viewOf = (box: Box) => (options.view === "auto" ? autoView(box, depthAt(box)) : options.view);
   const shotOf = (h: Highlight): Shot => {
     const box = boxOf(meshesOf(h));
-    const view = options.view === "auto" ? autoView(box, bodyBox) : options.view;
+    const view = viewOf(box);
     // Room for the labels either side; more of it on a narrow column.
     return frame(box, direction(view), (FOV * Math.PI) / 180, aspect, options.labels ? (width < 480 ? 0.68 : 0.45) : 0.3);
   };
   const focus = focusOf(data, options);
-  const wholeBody = frame(bodyBox, direction(options.view === "auto" ? autoView(boxOf(meshesOf(focus)), bodyBox) : options.view), (FOV * Math.PI) / 180, aspect, 0.06);
-  let shot: Shot = shotOf(focus);
+  const wholeBody = frame(bodyBox, direction(viewOf(boxOf(meshesOf(focus)))), (FOV * Math.PI) / 180, aspect, 0.06);
+  let shot: Shot = options.frame === "body" ? wholeBody : shotOf(focus);
   const place = (s: Shot) => {
     camera.position.fromArray(position(s));
     camera.lookAt(new THREE.Vector3(...s.target));
@@ -200,7 +221,7 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
       // Each label level with its region where it can be: pushed down past the one above, then up from the bottom.
       let next = edge + (options.title ? 24 : 0);
       for (const i of list) { i.top = Math.max(next, i.y - i.h / 2); next = i.top + i.h + gap; }
-      let limit = height - 24;
+      let limit = height - credit.offsetHeight - 10;
       for (let k = list.length - 1; k >= 0; k--) { const i = list[k]!; i.top = Math.min(i.top, limit - i.h); limit = i.top - gap; }
       for (const i of list) {
         const left = column === "left" ? edge : width - edge - i.w;
@@ -227,7 +248,7 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
   }
   const credit = doc.createElement("div");
   credit.className = "zc-body-credit";
-  credit.textContent = CREDIT[locale];
+  credit.textContent = creditOf(options.body, locale);
   overlay.appendChild(credit);
 
   // Interactive: orbit, zoom toward the pointer, with inertia; + and − and "whole body" as the globe's controls are placed.

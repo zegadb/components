@@ -1,0 +1,55 @@
+{
+  "description": "Every number the child bodies are built from, with its source. tools/body/build.mjs reads this file and nothing else for them; facts and measurements are not copyrightable, and no drawing was traced. A `model` entry is our own modelling choice, said as such.",
+  "age": 8,
+  "ageReason": "One reference age for both children: 8 years sits in the middle of the 6-10 range, before puberty (no sex difference in the organs modelled), with every growth plate open and the bladder still rising out of the pelvis; one body per schema value keeps the package small.",
+  "sources": {
+    "cdc2000": "Kuczmarski RJ, Ogden CL, Guo SS, et al. 2000 CDC Growth Charts for the United States: methods and development. Vital Health Stat 11. 2002;(246). Data file statage.csv (stature-for-age, 2 to 20 years), https://www.cdc.gov/growthcharts/data/zscore/statage.csv.",
+    "makehuman": "MakeHuman 1.x base mesh and macro targets (makehumancommunity/makehuman at a8bc2d54ff0ac92e78ff71431b1023eda42bf482, makehuman/data), CC0 1.0.",
+    "dhingra2010": "Dhingra B, Sharma S, Mishra D, Kumari R, Pandey RM, Aggarwal S. Normal values of liver and spleen size by ultrasonography in Indian children. Indian Pediatr. 2010;47:487-492. Table II.",
+    "obrycki2022": "Obrycki Ł, Sarnecki J, Lichosik M, et al. Kidney length normative values in children aged 0-19 years: a multicenter study. Pediatr Nephrol. 2022;37:1075-1085 (CC BY). Table 2.",
+    "francis1985": "Francis IR, Glazer GM, Bookstein FL, Gross BH. The thymus: reexamination of age-related changes in size and shape. AJR Am J Roentgenol. 1985;145:249-254.",
+    "maresh1938": "Maresh MM, Washburn AH. Size of the heart in healthy children. Am J Dis Child. 1938;56:33-60.",
+    "hakenberg1983": "Hakenberg OW, et al. J Urol. 1983;130:249-251: expected bladder capacity (mL) = (age in years + 2) × 30.",
+    "moore": "Moore KL, Dalley AF, Agur AMR. Clinically Oriented Anatomy. Pelvis: in infants and young children the urinary bladder lies in the abdomen even when empty; it begins to enter the greater pelvis at about 6 years and lies wholly in the pelvis only after puberty.",
+    "ponseti1978": "Ponseti IV. Growth and development of the acetabulum in the normal child. J Bone Joint Surg Am. 1978;60:575-585: the triradiate cartilage joins ilium, ischium and pubis until early adolescence.",
+    "ogden1984": "Ogden JA. Radiology of postnatal skeletal development. X. Patella and tibial tuberosity. Skeletal Radiol. 1984;11:246-257: the patella ossifies from centres appearing at 3-6 years; at 8 the ossified part is smaller than the cartilage model."
+  },
+  "bodies": {
+    "boy": {
+      "from": "man",
+      "sex": "male",
+      "values": [
+        { "what": "stature", "value": 128.1, "unit": "cm", "age": "8.0 y (96.5 months)", "source": "cdc2000", "use": "the outline (MakeHuman, age 8) is scaled to this height; the interior follows it" },
+        { "what": "outline", "value": "male; age weights baby 0.30, child 0.70 (MakeHuman's age 8); each ethnic macro 1/3; average muscle and weight", "unit": "", "age": "8 y", "source": "makehuman", "use": "the skin" },
+        { "what": "liver", "value": 11.9, "unit": "cm", "age": "8 to <10 y, boys (mean)", "source": "dhingra2010", "use": "liver span at the right midclavicular line; the adult liver is scaled uniformly so its craniocaudal extent there is this" },
+        { "what": "spleen", "value": 8.2, "unit": "cm", "age": "8 to <10 y, boys (mean)", "source": "dhingra2010", "use": "the spleen's longest extent" },
+        { "what": "kidney", "value": 8.79, "unit": "cm", "age": "8-9 y, boys (50th percentile)", "source": "obrycki2022", "use": "each kidney's pole-to-pole length" },
+        { "what": "thymus", "value": [3.13, 3.53, 2.52], "unit": "cm (width, craniocaudal, AP)", "age": "0-10 y (mean)", "source": "francis1985", "use": "the thymus is scaled to these three extents" },
+        { "what": "heart", "value": 0.5, "unit": "cardiothoracic ratio (upper limit)", "age": ">7 y", "source": "maresh1938", "use": "as in adults, so the heart follows the chest's own scale" },
+        { "what": "bladder", "value": 300, "unit": "mL", "age": "8 y", "source": "hakenberg1983", "use": "the bladder is scaled to this volume" },
+        { "what": "bladder position", "value": 0.35, "unit": "of its height, raised", "age": "8 y", "source": "moore", "use": "model: raised by this part of its height above where the adult bladder maps, so it rises out of the pelvis" },
+        { "what": "growth plates", "value": 0.004, "unit": "m, drawn width", "age": "8 y", "source": "ponseti1978", "use": "model: a gap this wide at the distal femoral and proximal and distal tibial physes; ilium, ischium and pubis each drawn 3 % smaller about their own centre so the triradiate cartilage shows" },
+        { "what": "physis levels", "value": { "femurDistal": "the top of the femoral condyles in the source mesh", "tibiaProximal": 0.07, "tibiaDistal": 0.045 }, "unit": "of the bone's length from its end", "age": "8 y", "source": "ogden1984", "use": "model: where the growth-plate gaps are cut" },
+        { "what": "patella", "value": 0.85, "unit": "of its mapped size", "age": "8 y", "source": "ogden1984", "use": "model: the ossified part only" }
+      ]
+    },
+    "girl": {
+      "from": "woman",
+      "sex": "female",
+      "values": [
+        { "what": "stature", "value": 127.8, "unit": "cm", "age": "8.0 y (96.5 months)", "source": "cdc2000", "use": "the outline (MakeHuman, age 8) is scaled to this height; the interior follows it" },
+        { "what": "outline", "value": "female; age weights baby 0.30, child 0.70 (MakeHuman's age 8); each ethnic macro 1/3; average muscle and weight", "unit": "", "age": "8 y", "source": "makehuman", "use": "the skin" },
+        { "what": "liver", "value": 11.7, "unit": "cm", "age": "8 to <10 y, girls (mean)", "source": "dhingra2010", "use": "liver span at the right midclavicular line; the adult liver is scaled uniformly so its craniocaudal extent there is this" },
+        { "what": "spleen", "value": 8.2, "unit": "cm", "age": "8 to <10 y, girls (mean)", "source": "dhingra2010", "use": "the spleen's longest extent" },
+        { "what": "kidney", "value": 8.74, "unit": "cm", "age": "8-9 y, girls (50th percentile)", "source": "obrycki2022", "use": "each kidney's pole-to-pole length" },
+        { "what": "thymus", "value": [3.13, 3.53, 2.52], "unit": "cm (width, craniocaudal, AP)", "age": "0-10 y (mean)", "source": "francis1985", "use": "the thymus is scaled to these three extents" },
+        { "what": "heart", "value": 0.5, "unit": "cardiothoracic ratio (upper limit)", "age": ">7 y", "source": "maresh1938", "use": "as in adults, so the heart follows the chest's own scale" },
+        { "what": "bladder", "value": 300, "unit": "mL", "age": "8 y", "source": "hakenberg1983", "use": "the bladder is scaled to this volume" },
+        { "what": "bladder position", "value": 0.35, "unit": "of its height, raised", "age": "8 y", "source": "moore", "use": "model: raised by this part of its height above where the adult bladder maps, so it rises out of the pelvis" },
+        { "what": "growth plates", "value": 0.004, "unit": "m, drawn width", "age": "8 y", "source": "ponseti1978", "use": "model: a gap this wide at the distal femoral and proximal and distal tibial physes; ilium, ischium and pubis each drawn 3 % smaller about their own centre so the triradiate cartilage shows" },
+        { "what": "physis levels", "value": { "femurDistal": "the top of the femoral condyles in the source mesh", "tibiaProximal": 0.07, "tibiaDistal": 0.045 }, "unit": "of the bone's length from its end", "age": "8 y", "source": "ogden1984", "use": "model: where the growth-plate gaps are cut" },
+        { "what": "patella", "value": 0.85, "unit": "of its mapped size", "age": "8 y", "source": "ogden1984", "use": "model: the ossified part only" }
+      ]
+    }
+  }
+}

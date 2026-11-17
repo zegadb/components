@@ -8,7 +8,7 @@
 //
 // Mesh ids are node names in the Human Reference Atlas's 3D reference
 // objects, the Visible Human male (HuBMAP CCF, `3d-vh-m-united.glb`, release
-// v2.0), licensed under CC BY 4.0.
+// v2.0), licensed under CC BY 4.0; the female's are femaleNode() of them.
 import type { CONTRACTS } from "../generated/contracts.ts";
 
 export type RegionId = (typeof CONTRACTS)["body"]["$defs"]["region"]["enum"][number];
@@ -51,13 +51,24 @@ export const REGIONS: Readonly<Record<RegionId, RegionDef>> = {
 
 /**
  * Each layer's context: everything of it that is not a region of its own, drawn as one mesh
- * (the skin; the knee's other bones and ligaments). Organs have none: every organ drawn is a region.
+ * (the skin; the knee's other bones and ligaments; the thymus, which is not a region but shows
+ * how a child's differs).
  */
 export const LAYER_NODES: Readonly<Record<Layer, readonly string[]>> = {
   skin: ["VH_M_skin"],
   skeleton: ["VH_M_skeletal_system"],
-  organs: [],
+  organs: ["VH_M_thymus"],
 };
+
+/** The four bodies. The man and the woman are the atlas's own; the boy and the girl are built from them (components/body/references.json). */
+export const BODIES = ["man", "woman", "boy", "girl"] as const;
+export type Body = (typeof BODIES)[number];
+
+/** A node's name in the female atlas: the male name with VH_F_ for VH_M_, except where the atlas names it differently. */
+export function femaleNode(male: string): string {
+  const differs: Record<string, string> = { VH_M_lungs_L: "VH_F_left_lungs_L" };
+  return differs[male] ?? male.replace(/^VH_M_/, "VH_F_");
+}
 
 export const LAYERS: readonly Layer[] = ["skin", "skeleton", "organs"];
 

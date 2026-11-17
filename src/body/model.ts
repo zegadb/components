@@ -1,7 +1,8 @@
 // body (components/body/): the data, what a schema can't say about it, and
 // what a spec resolves to before anything is drawn (no three.js here: the
 // validator and the chat never load it).
-import { REGIONS, isPaired, type Layer, type RegionId } from "./regions.ts";
+import { REGIONS, isPaired, meshName, type Body, type Layer, type RegionId } from "./regions.ts";
+import { MANIFEST } from "./manifest.ts";
 import type { ViewError } from "../types.ts";
 
 export type Side = "left" | "right" | "both";
@@ -10,9 +11,10 @@ export type ViewName = "auto" | "front" | "back" | "left" | "right";
 export interface Highlight { region: RegionId; side?: Side; role?: Role; note?: string }
 export interface BodyData { highlight: Highlight[] }
 export interface BodyOptions {
-  body: "adult";
+  body: Body;
   focus: string | null;
   mode: "still" | "interactive";
+  frame: "focus" | "body";
   view: ViewName;
   labels: boolean;
   title: string | null;
@@ -30,9 +32,24 @@ export const focusOf = (data: BodyData, options: BodyOptions): Highlight =>
 /** The layers drawn solid: the ones the highlights live on. The skin is always drawn, translucent over them. */
 export const layersOf = (data: BodyData): Layer[] => [...new Set(data.highlight.map((h) => REGIONS[h.region].layer))];
 
-/** What the schema can't say: sides only on paired regions, no region twice, a focus that is highlighted. */
-export function semantic(data: BodyData, options: BodyOptions): ViewError[] {
+/** Which meshes a body has: the built meshes' manifest (src/body/manifest.ts), or, in a test, another. */
+export type Manifest = Record<Body, { readonly meshes: readonly string[] }>;
+
+/**
+ * What the schema can't say: sides only on paired regions, no region twice, a focus that is highlighted,
+ * and every region in the chosen body (a region a body does not have, at its age or sex, is an error
+ * for the model, never a blank picture).
+ */
+export function semantic(data: BodyData, options: BodyOptions, manifest: Manifest = MANIFEST): ViewError[] {
   const errors: ViewError[] = [];
+  const has = new Set(manifest[options.body].meshes);
+  data.highlight.forEach((h, i) => {
+    const missing = sidesOf(h).filter((side) => !has.has(meshName(h.region, side)));
+    if (missing.length) {
+      const others = (Object.keys(manifest) as Body[]).filter((b) => b !== options.body && sidesOf(h).every((side) => manifest[b].meshes.includes(meshName(h.region, side))));
+      errors.push({ code: "body", at: `data.highlight[${i}].region`, message: `the ${options.body}'s body has no ${h.region}${missing[0] ? ` (${missing.join(" and ")} side)` : ""}`, help: others.length ? `leave it out, or draw it on ${others.join(" or ")}` : "leave it out" });
+    }
+  });
   data.highlight.forEach((h, i) => {
     if (h.side !== undefined && !isPaired(h.region)) errors.push({ code: "side", at: `data.highlight[${i}].side`, message: `${h.region} is not a paired region, so it takes no side`, help: `remove side; only ${PAIRED.join(", ")} take one` });
   });
