@@ -27,7 +27,14 @@ async function main() {
   const checked = validate(spec);
   if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
   const drawn = render(checked.view, { width: fixture.size.width, theme: t, id: 'fx' });
-  if ('map' in drawn) {
+  if ('body' in drawn) {
+    const { drawBody } = await import('/dist/body/draw.js');
+    const box = document.createElement('div');
+    box.style.height = `${drawn.height}px`;
+    stage.appendChild(box);
+    await drawBody(box, checked.view.data, checked.view.options, { theme: t, asset: '/assets/body/adult.glb', locale: fixture.locale ?? 'en', reducedMotion: true });
+    await frames(3);
+  } else if ('map' in drawn) {
     const { default: maplibregl } = await import('/node_modules/maplibre-gl/dist/maplibre-gl.mjs').then((m) => ({ default: m.default ?? m }));
     maplibregl.setWorkerUrl('/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs');
     const { drawChecked } = await import('/dist/path-on-map/draw.js');

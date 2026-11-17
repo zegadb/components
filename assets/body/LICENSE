@@ -1,0 +1,17 @@
+adult.glb in this directory is an adapted work, licensed under the
+Creative Commons Attribution 4.0 International licence (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+Source: Human Reference Atlas 3D reference objects (HuBMAP CCF), the Visible
+Human male, release v2.0, models/3d-vh-m-united.glb.zip
+(https://github.com/hubmapconsortium/ccf-releases), derived from the
+National Library of Medicine's Visible Human Project. Licensed CC BY 4.0
+(https://github.com/hubmapconsortium/ccf-3d-reference-object-library).
+
+Changes: cut into one mesh per region and side as named in
+src/body/regions.ts, plus one mesh each for the skin and the rest of the
+skeleton; other structures (eyes, vessels, nerves, lymph node, reproductive
+organs, larynx, bronchi) left out; welded, simplified with meshoptimizer,
+quantised and meshopt-compressed by tools/body/build.mjs. No warranty.
+
+The code in this repository is MIT; this licence covers only the mesh.

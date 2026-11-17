@@ -17,3 +17,32 @@
   font: 600 14px/1 var(--zc-font-ui); white-space: nowrap; pointer-events: none;
   text-shadow: 0 0 2px var(--zc-halo), 0 0 2px var(--zc-halo), 0 0 3px var(--zc-halo);
 }
+
+/* body (components/body/): the labels, title, credit and controls over the 3D body.
+   Placed like the globe's: controls top-right, the credit bottom-right. */
+.zc-body { position: relative; overflow: hidden; background: var(--zc-ground); }
+.zc-body-canvas { display: block; }
+.zc-body-overlay { position: absolute; inset: 0; pointer-events: none; font: 12px/1.3 var(--zc-font-ui); color: var(--zc-ink); }
+.zc-body-lines { position: absolute; inset: 0; overflow: visible; }
+.zc-body-label {
+  position: absolute; left: 0; top: 0; max-width: 42%;
+  padding: 4px 8px 5px; border-radius: 6px;
+  background: color-mix(in srgb, var(--zc-panel) 90%, transparent);
+  border: 1px solid var(--zc-rule);
+}
+.zc-body-label-name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.zc-body-swatch { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.zc-body-label-note { color: var(--zc-soft); font-size: 11px; margin-top: 1px; padding-left: 14px; }
+.zc-body-title { position: absolute; left: 10px; top: 8px; font-size: 14px; font-weight: 600; }
+.zc-body-credit { position: absolute; right: 8px; bottom: 5px; font-size: 10.5px; color: var(--zc-soft); }
+.zc-body-controls {
+  position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; pointer-events: auto;
+  border-radius: 6px; overflow: hidden; border: 1px solid var(--zc-rule); background: var(--zc-panel);
+}
+.zc-body-controls button {
+  width: 29px; height: 29px; border: 0; padding: 0; background: none; color: var(--zc-ink);
+  font: 600 16px/29px var(--zc-font-ui); cursor: pointer;
+}
+.zc-body-controls button + button { border-top: 1px solid var(--zc-rule); }
+.zc-body-controls button:hover { background: var(--zc-rule); }
+.zc-body-controls button:focus-visible { outline: 2px solid var(--zc-accent); outline-offset: -2px; }

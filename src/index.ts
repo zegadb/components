@@ -11,7 +11,7 @@
 import * as functionPlot from "./function-plot.ts";
 import * as priceChart from "./price-chart.ts";
 import { CONTRACTS } from "./generated/contracts.ts";
-import type { RenderContext, Rendered } from "./chart.ts";
+import { heightFor, type RenderContext, type Rendered } from "./chart.ts";
 import type { View } from "./validate.ts";
 
 export { validate, explain, COMPONENT_IDS, MAX_ERRORS, type ComponentId, type View, type Validated } from "./validate.ts";
@@ -22,17 +22,23 @@ export { heightFor, type RenderContext, type Rendered, type Hover, type HoverCol
 export { parse as parseExpression } from "./expr.ts";
 export { THEMES } from "./generated/themes.ts";
 export * as pathOnMap from "./path-on-map/model.ts";
+export * as body from "./body/model.ts";
+export { REGIONS as BODY_REGIONS, nameOf as bodyRegionName } from "./body/regions.ts";
 export type { Contract, ViewSpec, ViewError, Theme, HostTheme, ThemeColours, Mode } from "./types.ts";
 export type { FunctionPlotData, FunctionPlotOptions } from "./function-plot.ts";
 export type { PriceChartData, PriceChartOptions } from "./price-chart.ts";
 export { CONTRACTS };
 
-/** A validated view, drawn as SVG; or, for a map component, `{ map: true }`: the host draws it on its map. */
-export function render(view: View, ctx: RenderContext): Rendered | { map: true; height: number } {
+/**
+ * A validated view, drawn as SVG; or, for a map component, `{ map: true }`: the host draws it on its map;
+ * or, for the 3D body, `{ body: true }`: the host draws it with drawBody() from "@zegadb/components/body/draw".
+ */
+export function render(view: View, ctx: RenderContext): Rendered | { map: true; height: number } | { body: true; height: number } {
   switch (view.component) {
     case "function-plot": return functionPlot.render(view.data, view.options, ctx);
     case "price-chart": return priceChart.render(view.data, view.options, ctx);
     case "path-on-map": return { map: true, height: Math.round(Math.max(CONTRACTS["path-on-map"].size.minHeight, Math.min(CONTRACTS["path-on-map"].size.maxHeight, ctx.width * CONTRACTS["path-on-map"].size.aspect))) };
+    case "body": return { body: true, height: heightFor(CONTRACTS["body"].size, ctx.width, ctx.height) };
   }
 }
 

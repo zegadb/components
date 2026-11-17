@@ -7,6 +7,7 @@ import { CONTRACTS } from "./generated/contracts.ts";
 import * as functionPlot from "./function-plot.ts";
 import * as priceChart from "./price-chart.ts";
 import * as pathOnMap from "./path-on-map/model.ts";
+import * as body from "./body/model.ts";
 import type { Contract, ViewError, ViewSpec } from "./types.ts";
 
 export type ComponentId = keyof typeof CONTRACTS;
@@ -15,7 +16,8 @@ export const COMPONENT_IDS = Object.keys(CONTRACTS) as ComponentId[];
 export type View =
   | { component: "function-plot"; data: functionPlot.FunctionPlotData; options: functionPlot.FunctionPlotOptions }
   | { component: "price-chart"; data: priceChart.PriceChartData; options: priceChart.PriceChartOptions }
-  | { component: "path-on-map"; data: pathOnMap.PathOnMapData; options: pathOnMap.PathOptions; paths: pathOnMap.Paths };
+  | { component: "path-on-map"; data: pathOnMap.PathOnMapData; options: pathOnMap.PathOptions; paths: pathOnMap.Paths }
+  | { component: "body"; data: body.BodyData; options: body.BodyOptions };
 
 export type Validated = { ok: true; view: View } | { ok: false; errors: ViewError[] };
 
@@ -81,6 +83,7 @@ function typed(id: ComponentId, data: unknown, options: Record<string, unknown>)
       const d = data as pathOnMap.PathOnMapData, o = options as unknown as pathOnMap.PathOptions;
       return { component: id, data: d, options: o, paths: pathOnMap.paths(d, o) };
     }
+    case "body": return { component: id, data: data as body.BodyData, options: options as unknown as body.BodyOptions };
   }
 }
 
@@ -89,6 +92,7 @@ function semantic(view: View): ViewError[] {
     case "function-plot": return functionPlot.semantic(view.data, view.options);
     case "price-chart": return priceChart.semantic(view.data, view.options);
     case "path-on-map": return pathOnMap.semantic(view.data);
+    case "body": return body.semantic(view.data, view.options);
   }
 }
 

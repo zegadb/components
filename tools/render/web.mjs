@@ -19,7 +19,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { webFixtures, webReferencePaths, DEFAULT_TOLERANCE } from '../lib/repo.mjs';
+import { components, webFixtures, webReferencePaths, DEFAULT_TOLERANCE } from '../lib/repo.mjs';
 import { diffInPage } from './render.mjs';
 
 const REPO = fileURLToPath(new URL('../../', import.meta.url));
@@ -77,8 +77,11 @@ async function main() {
   let failed = 0, gl = null;
   await mkdir(join(REPO, '.tmp'), { recursive: true });
   try {
+    // A draft has no references yet (tools/check.mjs asks for none): its fixtures render with screens.mjs for review.
+    const drafts = new Set((await components(REPO)).filter((c) => c.status === 'draft').map((c) => c.id));
     for (const fx of await webFixtures(REPO)) {
       if (only && fx.component !== only) continue;
+      if (drafts.has(fx.component)) { console.log(`skip ${fx.path}  (draft)`); continue; }
       const fixture = JSON.parse(await readFile(join(REPO, fx.path), 'utf8'));
       const refs = webReferencePaths(fx);
       for (const mode of ['light', 'dark']) {

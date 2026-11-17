@@ -2,6 +2,279 @@
 import type { Contract } from "../types.ts";
 
 export const CONTRACTS = {
+  "body": {
+    "format": 2,
+    "id": "body",
+    "version": "0.1.0",
+    "title": "Body",
+    "category": "Anatomy",
+    "description": "A 3D human body with its organs and skeleton, for showing where something is in the body while explaining it (\"where the liver is\", \"the kidneys\", \"the right thigh bone\"). Highlight regions from the fixed list; the camera frames the focus. Not for diagnosis, injuries or anything graphic.",
+    "surface": {
+      "kind": "art",
+      "art": "body-adult-1",
+      "description": "One adult body (the Human Reference Atlas's Visible Human male, CC BY 4.0) in three layers: skin, skeleton and organs. The layers a highlight lives on are drawn solid; the skin over them turns translucent. Left and right are the person's own. Units are metres, y up, the body facing +z, its right at −x."
+    },
+    "marks": [
+      "mesh",
+      "label"
+    ],
+    "size": {
+      "aspect": 1,
+      "minHeight": 380,
+      "maxHeight": 600
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "highlight"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "highlight": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "description": "The regions to light up, each labelled with its name (and note).",
+          "items": {
+            "type": "object",
+            "required": [
+              "region"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "region": {
+                "$ref": "#/$defs/region"
+              },
+              "side": {
+                "enum": [
+                  "left",
+                  "right",
+                  "both"
+                ],
+                "description": "For paired regions (lung, kidney, femur, patella, tibia): the person's own left or right, or both (the default). Leave it out for every other region."
+              },
+              "role": {
+                "enum": [
+                  "focus",
+                  "related",
+                  "pain"
+                ],
+                "description": "focus (default): the region being explained. related: a region connected to it. pain: where it hurts."
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "A few words under the region's name, e.g. \"stores bile\"."
+              }
+            }
+          }
+        }
+      }
+    },
+    "$defs": {
+      "region": {
+        "enum": [
+          "brain",
+          "heart",
+          "lung",
+          "liver",
+          "gallbladder",
+          "pancreas",
+          "spleen",
+          "kidney",
+          "small-intestine",
+          "large-intestine",
+          "appendix",
+          "bladder",
+          "spine",
+          "pelvis",
+          "femur",
+          "patella",
+          "tibia"
+        ],
+        "description": "A region from the fixed list: organs (brain … bladder) or bones (spine … tibia)."
+      }
+    },
+    "options": {
+      "body": {
+        "enum": [
+          "adult"
+        ],
+        "default": "adult",
+        "description": "Which body. Only the adult body exists so far."
+      },
+      "focus": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "maxLength": 32,
+        "default": null,
+        "description": "The highlighted region the camera frames (null: the first one with role focus, else the first)."
+      },
+      "mode": {
+        "enum": [
+          "still",
+          "interactive"
+        ],
+        "default": "still",
+        "description": "still: one framed picture, everything but the highlights dimmed. interactive: the reader can orbit and zoom; the camera flies to the focus."
+      },
+      "view": {
+        "enum": [
+          "auto",
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "default": "auto",
+        "description": "Which side of the body faces the viewer. auto: the side the focus is nearest."
+      },
+      "labels": {
+        "type": "boolean",
+        "default": true,
+        "description": "Each region's name (and note) beside it."
+      },
+      "title": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "maxLength": 80,
+        "default": null,
+        "description": "A title above the body."
+      }
+    },
+    "examples": {
+      "valid": [
+        {
+          "title": "Where the liver is, and the gallbladder under it",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "liver"
+                },
+                {
+                  "region": "gallbladder",
+                  "role": "related",
+                  "note": "stores bile"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "title": "Both kidneys, from the back, to explore",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "kidney"
+                }
+              ]
+            },
+            "options": {
+              "mode": "interactive",
+              "view": "back"
+            }
+          }
+        },
+        {
+          "title": "A broken right femur",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "femur",
+                  "side": "right",
+                  "role": "pain"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "invalid": [
+        {
+          "title": "A region that is not in the list",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "livers"
+                }
+              ]
+            }
+          },
+          "error": {
+            "code": "enum",
+            "at": "data.highlight[0].region",
+            "message": "\"livers\" is not one of \"brain\", \"heart\", \"lung\", \"liver\", \"gallbladder\", \"pancreas\", \"spleen\", \"kidney\", \"small-intestine\", \"large-intestine\", \"appendix\", \"bladder\", \"spine\", \"pelvis\", \"femur\", \"patella\", \"tibia\"",
+            "help": "did you mean \"liver\"?",
+            "fix": {
+              "kind": "safe",
+              "patch": [
+                {
+                  "op": "replace",
+                  "path": "/data/highlight/0/region",
+                  "value": "liver"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "title": "A side on a region that has none",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "liver",
+                  "side": "right"
+                }
+              ]
+            }
+          },
+          "error": {
+            "code": "side",
+            "at": "data.highlight[0].side",
+            "message": "liver is not a paired region, so it takes no side",
+            "help": "remove side; only lung, kidney, femur, patella, tibia take one"
+          }
+        },
+        {
+          "title": "A focus that is not highlighted",
+          "spec": {
+            "component": "body",
+            "data": {
+              "highlight": [
+                {
+                  "region": "heart"
+                }
+              ]
+            },
+            "options": {
+              "focus": "lung"
+            }
+          },
+          "error": {
+            "code": "focus",
+            "at": "options.focus",
+            "message": "lung is not one of the highlighted regions",
+            "help": "use one of heart, or leave focus out"
+          }
+        }
+      ]
+    }
+  },
   "function-plot": {
     "format": 2,
     "id": "function-plot",

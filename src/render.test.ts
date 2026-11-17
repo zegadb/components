@@ -8,7 +8,7 @@ const draw = (spec: unknown, width = 600) => {
   const v = validate(spec);
   if (!v.ok) throw new Error(JSON.stringify(v.errors));
   const r = render(v.view, { width, theme: ava });
-  if ("map" in r) throw new Error("a map");
+  if ("map" in r || "body" in r) throw new Error("not an SVG chart");
   return r;
 };
 const all = (n: SvgNode | string, pred: (n: SvgNode) => boolean): SvgNode[] => (typeof n === "string" ? [] : [...(pred(n) ? [n] : []), ...n.children.flatMap((c) => all(c, pred))]);
