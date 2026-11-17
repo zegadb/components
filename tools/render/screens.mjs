@@ -30,6 +30,19 @@ try {
       await context.close();
     }
   }
+  // --loading name: also that fixture's loading state, per mode.
+  const loading = arg('--loading');
+  if (loading) {
+    const fx = (await webFixtures(REPO)).find((f) => f.name === loading && (!only || f.component === only));
+    const fixture = JSON.parse(await readFile(join(REPO, fx.path), 'utf8'));
+    for (const mode of ['light', 'dark']) {
+      const { png, context } = await shoot(browser, origin, fx.path, fixture, mode, '&loading=1');
+      const path = join(out, fx.component, `${fx.name}.loading.${mode}.png`);
+      await writeFile(path, png);
+      console.log(`wrote ${path}`);
+      await context.close();
+    }
+  }
   // --pairs a:b,c:d  also puts two fixtures' screenshots side by side, per mode (for comparing bodies).
   for (const pair of (arg('--pairs') ?? '').split(',').filter(Boolean)) {
     const [a, b] = pair.split(':');

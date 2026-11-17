@@ -37,11 +37,23 @@ export function autoView(focus: Box, body: Box): "front" | "back" {
  * The shot that frames `box` from `dir` in a view `aspect` wide (width / height) with a vertical
  * field of view `fov` (radians), leaving `margin` of the view around it (0.25: a quarter each side).
  */
-export function frame(box: Box, dir: Vec3, fov: number, aspect: number, margin = 0.25): Shot {
+export function frame(box: Box, dir: Vec3, fov: number, aspect: number, margin = 0.25, minRadius = 0.02): Shot {
   const size = sub(box.max, box.min);
-  const radius = Math.max(len(size) / 2, 0.02);
+  const radius = Math.max(len(size) / 2, minRadius);
   const half = Math.min(fov / 2, Math.atan(Math.tan(fov / 2) * aspect));
   const distance = radius / Math.sin(half) / (1 - margin);
+  return { target: centre(box), distance, dir: norm(dir) };
+}
+
+/**
+ * The shot that fits a standing body: its height and width each within the view, less `margin`
+ * (a fraction of the view kept free around it), from the front or the back. Tighter than a bounding
+ * sphere, which leaves a tall body half the view.
+ */
+export function frameStanding(box: Box, dir: Vec3, fov: number, aspect: number, margin = 0.04): Shot {
+  const size = sub(box.max, box.min);
+  const t = Math.tan(fov / 2);
+  const distance = Math.max(size[1] / 2 / (t * (1 - margin)), size[0] / 2 / (t * aspect * (1 - margin))) + size[2] / 2;
   return { target: centre(box), distance, dir: norm(dir) };
 }
 

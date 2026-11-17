@@ -12,6 +12,8 @@
     "hakenberg1983": "Hakenberg OW, et al. J Urol. 1983;130:249-251: expected bladder capacity (mL) = (age in years + 2) × 30.",
     "moore": "Moore KL, Dalley AF, Agur AMR. Clinically Oriented Anatomy. Pelvis: in infants and young children the urinary bladder lies in the abdomen even when empty; it begins to enter the greater pelvis at about 6 years and lies wholly in the pelvis only after puberty.",
     "ponseti1978": "Ponseti IV. Growth and development of the acetabulum in the normal child. J Bone Joint Surg Am. 1978;60:575-585: the triradiate cartilage joins ilium, ischium and pubis until early adolescence.",
+    "medawar1944": "Medawar PB. The shape of the human being as a function of time. Proc R Soc Lond B. 1944;132:133-141 (the changing body proportions after Stratz: the head is 1/4 of stature at birth, 1/5 at 2, 1/6 at 6, 1/7 at 12 and 1/8 in the adult).",
+    "model": "Our own modelling choice, said as such in the value's `use`.",
     "ogden1984": "Ogden JA. Radiology of postnatal skeletal development. X. Patella and tibial tuberosity. Skeletal Radiol. 1984;11:246-257: the patella ossifies from centres appearing at 3-6 years; at 8 the ossified part is smaller than the cartilage model."
   },
   "bodies": {
@@ -28,7 +30,9 @@
         { "what": "heart", "value": 0.5, "unit": "cardiothoracic ratio (upper limit)", "age": ">7 y", "source": "maresh1938", "use": "as in adults, so the heart follows the chest's own scale" },
         { "what": "bladder", "value": 300, "unit": "mL", "age": "8 y", "source": "hakenberg1983", "use": "the bladder is scaled to this volume" },
         { "what": "bladder position", "value": 0.35, "unit": "of its height, raised", "age": "8 y", "source": "moore", "use": "model: raised by this part of its height above where the adult bladder maps, so it rises out of the pelvis" },
-        { "what": "growth plates", "value": 0.004, "unit": "m, drawn width", "age": "8 y", "source": "ponseti1978", "use": "model: a gap this wide at the distal femoral and proximal and distal tibial physes; ilium, ischium and pubis each drawn 3 % smaller about their own centre so the triradiate cartilage shows" },
+        { "what": "growth plates", "value": 0.006, "unit": "m, drawn width", "age": "8 y", "source": "ponseti1978", "use": "model: a band this wide at the distal femoral and proximal and distal tibial physes, drawn in the cartilage colour; ilium, ischium and pubis each drawn 3 % smaller about their own centre over a cartilage shell, so the triradiate cartilage shows" },
+        { "what": "body wall", "value": 0.015, "unit": "m, each side", "age": "8 y", "source": "model", "use": "model: the child's lateral body wall (muscle and fat); across the trunk the organs scale with the room inside it (the outline's width less twice this) over the adult's organs' own width, not with the outline, since an adult's wall is thicker" },
+        { "what": "head", "value": "1/6 of stature at 6 years, 1/7 at 12, 1/8 in the adult", "unit": "head height : stature", "age": "8 y (interpolated: 1/6.3)", "source": "medawar1944", "use": "a check, not an input: the MakeHuman outline's head, measured crown to neck, must be 1.15-1.35 times the adult's share (the reference gives 8/6.3 = 1.26)" },
         { "what": "physis levels", "value": { "femurDistal": "the top of the femoral condyles in the source mesh", "tibiaProximal": 0.07, "tibiaDistal": 0.045 }, "unit": "of the bone's length from its end", "age": "8 y", "source": "ogden1984", "use": "model: where the growth-plate gaps are cut" },
         { "what": "patella", "value": 0.85, "unit": "of its mapped size", "age": "8 y", "source": "ogden1984", "use": "model: the ossified part only" }
       ]
@@ -46,7 +50,9 @@
         { "what": "heart", "value": 0.5, "unit": "cardiothoracic ratio (upper limit)", "age": ">7 y", "source": "maresh1938", "use": "as in adults, so the heart follows the chest's own scale" },
         { "what": "bladder", "value": 300, "unit": "mL", "age": "8 y", "source": "hakenberg1983", "use": "the bladder is scaled to this volume" },
         { "what": "bladder position", "value": 0.35, "unit": "of its height, raised", "age": "8 y", "source": "moore", "use": "model: raised by this part of its height above where the adult bladder maps, so it rises out of the pelvis" },
-        { "what": "growth plates", "value": 0.004, "unit": "m, drawn width", "age": "8 y", "source": "ponseti1978", "use": "model: a gap this wide at the distal femoral and proximal and distal tibial physes; ilium, ischium and pubis each drawn 3 % smaller about their own centre so the triradiate cartilage shows" },
+        { "what": "growth plates", "value": 0.006, "unit": "m, drawn width", "age": "8 y", "source": "ponseti1978", "use": "model: a band this wide at the distal femoral and proximal and distal tibial physes, drawn in the cartilage colour; ilium, ischium and pubis each drawn 3 % smaller about their own centre over a cartilage shell, so the triradiate cartilage shows" },
+        { "what": "body wall", "value": 0.015, "unit": "m, each side", "age": "8 y", "source": "model", "use": "model: the child's lateral body wall (muscle and fat); across the trunk the organs scale with the room inside it (the outline's width less twice this) over the adult's organs' own width, not with the outline, since an adult's wall is thicker" },
+        { "what": "head", "value": "1/6 of stature at 6 years, 1/7 at 12, 1/8 in the adult", "unit": "head height : stature", "age": "8 y (interpolated: 1/6.3)", "source": "medawar1944", "use": "a check, not an input: the MakeHuman outline's head, measured crown to neck, must be 1.15-1.35 times the adult's share (the reference gives 8/6.3 = 1.26)" },
         { "what": "physis levels", "value": { "femurDistal": "the top of the femoral condyles in the source mesh", "tibiaProximal": 0.07, "tibiaDistal": 0.045 }, "unit": "of the bone's length from its end", "age": "8 y", "source": "ogden1984", "use": "model: where the growth-plate gaps are cut" },
         { "what": "patella", "value": 0.85, "unit": "of its mapped size", "age": "8 y", "source": "ogden1984", "use": "model: the ossified part only" }
       ]

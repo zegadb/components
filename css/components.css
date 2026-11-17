@@ -35,6 +35,20 @@
 .zc-body-label-note { color: var(--zc-soft); font-size: 11px; margin-top: 1px; padding-left: 14px; }
 .zc-body-title { position: absolute; left: 10px; top: 8px; font-size: 14px; font-weight: 600; }
 .zc-body-credit { position: absolute; right: 8px; bottom: 5px; max-width: calc(100% - 16px); text-align: right; font-size: 10.5px; line-height: 1.3; color: var(--zc-soft); }
+.zc-body-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 14px;
+  color: var(--zc-soft); font: 12px/1.4 var(--zc-font-ui);
+}
+.zc-body-loading-figure { height: 46%; max-height: 220px; fill: none; stroke: var(--zc-rule); stroke-width: 7; stroke-linecap: round; }
+.zc-body-loading-figure circle { fill: var(--zc-rule); stroke: none; }
+.zc-body-loading-ring {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--zc-rule); border-top-color: var(--zc-accent);
+  animation: zc-body-turn 0.9s linear infinite;
+}
+@keyframes zc-body-turn { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .zc-body-loading-ring { animation: none; } }
+.zc-body-failed { padding: 16px; text-align: center; }
 .zc-body-controls {
   position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; pointer-events: auto;
   border-radius: 6px; overflow: hidden; border: 1px solid var(--zc-rule); background: var(--zc-panel);

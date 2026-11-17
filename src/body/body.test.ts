@@ -7,7 +7,7 @@ import { looks, roleColour } from "./draw.ts";
 import { REGIONS, LAYERS, BODIES, isPaired, meshName, nameOf, type Body, type RegionId } from "./regions.ts";
 import { autoView, flight, frame, direction, position, type Box } from "./camera.ts";
 import { semantic, type BodyData, type BodyOptions } from "./model.ts";
-import { MANIFEST } from "./manifest.ts";
+import { MANIFEST, CHILD_REPORT } from "./manifest.ts";
 import { creditOf } from "./draw.ts";
 import { NodeIO } from "@gltf-transform/core";
 import { EXTMeshoptCompression, KHRMeshQuantization } from "@gltf-transform/extensions";
@@ -102,8 +102,9 @@ test("body: the lit meshes are exactly the highlighted regions and sides, colour
 test("body: every body has one mesh per region and side and each layer's rest, as its manifest says", () => {
   const expected = [...IDS.flatMap((id) => (isPaired(id) ? [meshName(id, "right"), meshName(id, "left")] : [meshName(id, null)])), ...LAYERS].sort();
   for (const body of BODIES) {
-    assert.deepEqual([...asset(body).keys()].sort(), expected, body);
-    assert.deepEqual([...MANIFEST[body].meshes], expected, `${body}: the manifest is the built mesh's (run npm run body:asset)`);
+    const want = body === "boy" || body === "girl" ? [...expected, "cartilage"].sort() : expected;
+    assert.deepEqual([...asset(body).keys()].sort(), want, body);
+    assert.deepEqual([...MANIFEST[body].meshes], want, `${body}: the manifest is the built mesh's (run npm run body:asset)`);
     assert.equal(MANIFEST[body].bytes, readFileSync(new URL(`../../assets/body/${body}.glb`, import.meta.url)).length, `${body}: the manifest's size is the file's`);
   }
 });
@@ -184,6 +185,56 @@ test("body: a child's femur and tibia have open growth plates; an adult's do not
   }
   const man = await decoded("man");
   for (const bone of ["femur__right", "tibia__left"]) assert.equal(widestGap(man.get(bone)!), 0, `man ${bone}: no gap`);
+});
+
+test("body: a child's growth plates are cartilage, filling the gaps in the bone, in the cartilage colour", async () => {
+  const boy = await decoded("boy");
+  const cart = boy.get("cartilage")!, femur = boy.get("femur__right")!;
+  // The femur's gap: the widest band of height no triangle of it crosses.
+  const spans: [number, number][] = [];
+  for (let i = 0; i < femur.indices.length; i += 3) { const t = [0, 1, 2].map((k) => femur.positions[femur.indices[i + k]! * 3 + 1]!); spans.push([Math.min(...t), Math.max(...t)]); }
+  spans.sort((a, b) => a[0] - b[0]);
+  let reach = spans[0]![1], gapLo = 0, gapHi = 0;
+  for (const [lo, hi] of spans) { if (lo - reach > gapHi - gapLo) { gapLo = reach; gapHi = lo; } reach = Math.max(reach, hi); }
+  // Cartilage triangles that bridge the gap, edge to edge.
+  let bridging = 0;
+  for (let i = 0; i < cart.indices.length; i += 3) {
+    const t = [0, 1, 2].map((k) => cart.positions[cart.indices[i + k]! * 3 + 1]!);
+    if (Math.min(...t) <= gapLo + 0.0005 && Math.max(...t) >= gapHi - 0.0005) bridging++;
+  }
+  assert.ok(bridging > 10, `cartilage fills the femur's growth plate (${bridging} triangles across ${gapLo.toFixed(3)}..${gapHi.toFixed(3)})`);
+  const l = looks({ highlight: [{ region: "femur", side: "right" }] }, ava);
+  assert.deepEqual(l.get("cartilage"), { colour: ava.cartilage, opacity: 1, lit: false });
+  assert.notEqual(ava.cartilage, l.get("femur__right")!.colour);
+});
+
+test("body: a child's organs fill the trunk as an adult's do, the boy's as the girl's", async () => {
+  /** The organs' width across the upper abdomen (liver to spleen) over the trunk's own width there (arms left out). */
+  const fill = async (body: Body) => {
+    const m = await decoded(body);
+    const box = (n: string) => { const p = m.get(n)!.positions; let lo = Infinity, hi = -Infinity, ylo = Infinity, yhi = -Infinity; for (let i = 0; i < p.length; i += 3) { lo = Math.min(lo, p[i]!); hi = Math.max(hi, p[i]!); ylo = Math.min(ylo, p[i + 1]!); yhi = Math.max(yhi, p[i + 1]!); } return { lo, hi, y: (ylo + yhi) / 2 }; };
+    const liver = box("liver"), spleen = box("spleen");
+    const y = (liver.y + spleen.y) / 2, skin = m.get("skin")!.positions;
+    const xs: number[] = [];
+    for (let i = 0; i < skin.length; i += 3) if (Math.abs(skin[i + 1]! - y) < 0.01) xs.push(skin[i]!);
+    xs.sort((a, b) => a - b);
+    let k = xs.findIndex((x) => x >= 0), lo = k, hi = k;
+    while (lo > 0 && xs[lo]! - xs[lo - 1]! < 0.02) lo--;
+    while (hi < xs.length - 1 && xs[hi + 1]! - xs[hi]! < 0.02) hi++;
+    return (spleen.hi - liver.lo) / (xs[hi]! - xs[lo]!);
+  };
+  const [boy, girl, man] = [await fill("boy"), await fill("girl"), await fill("man")];
+  // Scaled with the outline instead of the room inside the body wall, the boy's fill 80 %: this catches it.
+  assert.ok(boy > girl * 0.88, `the boy's organs fill ${(boy * 100).toFixed(0)} % of his trunk, the girl's ${(girl * 100).toFixed(0)} %, the man's ${(man * 100).toFixed(0)} %`);
+});
+
+test("body: the child's head is as much larger as the reference says, not exaggerated", () => {
+  // Medawar 1944: the head is 1/6.3 of stature at 8 and 1/8 in the adult, so 1.26 times the adult's share.
+  for (const child of ["boy", "girl"] as const) {
+    const r = CHILD_REPORT[child];
+    const ratio = r.headShare / r.adultHeadShare;
+    assert.ok(ratio > 1.15 && ratio < 1.35, `${child}: head ${ratio.toFixed(2)}× the adult's share`);
+  }
 });
 
 test("body: a region the chosen body does not have is an error for the model, not a blank picture", () => {

@@ -51,7 +51,7 @@ export const SOURCES = {
   },
 };
 /** Triangles per mesh after simplification: enough to read at a phone's width, small enough to load fast. */
-const BUDGET = { skin: 30000, skeleton: 9000, organs: 1500, brain: 7000, heart: 4000, 'small-intestine': 7000, 'large-intestine': 5000, spine: 10000, pelvis: 6000, femur: 2200, tibia: 1800, patella: 500, lung: 4000 };
+const BUDGET = { skin: 30000, skeleton: 9000, organs: 1500, brain: 7000, heart: 4000, 'small-intestine': 7000, 'large-intestine': 5000, spine: 10000, pelvis: 6000, femur: 2200, tibia: 1800, patella: 500, lung: 4000, cartilage: 5000 };
 const BUDGET_ORGAN = 3500;
 
 const arg = (name) => (process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : null);
@@ -191,18 +191,30 @@ export function measure(positions, indices) {
   for (let f = 0.35; f <= 0.7; f += 0.005) { const y = b.min[1] + f * (crotch - b.min[1]); const w = leg(y).width; if (w < best) { best = w; knee = y; } }
   return {
     H, cx, sole: b.min[1], knee, crotch, neck, crown: b.max[1],
-    trunk: central(crotch + 0.55 * (neck - crotch)),
-    chest: central(crotch + 0.8 * (neck - crotch)),
+    // The waist and the lower chest: both below where the arms meet the trunk (from 0.64 of the way up in the atlas woman).
+    trunk: central(crotch + TRUNK_AT.abdomen * (neck - crotch)),
+    chest: central(crotch + TRUNK_AT.chest * (neck - crotch)),
     head: central(neck + 0.5 * (b.max[1] - neck)),
     thigh: leg(b.min[1] + 0.75 * (crotch - b.min[1])),
     shin: leg(b.min[1] + 0.3 * (crotch - b.min[1])),
+    /** The trunk's width a fraction `f` of the way from crotch to neck. */
+    trunkWidthAt: (f) => central(crotch + f * (neck - crotch))?.width ?? null,
+    // Across the shoulders (arms and all): the midclavicular line is a quarter of this from the midline.
+    shoulders: central(crotch + 0.8 * (neck - crotch)),
+    // The trunk's width from crotch (0) to neck (1): where an arm touches the trunk the loop jumps wide.
+    profile: Array.from({ length: 15 }, (_, i) => { const f = 0.1 + i * 0.06; const l = central(crotch + f * (neck - crotch)); return [+f.toFixed(2), l ? +l.width.toFixed(3) : null]; }),
   };
 }
+
+/** Where, from crotch (0) to neck (1), the trunk's abdomen and chest are measured. */
+const TRUNK_AT = { abdomen: 0.4, chest: 0.58 };
+/** Where the trunk's room for the organs is measured, crotch (0) to neck (1). */
+const CAVITY_AT = [0.25, 0.32, 0.39, 0.46, 0.53, 0.6];
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** The map from the adult's body to the child's: piecewise in height through the landmarks, each band its own width and depth. */
-export function bodyMap(A, C) {
+export function bodyMap(A, C, cavity = null) {
   const ys = ['sole', 'knee', 'crotch', 'neck', 'crown'];
   const y = (v) => {
     let k = 0;
@@ -219,11 +231,20 @@ export function bodyMap(A, C) {
   const sx = { head: C.head.width / A.head.width, leg: C.thigh.width / A.thigh.width };
   const sz = { head: C.head.depth / A.head.depth, leg: C.thigh.depth / A.thigh.depth };
   // The trunk's width, depth and middle run from the abdomen's to the chest's (a child's chest is relatively broader).
-  const yAbdomen = A.crotch + 0.55 * (A.neck - A.crotch), yChest = A.crotch + 0.8 * (A.neck - A.crotch);
+  const yAbdomen = A.crotch + TRUNK_AT.abdomen * (A.neck - A.crotch), yChest = A.crotch + TRUNK_AT.chest * (A.neck - A.crotch);
+  // Across the trunk, what is inside it scales with the cavity, not the outline: an adult's organs sit
+  // inside a thicker wall of muscle and fat than a child's (cavity: the child's room across over the adult's organs' width).
+  const across = (v) => {
+    if (!cavity) { const t = Math.max(0, Math.min(1, (v - yAbdomen) / (yChest - yAbdomen))); return C.trunk.width / A.trunk.width + t * (C.chest.width / A.chest.width - C.trunk.width / A.trunk.width); }
+    const f = (v - A.crotch) / (A.neck - A.crotch);
+    if (f <= cavity[0][0]) return cavity[0][1];
+    for (let k = 1; k < cavity.length; k++) if (f <= cavity[k][0]) { const [f0, r0] = cavity[k - 1], [f1, r1] = cavity[k]; return r0 + ((f - f0) * (r1 - r0)) / (f1 - f0); }
+    return cavity[cavity.length - 1][1];
+  };
   const trunk = (v) => {
     const t = Math.max(0, Math.min(1, (v - yAbdomen) / (yChest - yAbdomen)));
     const mix = (a, b) => a + t * (b - a);
-    return { sx: mix(C.trunk.width / A.trunk.width, C.chest.width / A.chest.width), sz: mix(C.trunk.depth / A.trunk.depth, C.chest.depth / A.chest.depth), zA: mix(A.trunk.zc, A.chest.zc), zC: mix(C.trunk.zc, C.chest.zc) };
+    return { sx: across(v), sz: mix(C.trunk.depth / A.trunk.depth, C.chest.depth / A.chest.depth), zA: mix(A.trunk.zc, A.chest.zc), zC: mix(C.trunk.zc, C.chest.zc) };
   };
   const map = ([x, v, z]) => {
     const w = band(v), tr = trunk(v);
@@ -268,14 +289,27 @@ function cutAt(piece, y, gap) {
     for (const v of poly) positions.push(...v);
     for (let k = 1; k + 1 < poly.length; k++) indices.push(base, base + k, base + k + 1);
   };
+  // What is cut out is kept apart: the growth plate itself, drawn as cartilage.
+  const plate = { positions: [], indices: [] };
+  const emitTo = (poly, out) => {
+    if (poly.length < 3) return;
+    const base = out.positions.length / 3;
+    for (const v of poly) out.positions.push(...v);
+    for (let k = 1; k + 1 < poly.length; k++) out.indices.push(base, base + k, base + k + 1);
+  };
   for (let i = 0; i < piece.indices.length; i += 3) {
     const tri = [vert(piece.indices[i]), vert(piece.indices[i + 1]), vert(piece.indices[i + 2])];
     emit(clip(tri, lo, -1));
     emit(clip(tri, hi, 1));
+    emitTo(clip(clip(tri, lo, 1), hi, -1), plate);
   }
   piece.positions = positions;
   piece.indices = indices;
+  return plate;
 }
+
+/** Append one mesh to another. */
+const append = (into, { positions, indices }) => { const base = into.positions.length / 3; for (const v of positions) into.positions.push(v); for (const i of indices) into.indices.push(i + base); };
 
 // ------------------------------------------------------------------ bodies
 
@@ -299,7 +333,7 @@ async function atlasPieces(dir, body) {
     if (!geo.indices.length) throw new Error(`${body} ${p.name}: no triangles`);
     Object.assign(p, geo);
     // What the child needs from the atlas's finer parts: the pelvis's three bones, the femur's condyles.
-    if (p.region === 'pelvis') p.parts = ['VH_M_ilium', 'VH_M_ischium', 'VH_M_pubis', 'VH_M_sacrum', 'VH_M_coccyx'].map((n) => collect(find(n), new Set()));
+    if (p.region === 'pelvis') p.parts = ['VH_M_ilium', 'VH_M_ischium', 'VH_M_pubis', 'VH_M_sacrum', 'VH_M_coccyx'].map((n) => ({ name: n, ...collect(find(n), new Set()) }));
     if (p.region === 'femur') {
       const tag = p.side === 'right' ? 'R' : 'L';
       const condyles = input.getRoot().listNodes().filter((n) => /condyle.*sup/.test(n.getName()) && (n.getName().endsWith(`_${tag}`) || n.getName().includes(p.side === 'right' ? 'right_femur' : 'left_femur')));
@@ -326,12 +360,23 @@ async function childPieces(dir, body, adult) {
   // Measured on welded copies: the sections follow shared edges.
   const welded = (m) => { const w = weldPositions(m); return [w.positions, w.indices]; };
   const A = measure(...welded(adultSkin)), C = measure(...welded(skin));
-  const { map, scale } = bodyMap(A, C);
+  // The adult's organs' width at the waist and the lower chest, and the child's room there: its outline less its body wall.
+  const organsWide = (y) => {
+    let lo = Infinity, hi = -Infinity;
+    for (const p of adult) if (p.layer === 'organs' && p.name !== 'organs') for (let i = 0; i < p.positions.length; i += 3) if (Math.abs(p.positions[i + 1] - y) < 0.02) { lo = Math.min(lo, p.positions[i]); hi = Math.max(hi, p.positions[i]); }
+    return hi - lo;
+  };
+  const wall = VALUE(body, 'body wall');
+  // Up the trunk, from the pelvis to the lower chest (above it the arms meet the trunk): the child's room over the adult's organs.
+  const cavity = CAVITY_AT.map((f) => [f, (C.trunkWidthAt(f) - 2 * wall) / organsWide(A.crotch + f * (A.neck - A.crotch))]);
+  console.log(`${body}: across the trunk ${JSON.stringify(cavity.map(([f, r]) => [f, +r.toFixed(3)]))} (outline ratio ${(C.trunk.width / A.trunk.width).toFixed(3)})`);
+  const { map, scale } = bodyMap(A, C, cavity);
   const round = (o) => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'number' ? +v.toFixed(3) : v)));
   console.log(`${body}: adult landmarks ${JSON.stringify(round(A))}\n${body}: child landmarks ${JSON.stringify(round(C))}`);
   const report = { stature:C.crown - C.sole, headShare: (C.crown - C.neck) / (C.crown - C.sole), adultHeadShare: (A.crown - A.neck) / (A.crown - A.sole), legShare: (C.crotch - C.sole) / (C.crown - C.sole), adultLegShare: (A.crotch - A.sole) / (A.crown - A.sole), organs: {} };
   const uniform = (s) => [s, s, s];
   const out = [];
+  const cartilage = { name: 'cartilage', layer: 'skeleton', region: null, positions: [], indices: [] };
   for (const a of adult) {
     const p = { ...a, positions: [...a.positions], indices: [...a.indices] };
     if (p.name === 'skin') { out.push({ ...p, positions: skin.positions, indices: skin.indices }); continue; }
@@ -346,15 +391,35 @@ async function childPieces(dir, body, adult) {
           const q = [...part.positions];
           follow(q);
           const qc = bounds(q).centre;
-          for (let i = 0; i < q.length; i += 3) for (let j = 0; j < 3; j++) q[i + j] = qc[j] + (q[i + j] - qc[j]) * 0.97;
-          const base = p.positions.length / 3;
-          for (const v of q) p.positions.push(v);
-          for (const x of part.indices) p.indices.push(x + base);
+          const shrunk = (k) => q.map((v, i) => qc[i % 3] + (v - qc[i % 3]) * k);
+          append(p, { positions: shrunk(0.97), indices: part.indices });
+          // Inside each bone, a cartilage core a little smaller still: it shows through the seams between them.
+          if (/ilium|ischium|pubis/.test(part.name)) append(cartilage, { positions: shrunk(0.94), indices: part.indices });
         }
+      } else if (p.region === 'femur' || p.region === 'tibia') {
+        // The growth plates are cut in the adult bone, at the adult's proportions, the plate's width
+        // scaled up so it comes out as wide in the child.
+        const b = bounds(p.positions), levels = VALUE(body, 'physis levels');
+        const gapAdult = VALUE(body, 'growth plates') / scale(b.centre)[1];
+        const plates = p.region === 'femur' ? [cutAt(p, a.condyleTop, gapAdult)]
+          : [cutAt(p, b.max[1] - levels.tibiaProximal * b.size[1], gapAdult), cutAt(p, b.min[1] + levels.tibiaDistal * b.size[1], gapAdult)];
+        // A long bone stays straight: its two ends follow the body map, and every point in between moves
+        // along the line joining them (following point by point bends it where the leg meets the trunk).
+        const q = p.positions, ends = [b.min[1] + 0.05 * b.size[1], b.max[1] - 0.05 * b.size[1]];
+        const middleAt = (y0) => { let sx = 0, sz = 0, n = 0; for (let i = 0; i < q.length; i += 3) if (Math.abs(q[i + 1] - y0) < 0.02 * b.size[1] + 0.003) { sx += q[i]; sz += q[i + 2]; n++; } return [sx / n, y0, sz / n]; };
+        const [a0, a1] = ends.map(middleAt), [c0, c1] = [map(a0), map(a1)];
+        const s = scale(b.centre);
+        const straight = (r) => {
+          for (let i = 0; i < r.length; i += 3) {
+            const t = (r[i + 1] - a0[1]) / (a1[1] - a0[1]);
+            r[i] = c0[0] + t * (c1[0] - c0[0]) + (r[i] - (a0[0] + t * (a1[0] - a0[0]))) * s[0];
+            r[i + 2] = c0[2] + t * (c1[2] - c0[2]) + (r[i + 2] - (a0[2] + t * (a1[2] - a0[2]))) * s[2];
+            r[i + 1] = c0[1] + t * (c1[1] - c0[1]);
+          }
+        };
+        straight(p.positions);
+        for (const plate of plates) { straight(plate.positions); append(cartilage, plate); }
       } else follow(p.positions);
-      const gap = VALUE(body, 'growth plates'), levels = VALUE(body, 'physis levels');
-      if (p.region === 'femur') cutAt(p, map([0, a.condyleTop, 0])[1], gap);
-      if (p.region === 'tibia') { const b = bounds(p.positions); cutAt(p, b.max[1] - levels.tibiaProximal * b.size[1], gap); cutAt(p, b.min[1] + levels.tibiaDistal * b.size[1], gap); }
       if (p.region === 'patella') place(p, (v) => v, uniform(VALUE(body, 'patella')));
       out.push(p);
       continue;
@@ -363,7 +428,7 @@ async function childPieces(dir, body, adult) {
     const S = scale(c);
     let measured = null;
     if (p.region === 'liver') {
-      const mcl = A.cx - A.chest.width / 4;
+      const mcl = A.cx - A.shoulders.width / 4;
       const ysAt = []; for (let i = 0; i < p.positions.length; i += 3) if (Math.abs(p.positions[i] - mcl) < 0.015) ysAt.push(p.positions[i + 1]);
       measured = { target: VALUE(body, 'liver') / 100, adult: Math.max(...ysAt) - Math.min(...ysAt) };
     } else if (p.region === 'spleen') measured = { target: VALUE(body, 'spleen') / 100, adult: principalLength(p.positions) };
@@ -381,6 +446,7 @@ async function childPieces(dir, body, adult) {
     report.organs[p.name] = measured ? { adult: +(measured.adult * 100).toFixed(1), child: +(measured.target * 100).toFixed(1), scale: +(measured.target / measured.adult).toFixed(3), bodyScale: +S[1].toFixed(3) } : undefined;
     out.push(p);
   }
+  out.push(cartilage);
   return { pieces: out, report };
 }
 

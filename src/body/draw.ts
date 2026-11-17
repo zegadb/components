@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import { autoView, direction, duration, ease, flight, frame, position, type Box, type Shot, type Vec3 } from "./camera.ts";
+import { autoView, direction, duration, ease, flight, frame, frameStanding, position, type Box, type Shot, type Vec3 } from "./camera.ts";
 import { focusOf, layersOf, sidesOf, type BodyData, type BodyOptions, type Highlight, type Role } from "./model.ts";
 import { LAYERS, REGIONS, meshName, nameOf, type Body, type Layer } from "./regions.ts";
 import type { Locale } from "../scale.ts";
@@ -48,6 +48,41 @@ export interface BodyHandle {
   dispose(): void;
 }
 
+/**
+ * The loading state: a faint standing figure and a small ring turning beside it (still, under
+ * reduced motion), in the host's tokens (components.css). Returns what takes it off, or swaps it
+ * for a plain sentence when the body could not be shown.
+ */
+export function showLoading(container: HTMLElement, locale: Locale): (failed?: string) => void {
+  const doc = container.ownerDocument;
+  const box = doc.createElement("div");
+  box.className = "zc-body-loading";
+  box.setAttribute("role", "status");
+  box.setAttribute("aria-label", locale === "fr" ? "Chargement du corps" : "Loading the body");
+  const figure = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+  figure.setAttribute("class", "zc-body-loading-figure");
+  figure.setAttribute("viewBox", "0 0 60 150");
+  // A plain standing figure: head, trunk, arms, legs, as rounded strokes.
+  for (const [tag, attrs] of [
+    ["circle", { cx: "30", cy: "14", r: "10" }],
+    ["path", { d: "M30 28 L30 80 M30 34 L12 72 M30 34 L48 72 M30 80 L20 140 M30 80 L40 140" }],
+  ] as const) {
+    const el = doc.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    figure.appendChild(el);
+  }
+  const ring = doc.createElement("div");
+  ring.className = "zc-body-loading-ring";
+  box.append(figure, ring);
+  container.appendChild(box);
+  return (failed) => {
+    if (!failed) { box.remove(); return; }
+    box.replaceChildren();
+    box.className = "zc-body-loading zc-body-failed";
+    box.textContent = failed;
+  };
+}
+
 /** A region's colour: the accent for the one explained, the soft ink for a related one, the theme's red for pain. */
 export const roleColour = (role: Role, theme: Theme) => (role === "pain" ? theme.down : role === "related" ? mix(theme.accent, theme.ground, 0.5) : theme.accent);
 
@@ -74,6 +109,8 @@ export function looks(data: BodyData, theme: Theme): Map<string, { colour: strin
     }
   }
   for (const layer of LAYERS) out.set(layer, layer === "skin" ? { colour: theme.soft, opacity: 0.1, lit: false } : solid.has(layer) ? DIM(theme) : layer === "skeleton" ? { colour: theme.axis, opacity: 0.1, lit: false } : null);
+  // A child's cartilage (growth plates, the pelvis's seams): solid in its own colour when the skeleton is; else not drawn (it would be noise round organs).
+  out.set("cartilage", solid.has("skeleton") ? { colour: theme.cartilage, opacity: 1, lit: false } : null);
   return out;
 }
 
@@ -109,7 +146,18 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
   scene.add(camera);
 
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const gltf = await loader.loadAsync(ctx.asset(options.body));
+  // A quiet loading state while the mesh comes (about 430 KB): never an empty box, which reads as broken.
+  const hideLoading = showLoading(container, locale);
+  let gltf: Awaited<ReturnType<GLTFLoader["loadAsync"]>>;
+  try {
+    gltf = await loader.loadAsync(ctx.asset(options.body));
+  } catch (error) {
+    // People see a plain sentence; the error goes to the host.
+    hideLoading(locale === "fr" ? "Le corps n’a pas pu être affiché." : "The body could not be shown.");
+    renderer.dispose();
+    throw error;
+  }
+  hideLoading();
   const meshes = new Map<string, THREE.Mesh>();
   gltf.scene.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.set(o.name, o as THREE.Mesh); });
   const look = looks(data, theme);
@@ -152,10 +200,11 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
     const box = boxOf(meshesOf(h));
     const view = viewOf(box);
     // Room for the labels either side; more of it on a narrow column.
-    return frame(box, direction(view), (FOV * Math.PI) / 180, aspect, options.labels ? (width < 480 ? 0.68 : 0.45) : 0.3);
+    // At least 6 cm round the focus: a kneecap alone would fill the view, and the growth plates either side of it would not show.
+    return frame(box, direction(view), (FOV * Math.PI) / 180, aspect, options.labels ? (width < 480 ? 0.68 : 0.45) : 0.3, 0.06);
   };
   const focus = focusOf(data, options);
-  const wholeBody = frame(bodyBox, direction(viewOf(boxOf(meshesOf(focus)))), (FOV * Math.PI) / 180, aspect, 0.06);
+  const wholeBody = frameStanding(bodyBox, direction(viewOf(boxOf(meshesOf(focus)))), (FOV * Math.PI) / 180, aspect, 0.05);
   let shot: Shot = options.frame === "body" ? wholeBody : shotOf(focus);
   const place = (s: Shot) => {
     camera.position.fromArray(position(s));

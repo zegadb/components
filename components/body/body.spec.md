@@ -66,8 +66,8 @@ Back to front.
 | 10 | **credit** | the source's credit, once, bottom-right, plain text, no links | HTML text |
 
 **The meshes.** Four files, each loaded only when its body is drawn,
-meshopt-compressed and quantised: man 434 KB, woman 439 KB, boy 419 KB,
-girl 423 KB (1.72 MB together; the tests hold each under 480 KB and all
+meshopt-compressed and quantised: man 434 KB, woman 439 KB, boy 434 KB,
+girl 438 KB (1.75 MB together; the tests hold each under 480 KB and all
 four under 1.8 MB). tools/body/build.mjs makes them all:
 
 - **The man and the woman** are cut from the Human Reference Atlas's 3D
@@ -83,7 +83,13 @@ four under 1.8 MB). tools/body/build.mjs makes them all:
   and crown, each band with its own width and depth, the chest broader than
   the abdomen) places everything. Then the liver, spleen and kidneys take
   their measured paediatric sizes (Dhingra 2010, Obrycki 2022). The thymus
-  takes its CT size (Francis 1985). The bladder takes its expected volume
+  takes its CT size (Francis 1985). Across the trunk, everything inside
+  scales with the room inside the child's body wall (1.5 cm a side, a
+  modelling value), not with the outline: an adult's organs sit inside a
+  thicker wall of muscle and fat. The head is the outline's own and is
+  checked, not set: crown to neck it is 1.20 to 1.29 times the adults'
+  share, against 1.26 from Medawar 1944 (1/6.3 of stature at 8, 1/8 in the
+  adult). The bladder takes its expected volume
   (Hakenberg 1983) and rises out of the pelvis (Moore). The heart follows
   the chest (a child's cardiothoracic ratio is an adult's, Maresh 1938). On
   the skeleton, gaps are cut at the distal femoral and proximal and distal
@@ -93,6 +99,9 @@ four under 1.8 MB). tools/body/build.mjs makes them all:
 Known limits, said plainly:
 - the atlas has no ribs, so a child's more horizontal ribs are not shown;
 - the proximal femoral growth plate is not cut;
+- the arms stay as the sources hold them, about 45° from the body (relaxing
+  them needs a rig and skin weights, not done); whole-body frames fit the
+  height, so the arms cost no height;
 - the woman's own liver is large, so the girl's comes out only about 1.05×
   relatively larger against the trunk (the boy's 1.2×);
 - the atlas's adult "thymus" is the fat-replaced thymic region (the woman's
@@ -122,7 +131,9 @@ within 380–600 pt. The fixtures are 640 pt (a desktop chat column) and 358 pt
 ## Colour and type
 
 The focus is {theme.accent}; pain is {theme.down}; related is the accent
-halfway to {theme.ground}. Dimmed layers and the faint skeleton are
+halfway to {theme.ground}. A child's cartilage (open growth plates, the
+pelvis's seams) is {theme.cartilage}, a pale blue-grey apart from every
+bone and organ colour, solid whenever the skeleton is shown. Dimmed layers and the faint skeleton are
 {theme.axis}, at 30 % (22 % on a dark ground); the skin is {theme.soft} at
 10 %. Labels: {theme.ink} on {theme.panel} at 90 % with a {theme.rule}
 border; notes and the credit {theme.soft}; leaders {theme.soft}. The face is
@@ -133,7 +144,7 @@ the host's UI face.
 | state | when | what shows |
 |---|---|---|
 | empty | never: a spec needs a highlight | — |
-| loading | the body's mesh is loading (about 430 KB) | the ground; the host may show a still poster (later) |
+| loading | the body's mesh is loading (about 430 KB) | a faint standing figure in {theme.rule} and a small ring turning in {theme.accent} (still under reduced motion); if the mesh cannot load, a plain sentence in {theme.soft}, never a raw error |
 | error | the spec fails validation | nothing; the errors go back to whoever wrote the spec |
 | selected | — | None. |
 | hover / press | interactive: dragging | the body orbits; labels follow their regions |

@@ -63,11 +63,12 @@ export const MANIFEST = {
     ]
   },
   "boy": {
-    "bytes": 429376,
+    "bytes": 444316,
     "meshes": [
       "appendix",
       "bladder",
       "brain",
+      "cartilage",
       "femur__left",
       "femur__right",
       "gallbladder",
@@ -93,11 +94,12 @@ export const MANIFEST = {
     ]
   },
   "girl": {
-    "bytes": 433536,
+    "bytes": 448792,
     "meshes": [
       "appendix",
       "bladder",
       "brain",
+      "cartilage",
       "femur__left",
       "femur__right",
       "gallbladder",
