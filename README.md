@@ -60,7 +60,17 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 // then attachHover(svgElement, drawn.hover, theme) for the crosshair and tooltip
 // path-on-map: drawn is { map: true, height }; the host's MapLibre map + drawChecked() from
 // "@zegadb/components/path-on-map/draw" (pathOnMap.plainStyle(theme) when there is no basemap)
+// the host's basemap: basemapStyle("ava", mode, lang) from "@zegadb/components/basemap"
+// (needs @protomaps/basemaps); AVA_BASEMAP (main entry, no map code) is its origin, credit, palette
 ```
+
+- **Basemaps:** a host's street map is defined once here
+  (`src/basemaps.ts`; the style in `src/basemap.ts`), so every surface of the host shows the same map. Ava's
+  is tiles.addis.gg (Protomaps v4, the world archive, no key) in the "Quiet"
+  palette; ava's maps and Ava's chat both draw on it. The style carries no
+  attribution control: the host says the credit once, in its own type, and
+  never with an "edit the map" link. If the tiles can't be read, the host
+  falls back to `pathOnMap.plainStyle` and the paths are drawn the same.
 
 - **Never markup.** Charts are SVG node trees a host turns into its own
   elements; model-written text is always text. Expressions (function-plot)

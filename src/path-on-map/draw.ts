@@ -130,6 +130,19 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
       room[side] = Math.max(room[side], side === "left" || side === "right" ? need.w : need.h);
     }
   }
+  if (glyphs) {
+    // The symbol layer's labels (a basemap's glyphs): MapLibre measures them only once placed, so
+    // their room is estimated from the text (an average glyph is about 0.6 em wide), so framing
+    // keeps a label on a narrow map (a phone's chat column) as it does the HTML ones.
+    for (const path of p.paths) {
+      if (!path.label) continue;
+      const at = labelPlacement(path.points, p.options.bearing);
+      const gap = Math.max(MEASURES.markerMin, p.options.lineWidth) + MEASURES.labelOffset * MEASURES.labelSize / 2;
+      const need = { w: path.label.length * MEASURES.labelSize * 0.6 + gap, h: MEASURES.labelSize * 1.2 + gap };
+      const side = ({ left: "right", right: "left", top: "bottom", bottom: "top" } as const)[at.anchor];
+      room[side] = Math.max(room[side], side === "left" || side === "right" ? need.w : need.h);
+    }
+  }
   drawn.set(map, { markers, cls });
   legend(map, p, theme, cls);
   if (context.frame !== false) {
