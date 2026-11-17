@@ -24,6 +24,7 @@ export { THEMES } from "./generated/themes.ts";
 export * as pathOnMap from "./path-on-map/model.ts";
 export * as body from "./body/model.ts";
 export { REGIONS as BODY_REGIONS, nameOf as bodyRegionName } from "./body/regions.ts";
+export { AVA_BASEMAP, BASEMAPS, creditHtml, type Basemap, type BasemapHost, type BasemapLang, type BasemapPalette, type CreditPart } from "./basemaps.ts";
 export type { Contract, ViewSpec, ViewError, Theme, HostTheme, ThemeColours, Mode } from "./types.ts";
 export type { FunctionPlotData, FunctionPlotOptions } from "./function-plot.ts";
 export type { PriceChartData, PriceChartOptions } from "./price-chart.ts";
