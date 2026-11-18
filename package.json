@@ -4,35 +4,45 @@
   "private": true,
   "type": "module",
   "description": "Graph components (APS 21): the specs, typed contracts, design tokens and conformance fixtures, and the web package that draws them. The spec is the product.",
-  "license": "MIT",
+  "license": "MIT AND CC-BY-4.0 AND CC0-1.0",
   "engines": { "node": ">=24" },
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./path-on-map/draw": { "types": "./dist/path-on-map/draw.d.ts", "default": "./dist/path-on-map/draw.js" },
+    "./body/draw": { "types": "./dist/body/draw.d.ts", "default": "./dist/body/draw.js" },
+    "./body/*.glb": "./assets/body/*.glb",
     "./basemap": { "types": "./dist/basemap.d.ts", "default": "./dist/basemap.js" },
     "./tokens.css": "./generated/tokens.css",
     "./themes.css": "./generated/themes.css",
     "./components.css": "./css/components.css"
   },
-  "files": ["dist", "generated/tokens.css", "generated/themes.css", "css/components.css", "README.md"],
+  "files": ["dist", "assets", "generated/tokens.css", "generated/themes.css", "css/components.css", "README.md"],
   "sideEffects": false,
   "peerDependencies": {
     "@protomaps/basemaps": ">=5.7.2 <6",
-    "maplibre-gl": ">=6.11.1 <7"
+    "maplibre-gl": ">=6.11.1 <7",
+    "three": ">=0.170.0 <0.171.0"
   },
   "peerDependenciesMeta": {
     "@protomaps/basemaps": { "optional": true },
-    "maplibre-gl": { "optional": true }
+    "maplibre-gl": { "optional": true },
+    "three": { "optional": true }
   },
   "devDependencies": {
     "@fontsource/dm-sans": "5.3.0",
     "@protomaps/basemaps": "5.7.2",
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/space-grotesk": "5.3.0",
+    "@gltf-transform/core": "4.1.0",
+    "@gltf-transform/extensions": "4.1.0",
+    "@gltf-transform/functions": "4.1.0",
     "@playwright/test": "1.63.0",
     "@types/geojson": "7946.0.16",
     "@types/node": "26.6.6",
+    "@types/three": "0.170.0",
     "maplibre-gl": "6.11.1",
+    "meshoptimizer": "0.22.0",
+    "three": "0.170.0",
     "typescript": "5.9.3"
   },
   "scripts": {
@@ -43,6 +53,7 @@
     "check": "node tools/check.mjs",
     "test": "node --test 'tools/test/*.test.mjs' 'src/**/*.test.ts'",
     "pack:vendor": "node tools/pack.mjs",
+    "body:asset": "node tools/body/build.mjs",
     "render:web": "node tools/render/web.mjs",
     "verify:web": "node tools/render/web.mjs --verify",
     "screens": "node tools/render/screens.mjs",

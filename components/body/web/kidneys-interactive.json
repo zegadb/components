@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "Both kidneys from the back, interactive",
+  "description": "The interactive body after its flight (reduced motion jumps): framed on both kidneys from the back, the zoom and whole-body controls top-right, a label per side.",
+  "host": "ava",
+  "size": { "width": 640 },
+  "scale": 2,
+  "spec": {
+    "component": "body",
+    "data": { "highlight": [{ "region": "kidney", "note": "filter the blood" }] },
+    "options": { "mode": "interactive", "view": "back" }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "A girl's skeleton from the side",
+  "description": "The same, from her right side: the leg bones inside the shins and thighs, the spine inside the back.",
+  "host": "ava",
+  "size": { "width": 640 },
+  "scale": 2,
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "pelvis" }, { "region": "spine", "role": "related" }, { "region": "femur", "role": "related" }, { "region": "tibia", "role": "related" }, { "region": "patella", "role": "related" }] }, "options": { "body": "girl", "frame": "body", "view": "right", "labels": false } }
+}

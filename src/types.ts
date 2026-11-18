@@ -49,6 +49,7 @@ export interface ThemeColours {
   readonly up: string;
   readonly down: string;
   readonly buildings: string;
+  readonly cartilage: string;
   readonly sequential: readonly string[];
   readonly diverging: readonly string[];
 }

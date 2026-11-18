@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "Where the liver is (still)",
+  "description": "A still framed on the liver from the front: the liver lit in the accent, the gallbladder as related with its note, the other organs dimmed, the skin a veil, labels either side, the credit once.",
+  "host": "ava",
+  "size": { "width": 640 },
+  "scale": 2,
+  "spec": {
+    "component": "body",
+    "data": { "highlight": [{ "region": "liver" }, { "region": "gallbladder", "role": "related", "note": "stores bile" }] }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "Right knee pain, in French, zega",
+  "description": "The skeleton layer: the right kneecap as pain, the right shin bone and thigh bone related, in French, on zega's theme, at a phone's width.",
+  "host": "zega",
+  "locale": "fr",
+  "size": { "width": 358 },
+  "scale": 2,
+  "spec": {
+    "component": "body",
+    "data": { "highlight": [{ "region": "patella", "side": "right", "role": "pain", "note": "douleur en montant l’escalier" }, { "region": "femur", "side": "right", "role": "related" }, { "region": "tibia", "side": "right", "role": "related" }] },
+    "options": { "focus": "patella" }
+  }
+}

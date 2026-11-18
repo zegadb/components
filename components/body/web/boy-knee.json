@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "A boy's knee and its growth plates",
+  "description": "The skeleton layer of the boy of 8: the right thigh bone, shin bone and kneecap lit, the growth plates open as gaps above and below the knee, the smaller ossified kneecap.",
+  "host": "ava",
+  "size": { "width": 640 },
+  "scale": 2,
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "femur", "side": "right", "role": "related" }, { "region": "tibia", "side": "right", "role": "related" }, { "region": "patella", "side": "right", "note": "still partly cartilage at 8" }] }, "options": { "body": "boy", "focus": "patella" } }
+}

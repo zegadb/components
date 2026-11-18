@@ -1,0 +1,47 @@
+man.glb, woman.glb, boy.glb and girl.glb in this directory are adapted works.
+They are licensed under the Creative Commons Attribution 4.0 International
+licence (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+Each file carries the same credit in its glTF asset.copyright.
+
+Sources
+
+1. Human Reference Atlas 3D reference objects (HuBMAP CCF), the Visible
+   Human male and female, release v2.0: models/3d-vh-m-united.glb.zip and
+   models/3d-vh-f-united.glb.7z (https://github.com/hubmapconsortium/ccf-releases).
+   3D reference organs by Kristen Browne (3D modeller) and Katy Börner, HuBMAP
+   CCF; described in Herr BW II, Hardi J, Quardokus EM, Bueckle A, Chen L,
+   Wang F, Caron AR, Osumi-Sutherland D, Musen MA, Börner K. Specimen,
+   biological structure, and spatial ontologies in support of a Human
+   Reference Atlas. Sci Data. 2023;10:171. doi:10.1038/s41597-023-01993-8.
+   Licensed CC BY 4.0
+   (https://github.com/hubmapconsortium/ccf-3d-reference-object-library).
+   Derived from the Visible Human Project data: Courtesy of the U.S. National
+   Library of Medicine.
+
+2. The brain in every file (the HRA's "Allen_brain" node) is the Allen Human
+   Reference Atlas – 3D, 2020: Ding S-L, Royall JJ, Sunkin SM, Facer BAC,
+   Lesnar P, Bernard A, Ng L, Lein ES. Allen Human Reference Atlas – 3D, 2020.
+   RRID:SCR_017764, version 1.0.0. © 2019 Allen Institute for Brain Science.
+   Licensed CC BY 4.0 (from 1 September 2022).
+
+3. The children's outlines (boy.glb, girl.glb, the "skin" mesh) are made from
+   the MakeHuman base mesh and macro targets, CC0 1.0
+   (makehumancommunity/makehuman at a8bc2d54ff0ac92e78ff71431b1023eda42bf482).
+
+Changes
+
+- Each body is cut into one mesh per region and side, as named in
+  src/body/regions.ts, plus one mesh each for the skin, the rest of the
+  skeleton and the thymus.
+- Other structures (eyes, vessels, nerves, lymph node, reproductive organs,
+  larynx, bronchi) are left out.
+- The meshes are welded, simplified with meshoptimizer, quantised and
+  meshopt-compressed by tools/body/build.mjs.
+- boy.glb and girl.glb are the male and female interiors moved and resized,
+  organ by organ, to paediatric reference measurements
+  (components/body/references.json). They are fitted inside the MakeHuman
+  outline, with growth plates and the pelvis's seams drawn as cartilage.
+
+No warranty.
+
+The code in this repository is MIT; this licence covers only the meshes.

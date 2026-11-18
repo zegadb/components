@@ -14,6 +14,7 @@
     "up": "A price that rose (candle, volume bar). Never alone: rising candles are hollow, falling ones filled.",
     "down": "A price that fell.",
     "buildings": "Extruded buildings under a path on the map.",
+    "cartilage": "A child's unossified cartilage on the body: open growth plates and the seams of the unfused pelvis. A pale blue-grey, apart from every bone and organ colour.",
     "sequential": "One hue, low to high value.",
     "diverging": "Two poles around a neutral middle."
   },
@@ -24,14 +25,14 @@
       "light": {
         "ground": "#F7F6F9", "panel": "#FFFFFF", "ink": "#1D1932", "soft": "#5F5875", "rule": "#E6E2EF", "axis": "#B4ACCB",
         "accent": "#6646EE", "series": ["#6646EE", "#EB6834", "#1BAF7A", "#EDA100", "#E87BA4", "#2A78D6"],
-        "up": "#13824F", "down": "#BE3529", "buildings": "#E4E1EC",
+        "up": "#13824F", "down": "#BE3529", "buildings": "#E4E1EC", "cartilage": "#8FB1C7",
         "sequential": ["#B6A6F9", "#8D72F3", "#6646EE", "#4527C4", "#24106E"],
         "diverging": ["#A6560B", "#E39A4B", "#DCD8E6", "#8D72F3", "#4527C4"]
       },
       "dark": {
         "ground": "#1C1A29", "panel": "#211C38", "ink": "#E9E6F2", "soft": "#B4ACCB", "rule": "#2C283F", "axis": "#4A4466",
         "accent": "#A88FFF", "series": ["#8F74F5", "#D95926", "#199E70", "#C98500", "#D55181", "#3987E5"],
-        "up": "#3FBF7F", "down": "#F26A5E", "buildings": "#252333",
+        "up": "#3FBF7F", "down": "#F26A5E", "buildings": "#252333", "cartilage": "#9CC3DB",
         "sequential": ["#4F3EA8", "#7259DE", "#A88FFF", "#CDBFFF", "#EEE9FF"],
         "diverging": ["#F2A65A", "#A8641F", "#4B4663", "#7259DE", "#CDBFFF"]
       }
@@ -42,14 +43,14 @@
       "light": {
         "ground": "#F3EFE3", "panel": "#FBF8EF", "ink": "#30251B", "soft": "#7E6C59", "rule": "#E2D9C8", "axis": "#B9A88C",
         "accent": "#0C8B43", "series": ["#0C8B43", "#2A78D6", "#EB6834", "#6250D6", "#EDA100", "#E87BA4"],
-        "up": "#0C8B43", "down": "#B8402F", "buildings": "#D8CDBA",
+        "up": "#0C8B43", "down": "#B8402F", "buildings": "#D8CDBA", "cartilage": "#8AACBF",
         "sequential": ["#B9DDC4", "#7CC196", "#3E9E66", "#0C7A3E", "#064522"],
         "diverging": ["#1F6E78", "#7FA8AB", "#C9C0B2", "#D98A5C", "#9C4220"]
       },
       "dark": {
         "ground": "#1E1610", "panel": "#281E16", "ink": "#F3EFE3", "soft": "#BDAA90", "rule": "#33281E", "axis": "#6D5540",
         "accent": "#3CCB77", "series": ["#22A85A", "#3987E5", "#D95926", "#9085E9", "#C98500", "#D55181"],
-        "up": "#3CCB77", "down": "#EF8A78", "buildings": "#423326",
+        "up": "#3CCB77", "down": "#EF8A78", "buildings": "#423326", "cartilage": "#98BFD3",
         "sequential": ["#164A2C", "#1E6E40", "#2E9A5B", "#62C78B", "#B4EBC8"],
         "diverging": ["#4FA3AC", "#3F6A6D", "#6B6259", "#B8683D", "#F0A878"]
       }

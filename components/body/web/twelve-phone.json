@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "Twelve regions at a phone's width",
+  "description": "Twelve highlights, some with notes, in the 358-point column: the labels fall back to names alone (or numbered markers) instead of overflowing.",
+  "host": "ava",
+  "size": { "width": 358 },
+  "scale": 2,
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "brain" }, { "region": "heart", "note": "pumps blood" }, { "region": "lung", "role": "related" }, { "region": "liver", "note": "largest organ inside" }, { "region": "gallbladder", "role": "related" }, { "region": "pancreas" }, { "region": "spleen", "role": "related" }, { "region": "kidney", "note": "filter the blood" }, { "region": "small-intestine" }, { "region": "large-intestine", "role": "related" }, { "region": "appendix", "role": "pain", "note": "inflamed" }, { "region": "bladder" }] }, "options": { "body": "man", "frame": "body" } }
+}
