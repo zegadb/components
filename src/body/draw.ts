@@ -19,7 +19,7 @@ import { autoView, direction, duration, ease, flight, frame, frameStanding, posi
 import { anchorPoint } from "./geometry.ts";
 import { layout, KEY_LINE, type LabelIn } from "./labels.ts";
 import { focusOf, layersOf, sidesOf, type BodyData, type BodyOptions, type Highlight, type Role } from "./model.ts";
-import { LAYERS, REGIONS, meshName, nameOf, type Body, type Layer, type RegionId } from "./regions.ts";
+import { ALL_LAYERS, REGIONS, isPaired, isZaLayer, meshName, nameOf, type Body, type Layer, type RegionId, type ZaLayer } from "./regions.ts";
 import type { Locale } from "../scale.ts";
 import type { Theme } from "../types.ts";
 
@@ -34,7 +34,19 @@ export const CREDIT: Record<"adult" | "child", Record<Locale, string>> = {
     fr: "Adapté du Human Reference Atlas adulte (HuBMAP, CC BY 4.0) d’après des mesures pédiatriques de référence · cerveau : Allen Institute · silhouette MakeHuman, CC0",
   },
 };
-export const creditOf = (body: Body, locale: Locale) => CREDIT[body === "boy" || body === "girl" ? "child" : "adult"][locale];
+/** Added to the credit only when a Z-Anatomy layer is drawn: the words its notice asks for. */
+export const ZA_CREDIT: Record<ZaLayer, Record<Locale, string>> = {
+  muscles: {
+    en: "muscles: Z-Anatomy (CC BY-SA 4.0), from BodyParts3D (DBCLS, CC BY-SA 2.1 JP)",
+    fr: "muscles : Z-Anatomy (CC BY-SA 4.0), d’après BodyParts3D (DBCLS, CC BY-SA 2.1 JP)",
+  },
+  nerves: {
+    en: "nerves: Z-Anatomy (CC BY-SA 4.0), from BodyParts3D (DBCLS, CC BY-SA 2.1 JP); cranial nerves after University of Dundee, CAHID (CC BY 4.0)",
+    fr: "nerfs : Z-Anatomy (CC BY-SA 4.0), d’après BodyParts3D (DBCLS, CC BY-SA 2.1 JP) ; nerfs crâniens d’après University of Dundee, CAHID (CC BY 4.0)",
+  },
+};
+export const creditOf = (body: Body, locale: Locale, layers: readonly Layer[] = []) =>
+  [CREDIT[body === "boy" || body === "girl" ? "child" : "adult"][locale], ...layers.filter(isZaLayer).map((l) => ZA_CREDIT[l][locale])].join(" · ");
 const FOV = 30;
 /** The role in words, always beside a related or painful region (never colour alone). Invariant in French: "en rapport", "douleur". */
 const ROLE_NAMES: Record<Locale, Record<Role, string>> = { en: { focus: "", related: "related", pain: "pain" }, fr: { focus: "", related: "en rapport", pain: "douleur" } };
@@ -47,7 +59,7 @@ export interface DrawBodyContext {
   /** The host's theme, or a function returning the current one: re-read when the page switches light and dark. */
   theme: Theme | (() => Theme);
   /** Where a body's mesh is: the package's assets/body/<body>.glb, served by the host (load only the one drawn). */
-  asset: (body: Body) => string;
+  asset: (body: Body, layer?: ZaLayer) => string;
   locale?: Locale;
   /** Jump instead of flying (prefers-reduced-motion); the default asks the browser. */
   reducedMotion?: boolean;
@@ -114,19 +126,28 @@ export const roleColour = (role: Role, theme: Theme) => roleLook(role, theme).co
 const DIM = (theme: Theme) => ({ colour: theme.axis, opacity: theme.mode === "dark" ? 0.22 : 0.3, lit: false });
 
 /** What each mesh is drawn as, for these highlights: a region lit, its layer dimmed, the skin a veil, other layers hidden. */
-export function looks(data: BodyData, theme: Theme): Map<string, { colour: string; opacity: number; lit: boolean } | null> {
-  const solid = new Set<Layer>(layersOf(data));
+export function looks(data: BodyData, theme: Theme, options?: Pick<BodyOptions, "layers">): Map<string, { colour: string; opacity: number; lit: boolean } | null> {
+  const solid = new Set<Layer>(layersOf(data, options));
   const lit = new Map<string, Highlight>();
   for (const h of data.highlight) for (const side of sidesOf(h)) lit.set(meshName(h.region, side), h);
   const out = new Map<string, { colour: string; opacity: number; lit: boolean } | null>();
+  // A shown layer that is not lit: dimmed organs and bones; muscles in muscle red (see-through over the
+  // bones when both are shown); nerves in their pale yellow.
+  const context = (layer: Layer) => {
+    if (!solid.has(layer)) return layer === "skeleton" && !solid.has("muscles") ? { colour: theme.axis, opacity: 0.1, lit: false } : null;
+    if (layer === "muscles") return { colour: theme.muscle, opacity: solid.has("skeleton") || solid.has("nerves") || solid.has("organs") ? 0.5 : 0.9, lit: false };
+    if (layer === "nerves") return { colour: theme.nerve, opacity: 1, lit: false };
+    return DIM(theme);
+  };
   for (const [id, def] of Object.entries(REGIONS) as [RegionId, (typeof REGIONS)[RegionId]][]) {
-    for (const side of Array.isArray(def.nodes) ? [null] : (["right", "left"] as const)) {
+    for (const side of isPaired(id) ? (["right", "left"] as const) : [null]) {
       const name = meshName(id, side);
       const h = lit.get(name);
-      out.set(name, h ? { ...roleLook(h.role ?? "focus", theme), lit: true } : solid.has(def.layer) ? DIM(theme) : null);
+      // A region of a layer that is not shown is not drawn at all (only the layer's rest may be, faintly).
+      out.set(name, h ? { ...roleLook(h.role ?? "focus", theme), lit: true } : solid.has(def.layer) ? context(def.layer) : null);
     }
   }
-  for (const layer of LAYERS) out.set(layer, layer === "skin" ? { colour: theme.soft, opacity: 0.1, lit: false } : solid.has(layer) ? DIM(theme) : layer === "skeleton" ? { colour: theme.axis, opacity: 0.1, lit: false } : null);
+  for (const layer of ALL_LAYERS) out.set(layer, layer === "skin" ? { colour: theme.soft, opacity: 0.1, lit: false } : context(layer));
   // A child's cartilage (growth plates, the pelvis's seams): solid in its own colour when the skeleton is; else not drawn (it would be noise round organs).
   out.set("cartilage", solid.has("skeleton") ? { colour: theme.cartilage, opacity: 1, lit: false } : null);
   return out;
@@ -174,7 +195,7 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
   stage.className = "zc-body-stage";
   const credit = doc.createElement("div");
   credit.className = "zc-body-credit";
-  credit.textContent = creditOf(options.body, locale);
+  credit.textContent = creditOf(options.body, locale, layersOf(data, options));
   container.append(stage, credit);
   // The stage ends where the credit's band begins (the band's height depends on the width: it can wrap).
   const fitBand = () => { stage.style.bottom = `${credit.offsetHeight}px`; };
@@ -186,11 +207,17 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
   // Loading: a quiet state while the mesh comes; a plain sentence (never a raw error) if it does not.
   const hideLoading = showLoading(stage, locale);
   let gltf: GLTF;
+  // The body's own mesh, and only the Z-Anatomy layers this picture shows (each its own file, loaded on demand).
+  const extra = layersOf(data, options).filter(isZaLayer);
   try {
-    const response = await win.fetch(ctx.asset(options.body), { signal });
-    if (!response.ok) throw new Error(`${response.status} ${response.url}`);
-    const bytes = await response.arrayBuffer();
-    gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(bytes, "");
+    const load = async (url: string) => {
+      const response = await win.fetch(url, { signal });
+      if (!response.ok) throw new Error(`${response.status} ${response.url}`);
+      return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(await response.arrayBuffer(), "");
+    };
+    const [base, ...layers] = await Promise.all([load(ctx.asset(options.body)), ...extra.map((layer) => load(ctx.asset(options.body, layer)))]);
+    gltf = base!;
+    for (const l of layers) gltf.scene.add(l.scene);
     if (signal?.aborted) throw abortError();
   } catch (error) {
     if (signal?.aborted) { undo(); throw abortError(); }
@@ -213,7 +240,7 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
 
   // Materials from the theme; re-run when it changes.
   const applyTheme = () => {
-    const look = looks(data, theme);
+    const look = looks(data, theme, options);
     hemi.color.set(0xffffff); hemi.groundColor.set(theme.ground); hemi.intensity = theme.mode === "dark" ? 1.3 : 1.4;
     key.intensity = theme.mode === "dark" ? 1.9 : 1.7;
     for (const [name, mesh] of meshes) {

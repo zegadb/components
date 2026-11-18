@@ -18,7 +18,7 @@
     "ramp": { "type": "array", "minItems": 3, "maxItems": 9, "items": { "$ref": "#/$defs/colour" } },
     "mode": {
       "type": "object",
-      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "cartilage", "sequential", "diverging"],
+      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "cartilage", "muscle", "nerve", "sequential", "diverging"],
       "additionalProperties": false,
       "properties": {
         "ground": { "$ref": "#/$defs/colour" }, "panel": { "$ref": "#/$defs/colour" }, "ink": { "$ref": "#/$defs/colour" },
@@ -26,6 +26,8 @@
         "accent": { "$ref": "#/$defs/colour" }, "up": { "$ref": "#/$defs/colour" }, "down": { "$ref": "#/$defs/colour" },
         "buildings": { "$ref": "#/$defs/colour" },
         "cartilage": { "$ref": "#/$defs/colour" },
+        "muscle": { "$ref": "#/$defs/colour" },
+        "nerve": { "$ref": "#/$defs/colour" },
         "series": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/colour" } },
         "sequential": { "$ref": "#/$defs/ramp" },
         "diverging": { "$ref": "#/$defs/ramp" }

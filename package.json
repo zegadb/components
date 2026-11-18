@@ -2,6 +2,7 @@
   "name": "@zegadb/components",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["packages/*"],
   "type": "module",
   "description": "Graph components (APS 21): the specs, typed contracts, design tokens and conformance fixtures, and the web package that draws them. The spec is the product.",
   "license": "MIT AND CC-BY-4.0 AND CC0-1.0",

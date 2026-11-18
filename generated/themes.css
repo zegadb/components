@@ -20,6 +20,8 @@
   --zc-down: #BE3529;
   --zc-buildings: #E4E1EC;
   --zc-cartilage: #8FB1C7;
+  --zc-muscle: #B8726B;
+  --zc-nerve: #D8B640;
   --zc-sequential-1: #B6A6F9;
   --zc-sequential-2: #8D72F3;
   --zc-sequential-3: #6646EE;
@@ -54,6 +56,8 @@
     --zc-down: #F26A5E;
     --zc-buildings: #252333;
     --zc-cartilage: #9CC3DB;
+    --zc-muscle: #A85F59;
+    --zc-nerve: #EAD27E;
     --zc-sequential-1: #4F3EA8;
     --zc-sequential-2: #7259DE;
     --zc-sequential-3: #A88FFF;
@@ -85,6 +89,8 @@
   --zc-down: #F26A5E;
   --zc-buildings: #252333;
   --zc-cartilage: #9CC3DB;
+  --zc-muscle: #A85F59;
+  --zc-nerve: #EAD27E;
   --zc-sequential-1: #4F3EA8;
   --zc-sequential-2: #7259DE;
   --zc-sequential-3: #A88FFF;
@@ -115,6 +121,8 @@
   --zc-down: #B8402F;
   --zc-buildings: #D8CDBA;
   --zc-cartilage: #8AACBF;
+  --zc-muscle: #B06B60;
+  --zc-nerve: #CFAE3E;
   --zc-sequential-1: #B9DDC4;
   --zc-sequential-2: #7CC196;
   --zc-sequential-3: #3E9E66;
@@ -149,6 +157,8 @@
     --zc-down: #EF8A78;
     --zc-buildings: #423326;
     --zc-cartilage: #98BFD3;
+    --zc-muscle: #A35A52;
+    --zc-nerve: #E5CD7A;
     --zc-sequential-1: #164A2C;
     --zc-sequential-2: #1E6E40;
     --zc-sequential-3: #2E9A5B;
@@ -180,6 +190,8 @@
   --zc-down: #EF8A78;
   --zc-buildings: #423326;
   --zc-cartilage: #98BFD3;
+  --zc-muscle: #A35A52;
+  --zc-nerve: #E5CD7A;
   --zc-sequential-1: #164A2C;
   --zc-sequential-2: #1E6E40;
   --zc-sequential-3: #2E9A5B;

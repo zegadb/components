@@ -85,7 +85,7 @@ export async function bodyRuntime(browser, origin) {
     document.body.innerHTML = '';
     const spec = (options = {}) => validate({ component: 'body', data: { highlight: [{ region: 'liver' }, { region: 'gallbladder', role: 'related' }] }, options }).view;
     const box = (w, h) => { const el = document.createElement('div'); el.dataset.zcHost = 'ava'; el.style.cssText = `width:${w}px;height:${h}px;display:inline-block`; document.body.appendChild(el); return el; };
-    const asset = (b) => `/assets/body/${b}.glb`;
+    const asset = (b, layer) => (layer ? `/packages/body-za/assets/${layer}/${b}.glb` : `/assets/body/${b}.glb`);
     const litIn = (canvas) => { const g = canvas.getContext('2d'); const d = g.getImageData(0, 0, canvas.width, canvas.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 0x66) + Math.abs(d[i + 1] - 0x46) + Math.abs(d[i + 2] - 0xee) < 90) n++; return n; };
     // Each check runs on its own: one that throws or hangs (20 s) is reported, and the next still runs.
     const within = (promise, ms = 20000) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`no answer in ${ms / 1000} s`)), ms))]);
@@ -138,6 +138,30 @@ export async function bodyRuntime(browser, origin) {
       ac.abort();
       try { const h = await within(p); h.dispose?.(); out.push('a cancelled mount resolved'); } catch (e) { if (e.name !== 'AbortError') out.push(`a cancelled mount threw ${e.name}: ${e.message}`); }
       if (el.children.length) out.push('a cancelled mount left elements behind');
+    });
+    await step('every body and layer draws', async () => {
+      for (const body of ['man', 'woman', 'boy', 'girl']) {
+        for (const [layer, region] of [['muscles', 'deltoid'], ['nerves', 'spinal-cord']]) {
+          const s = validate({ component: 'body', data: { highlight: [{ region }] }, options: { body, labels: false } }).view; // framed on the region; a child's spinal cord is a few pixels wide at 200
+          const el = box(320, 320);
+          const h = await within(drawBody(el, s.data, s.options, { theme: t, asset, reducedMotion: true }));
+          const lit = litIn(el.querySelector('canvas'));
+          if (lit < 20) out.push(`${body} ${layer}: nothing lit (${lit} pixels)`);
+          if (!/Z-Anatomy/.test(el.querySelector('.zc-body-credit').textContent)) out.push(`${body} ${layer}: the credit leaves out Z-Anatomy`);
+          h.dispose();
+        }
+      }
+    });
+    await step('layers load only when drawn', async () => {
+      const seen = [], real = window.fetch;
+      window.fetch = (url, init) => { seen.push(String(url)); return real(url, init); };
+      try {
+        const el = box(200, 200);
+        const h = await within(drawBody(el, v.data, v.options, { theme: t, asset, reducedMotion: true }));
+        if (seen.some((u) => u.includes('/body-za/'))) out.push(`an organs picture fetched a share-alike layer: ${seen.join(', ')}`);
+        if (/Z-Anatomy/.test(el.querySelector('.zc-body-credit').textContent)) out.push('an organs picture credits Z-Anatomy');
+        h.dispose();
+      } finally { window.fetch = real; }
     });
     await step('failed load', async () => {
       const bad = box(200, 200);

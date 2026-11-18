@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "The sciatic nerve (still)",
+  "description": "A still on the right sciatic nerve from the back, with its pain role, over the dimmed nerves.",
+  "host": "ava",
+  "size": { "width": 640 },
+  "scale": 2,
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "sciatic-nerve", "side": "right", "role": "pain", "note": "runs down the back of the thigh" }] }, "options": { "body": "man", "view": "back" } }
+}

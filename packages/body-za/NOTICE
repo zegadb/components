@@ -1,0 +1,77 @@
+@zegadb/components-body-za: the body component's muscles and nerves layers
+
+These files, and only these files, are share-alike. They are licensed under
+the Creative Commons Attribution-ShareAlike 4.0 International licence
+(CC BY-SA 4.0); the full legal code is in LICENSE.
+
+The code that loads and draws them is in @zegadb/components. That code is MIT
+and is a separate work: it reads these files at run time and does not adapt
+them. The body meshes there (assets/body) are CC BY 4.0 and CC0, not
+share-alike. Anything adapted from the files in this package must itself be
+shared under CC BY-SA 4.0.
+
+Files
+
+  assets/muscles/{man,woman,boy,girl}.glb
+  assets/nerves/{man,woman,boy,girl}.glb
+
+Each file carries the same credit in its glTF asset.copyright.
+
+Attribution (as the sources ask, quoted)
+
+- "Z-Anatomy - The open source atlas of anatomy - CC-BY-SA 4.0"
+  https://www.z-anatomy.com/ ; models by Kousaku Okubo, Gauthier Kervyn,
+  Colline Brassard and Christophe Céleste.
+- "BodyParts3D - The Database Center for Life Science - CC-BY-SA 2.1 Japan"
+  Z-Anatomy credits BodyParts3D under this licence, the one that applied to
+  the releases it was built from. The Database Center for Life Science now
+  licenses BodyParts3D under CC BY 4.0. The model's own notice is quoted here
+  because Z-Anatomy asks for exactly these words.
+- "Cranial Nerves and Foramina - by University of Dundee, CAHID - CC-BY 4.0"
+  (the cranial nerves, in the nerves layer only).
+
+Source, pinned
+
+- LluisV/Z-Anatomy at commit 6c7f9016bd5899ac8edafd31b9900c151df42ed6:
+  - Resources/Models/FBX/MuscularSystem100.fbx
+    sha256 4c19df534d5d84aabbce08604306aa0485b43e8a2483c72a95b569e1dfea2279
+  - Resources/Models/FBX/NervousSystem100.fbx
+    sha256 3ea1aad64956cad27348a27b8fb50494b7cc307c6bc77bee0810ec2a67dff2b1
+  - Resources/Models/FBX/Regions of human body100.fbx (used only to measure
+    the source body's outline, not shipped)
+    sha256 9d8da01d4719f9a61ee6ccfcaef85f788c4c67e9bcd74f5725c6946ab8b44199
+- Licence notice: Resources/Models/License.txt at the same commit.
+- Z-Anatomy's licence document:
+  https://docs.google.com/document/d/1peWW_7IiVgTTAwcI_auv38YSJ6qGWRuTMxzzhkRpXIk
+
+Left out
+
+- Everything not listed below is left out of these files. That includes
+  the brain, which the body component draws from the Allen Human Reference
+  Atlas instead; Z-Anatomy's brain follows "Brainder" and "White matter"
+  (University of Washington), for which no licence is stated.
+- The sense organs are left out. The "Anatomy of the Inner Ear" model they
+  include is CC BY-NC-SA 4.0.
+- The kidney model ("Kidney", CC BY-NC 4.0) is not in these layers.
+
+What these files keep
+
+- Muscles: the muscular system without fasciae, bursae, tendon sheaths and
+  retinacula.
+- Nerves: the peripheral nervous system (cranial and spinal nerves, the
+  plexuses, ganglia and the autonomic division) and the spinal cord.
+
+Changes
+
+- Converted from FBX to glTF by Blender (tools/body/za-export.py), keeping
+  each structure's exact name.
+- Grouped into one mesh per region and side, as named in
+  @zegadb/components src/body/regions.ts, and one mesh for each layer's rest.
+- Fitted to each body's outline by tools/body/build.mjs: the body map
+  through its sections, the arms turned about the shoulder, and anything
+  still poking through nudged inside. The fit is not a scale, so the shapes
+  are adapted.
+- Welded, simplified with meshoptimizer to a budget per layer, quantised and
+  meshopt-compressed.
+
+No warranty.

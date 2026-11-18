@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { validate, explain } from "../validate.ts";
 import { theme } from "../theme.ts";
 import { looks, roleColour } from "./draw.ts";
-import { REGIONS, LAYERS, BODIES, isPaired, meshName, type Body, type RegionId } from "./regions.ts";
+import { REGIONS, LAYERS, BODIES, ZA_LAYERS, isPaired, meshName, type Body, type RegionId, type ZaLayer } from "./regions.ts";
 import { autoView, flight, frame, direction, position, type Box } from "./camera.ts";
 import { semantic, type BodyData, type BodyOptions } from "./model.ts";
 import { MANIFEST } from "./manifest.ts";
@@ -18,10 +18,12 @@ const REFERENCES = JSON.parse(readFileSync(new URL("../../components/body/refere
 const valueOf = (body: "boy" | "girl", what: string) => REFERENCES.bodies[body].values.find((v: { what: string }) => v.what === what).value;
 
 /** A shipped body's meshes, decoded: world positions and triangle indices per mesh name. */
-async function decoded(body: Body): Promise<Map<string, { positions: number[]; indices: number[] }>> {
+/** Where a body's file is: its own mesh in this package, a Z-Anatomy layer in packages/body-za. */
+const fileOf = (body: Body, layer?: ZaLayer) => new URL(layer ? `../../packages/body-za/assets/${layer}/${body}.glb` : `../../assets/body/${body}.glb`, import.meta.url);
+async function decoded(body: Body, layer?: ZaLayer): Promise<Map<string, { positions: number[]; indices: number[] }>> {
   await MeshoptDecoder.ready;
   const io = new NodeIO().registerExtensions([EXTMeshoptCompression, KHRMeshQuantization]).registerDependencies({ "meshopt.decoder": MeshoptDecoder });
-  const doc = await io.readBinary(readFileSync(new URL(`../../assets/body/${body}.glb`, import.meta.url)));
+  const doc = await io.readBinary(readFileSync(fileOf(body, layer)));
   const out = new Map<string, { positions: number[]; indices: number[] }>();
   for (const node of doc.getRoot().listNodes()) {
     const prim = node.getMesh()?.listPrimitives()[0];
@@ -44,8 +46,8 @@ const first = (spec: unknown) => {
 const IDS = Object.keys(REGIONS) as RegionId[];
 
 /** The mesh names in a shipped body, and each one's box in metres (from its accessor bounds and node transform). */
-function asset(body: Body = "man"): Map<string, Box> {
-  const bytes = readFileSync(new URL(`../../assets/body/${body}.glb`, import.meta.url));
+function asset(body: Body = "man", layer?: ZaLayer): Map<string, Box> {
+  const bytes = readFileSync(fileOf(body, layer));
   const length = bytes.readUInt32LE(12);
   const json = JSON.parse(bytes.subarray(20, 20 + length).toString("utf8"));
   const out = new Map<string, Box>();
@@ -102,12 +104,20 @@ test("body: the lit meshes are exactly the highlighted regions and sides, colour
 });
 
 test("body: every body has one mesh per region and side and each layer's rest, as its manifest says", () => {
-  const expected = [...IDS.flatMap((id) => (isPaired(id) ? [meshName(id, "right"), meshName(id, "left")] : [meshName(id, null)])), ...LAYERS].sort();
+  const meshesOf = (ids: RegionId[]) => ids.flatMap((id) => (isPaired(id) ? [meshName(id, "right"), meshName(id, "left")] : [meshName(id, null)]));
+  const base = [...meshesOf(IDS.filter((id) => !REGIONS[id].za)), ...LAYERS].sort();
   for (const body of BODIES) {
-    const want = body === "boy" || body === "girl" ? [...expected, "cartilage"].sort() : expected;
+    const want = body === "boy" || body === "girl" ? [...base, "cartilage"].sort() : base;
     assert.deepEqual([...asset(body).keys()].sort(), want, body);
-    assert.deepEqual([...MANIFEST[body].meshes], want, `${body}: the manifest is the built mesh's (run npm run body:asset)`);
-    assert.equal(MANIFEST[body].bytes, readFileSync(new URL(`../../assets/body/${body}.glb`, import.meta.url)).length, `${body}: the manifest's size is the file's`);
+    assert.equal(MANIFEST[body].bytes, readFileSync(fileOf(body)).length, `${body}: the manifest's size is the file's`);
+    const all = [...want];
+    for (const layer of ZA_LAYERS) {
+      const layerWant = [...meshesOf(IDS.filter((id) => REGIONS[id].layer === layer)), layer].sort();
+      assert.deepEqual([...asset(body, layer).keys()].sort(), layerWant, `${body} ${layer}`);
+      assert.equal(MANIFEST[body].layers[layer].bytes, readFileSync(fileOf(body, layer)).length, `${body} ${layer}: the manifest's size is the file's`);
+      all.push(...layerWant);
+    }
+    assert.deepEqual([...MANIFEST[body].meshes], all.sort(), `${body}: the manifest is the built meshes' (run npm run body:asset)`);
   }
 });
 
@@ -122,7 +132,7 @@ test("body: in every body, right is the person's right (−x), and the organs si
   for (const body of BODIES) {
     const m = asset(body);
     const skin = m.get("skin")!;
-    for (const id of IDS.filter(isPaired)) {
+    for (const id of IDS.filter((i) => isPaired(i) && !REGIONS[i].za)) {
       assert.ok(mid(m.get(meshName(id, "right"))!)[0]! < mid(skin)[0]!, `${body} ${id}: right at −x`);
       assert.ok(mid(m.get(meshName(id, "left"))!)[0]! > mid(skin)[0]!, `${body} ${id}: left at +x`);
     }
@@ -336,4 +346,69 @@ test("body camera: framing fits the box, auto looks from the back for what lies 
   // A long way between near shots zooms out on the way, as the globe does.
   const near = flight({ target: [0, 0.5, 0], distance: 0.3, dir: direction("front") }, { target: [0, -0.5, 0], distance: 0.3, dir: direction("front") });
   assert.ok(near.at(0.5).distance > 0.4);
+});
+
+// The Z-Anatomy layers (muscles, nerves): share-alike, apart, fitted to every body.
+
+test("body layers: the share-alike files are only in packages/body-za, each crediting Z-Anatomy; this package's are not", async () => {
+  const copyright = (url: URL) => { const bytes = readFileSync(url); const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString("utf8")); return String(json.asset.copyright ?? ""); };
+  for (const body of BODIES) {
+    assert.doesNotMatch(copyright(fileOf(body)), /Z-Anatomy/, `${body}: this package's mesh has no share-alike content`);
+    for (const layer of ZA_LAYERS) {
+      const c = copyright(fileOf(body, layer));
+      assert.match(c, /Z-Anatomy - The open source atlas of anatomy - CC-BY-SA 4\.0/, `${body} ${layer}`);
+      assert.match(c, /BodyParts3D - The Database Center for Life Science - CC-BY-SA 2\.1 Japan/, `${body} ${layer}`);
+      if (layer === "nerves") assert.match(c, /University of Dundee, CAHID - CC-BY 4\.0/, `${body} nerves`);
+    }
+  }
+  const root = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
+  const za = JSON.parse(readFileSync(new URL("../../packages/body-za/package.json", import.meta.url), "utf8"));
+  assert.ok(!root.files.some((f: string) => f.startsWith("packages")), "the MIT package does not ship the share-alike one");
+  assert.equal(root.license, "MIT AND CC-BY-4.0 AND CC0-1.0");
+  assert.equal(za.license, "CC-BY-SA-4.0 AND CC-BY-SA-2.1-JP AND CC-BY-4.0");
+});
+
+test("body layers: each layer stays inside its budget (loaded only when it is drawn)", () => {
+  // Per body: muscles under 300 KB, nerves under 120 KB (about 250 and 95 today).
+  const budget = { muscles: 300 * 1024, nerves: 120 * 1024 };
+  for (const body of BODIES) for (const layer of ZA_LAYERS) {
+    const n = readFileSync(fileOf(body, layer)).length;
+    assert.ok(n < budget[layer], `${body} ${layer}: ${(n / 1024).toFixed(0)} KB`);
+  }
+});
+
+test("body layers: every muscle and nerve lies inside its body's skin, in all four bodies", async () => {
+  for (const body of BODIES) {
+    const skin = (await decoded(body)).get("skin")!, inside = insideTest(skin.positions, skin.indices);
+    for (const layer of ZA_LAYERS) {
+      for (const [name, g] of await decoded(body, layer)) {
+        const n = g.positions.length / 3, step = Math.max(1, Math.floor(n / 300));
+        let out = 0, total = 0;
+        for (let i = 0; i < n; i += step) { total++; if (!inside([g.positions[i * 3]!, g.positions[i * 3 + 1]!, g.positions[i * 3 + 2]!])) out++; }
+        assert.ok(out / total <= 0.02, `${body} ${layer}: ${(100 * out / total).toFixed(1)} % of ${name} is outside the skin`);
+      }
+    }
+  }
+});
+
+test("body layers: muscles and nerves sit where they do against the bones, in all four bodies", () => {
+  for (const body of BODIES) {
+    const b = asset(body), m = asset(body, "muscles"), n = asset(body, "nerves");
+    const at = (map: Map<string, Box>, name: string) => { const box = map.get(name); assert.ok(box, `${body}: no ${name}`); return mid(box!); };
+    for (const side of ["right", "left"] as const) {
+      const femur = at(b, meshName("femur", side)), tibia = at(b, meshName("tibia", side)), patella = at(b, meshName("patella", side));
+      // The quadriceps in front of the thigh bone, the hamstrings and the sciatic nerve behind it; the calf behind the shin bone, below the knee.
+      assert.ok(at(m, meshName("quadriceps", side))[2]! > femur[2]!, `${body} ${side}: quadriceps in front of the femur`);
+      assert.ok(at(m, meshName("hamstrings", side))[2]! < femur[2]!, `${body} ${side}: hamstrings behind the femur`);
+      // The sciatic nerve runs behind the thigh bone (its back reaches further back than the bone's; its branches wind forward below the knee).
+      assert.ok(n.get(meshName("sciatic-nerve", side))!.min[2] < b.get(meshName("femur", side))!.min[2], `${body} ${side}: sciatic nerve behind the femur`);
+      const calf = at(m, meshName("gastrocnemius", side));
+      assert.ok(calf[2]! < tibia[2]! && calf[1]! < patella[1]!, `${body} ${side}: calf behind the shin bone, below the knee`);
+      // The deltoid at the shoulder: on its side, above the heart.
+      const deltoid = at(m, meshName("deltoid", side));
+      assert.ok(side === "right" ? deltoid[0]! < 0 : deltoid[0]! > 0, `${body} ${side}: deltoid on its own side`);
+      assert.ok(deltoid[1]! > at(b, "heart")[1]!, `${body} ${side}: deltoid above the heart`);
+    }
+    assert.ok(at(n, "spinal-cord")[2]! < at(b, "heart")[2]!, `${body}: the spinal cord behind the heart`);
+  }
 });

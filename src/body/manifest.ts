@@ -3,137 +3,537 @@
 // each mesh file's size, and what the child bodies measured out to (components/body/references.json).
 export const MANIFEST = {
   "man": {
-    "bytes": 445012,
+    "bytes": 445028,
     "meshes": [
       "appendix",
+      "biceps__left",
+      "biceps__right",
       "bladder",
+      "brachial-plexus__left",
+      "brachial-plexus__right",
       "brain",
+      "cranial-nerves",
+      "deltoid__left",
+      "deltoid__right",
+      "femoral-nerve__left",
+      "femoral-nerve__right",
       "femur__left",
       "femur__right",
       "gallbladder",
+      "gastrocnemius__left",
+      "gastrocnemius__right",
+      "gluteus-maximus__left",
+      "gluteus-maximus__right",
+      "hamstrings__left",
+      "hamstrings__right",
       "heart",
       "kidney__left",
       "kidney__right",
       "large-intestine",
+      "latissimus__left",
+      "latissimus__right",
       "liver",
       "lung__left",
       "lung__right",
+      "median-nerve__left",
+      "median-nerve__right",
+      "muscles",
+      "nerves",
+      "obliques__left",
+      "obliques__right",
       "organs",
       "pancreas",
       "patella__left",
       "patella__right",
+      "pectoralis__left",
+      "pectoralis__right",
       "pelvis",
+      "quadriceps__left",
+      "quadriceps__right",
+      "radial-nerve__left",
+      "radial-nerve__right",
+      "rectus-abdominis__left",
+      "rectus-abdominis__right",
+      "rotator-cuff__left",
+      "rotator-cuff__right",
+      "sciatic-nerve__left",
+      "sciatic-nerve__right",
       "skeleton",
       "skin",
       "small-intestine",
+      "spinal-cord",
       "spine",
       "spleen",
       "tibia__left",
-      "tibia__right"
+      "tibia__right",
+      "trapezius__left",
+      "trapezius__right",
+      "triceps__left",
+      "triceps__right",
+      "ulnar-nerve__left",
+      "ulnar-nerve__right",
+      "vagus__left",
+      "vagus__right"
     ],
     "neutralForm": {
       "verticesMoved": 423
+    },
+    "layers": {
+      "muscles": {
+        "bytes": 258216,
+        "meshes": [
+          "biceps__left",
+          "biceps__right",
+          "deltoid__left",
+          "deltoid__right",
+          "gastrocnemius__left",
+          "gastrocnemius__right",
+          "gluteus-maximus__left",
+          "gluteus-maximus__right",
+          "hamstrings__left",
+          "hamstrings__right",
+          "latissimus__left",
+          "latissimus__right",
+          "muscles",
+          "obliques__left",
+          "obliques__right",
+          "pectoralis__left",
+          "pectoralis__right",
+          "quadriceps__left",
+          "quadriceps__right",
+          "rectus-abdominis__left",
+          "rectus-abdominis__right",
+          "rotator-cuff__left",
+          "rotator-cuff__right",
+          "trapezius__left",
+          "trapezius__right",
+          "triceps__left",
+          "triceps__right"
+        ]
+      },
+      "nerves": {
+        "bytes": 96164,
+        "meshes": [
+          "brachial-plexus__left",
+          "brachial-plexus__right",
+          "cranial-nerves",
+          "femoral-nerve__left",
+          "femoral-nerve__right",
+          "median-nerve__left",
+          "median-nerve__right",
+          "nerves",
+          "radial-nerve__left",
+          "radial-nerve__right",
+          "sciatic-nerve__left",
+          "sciatic-nerve__right",
+          "spinal-cord",
+          "ulnar-nerve__left",
+          "ulnar-nerve__right",
+          "vagus__left",
+          "vagus__right"
+        ]
+      }
     }
   },
   "woman": {
-    "bytes": 449760,
+    "bytes": 449772,
     "meshes": [
       "appendix",
+      "biceps__left",
+      "biceps__right",
       "bladder",
+      "brachial-plexus__left",
+      "brachial-plexus__right",
       "brain",
+      "cranial-nerves",
+      "deltoid__left",
+      "deltoid__right",
+      "femoral-nerve__left",
+      "femoral-nerve__right",
       "femur__left",
       "femur__right",
       "gallbladder",
+      "gastrocnemius__left",
+      "gastrocnemius__right",
+      "gluteus-maximus__left",
+      "gluteus-maximus__right",
+      "hamstrings__left",
+      "hamstrings__right",
       "heart",
       "kidney__left",
       "kidney__right",
       "large-intestine",
+      "latissimus__left",
+      "latissimus__right",
       "liver",
       "lung__left",
       "lung__right",
+      "median-nerve__left",
+      "median-nerve__right",
+      "muscles",
+      "nerves",
+      "obliques__left",
+      "obliques__right",
       "organs",
       "pancreas",
       "patella__left",
       "patella__right",
+      "pectoralis__left",
+      "pectoralis__right",
       "pelvis",
+      "quadriceps__left",
+      "quadriceps__right",
+      "radial-nerve__left",
+      "radial-nerve__right",
+      "rectus-abdominis__left",
+      "rectus-abdominis__right",
+      "rotator-cuff__left",
+      "rotator-cuff__right",
+      "sciatic-nerve__left",
+      "sciatic-nerve__right",
       "skeleton",
       "skin",
       "small-intestine",
+      "spinal-cord",
       "spine",
       "spleen",
       "tibia__left",
-      "tibia__right"
+      "tibia__right",
+      "trapezius__left",
+      "trapezius__right",
+      "triceps__left",
+      "triceps__right",
+      "ulnar-nerve__left",
+      "ulnar-nerve__right",
+      "vagus__left",
+      "vagus__right"
     ],
     "neutralForm": {
       "verticesMoved": 0
+    },
+    "layers": {
+      "muscles": {
+        "bytes": 257692,
+        "meshes": [
+          "biceps__left",
+          "biceps__right",
+          "deltoid__left",
+          "deltoid__right",
+          "gastrocnemius__left",
+          "gastrocnemius__right",
+          "gluteus-maximus__left",
+          "gluteus-maximus__right",
+          "hamstrings__left",
+          "hamstrings__right",
+          "latissimus__left",
+          "latissimus__right",
+          "muscles",
+          "obliques__left",
+          "obliques__right",
+          "pectoralis__left",
+          "pectoralis__right",
+          "quadriceps__left",
+          "quadriceps__right",
+          "rectus-abdominis__left",
+          "rectus-abdominis__right",
+          "rotator-cuff__left",
+          "rotator-cuff__right",
+          "trapezius__left",
+          "trapezius__right",
+          "triceps__left",
+          "triceps__right"
+        ]
+      },
+      "nerves": {
+        "bytes": 95228,
+        "meshes": [
+          "brachial-plexus__left",
+          "brachial-plexus__right",
+          "cranial-nerves",
+          "femoral-nerve__left",
+          "femoral-nerve__right",
+          "median-nerve__left",
+          "median-nerve__right",
+          "nerves",
+          "radial-nerve__left",
+          "radial-nerve__right",
+          "sciatic-nerve__left",
+          "sciatic-nerve__right",
+          "spinal-cord",
+          "ulnar-nerve__left",
+          "ulnar-nerve__right",
+          "vagus__left",
+          "vagus__right"
+        ]
+      }
     }
   },
   "boy": {
-    "bytes": 447632,
+    "bytes": 447644,
     "meshes": [
       "appendix",
+      "biceps__left",
+      "biceps__right",
       "bladder",
+      "brachial-plexus__left",
+      "brachial-plexus__right",
       "brain",
       "cartilage",
+      "cranial-nerves",
+      "deltoid__left",
+      "deltoid__right",
+      "femoral-nerve__left",
+      "femoral-nerve__right",
       "femur__left",
       "femur__right",
       "gallbladder",
+      "gastrocnemius__left",
+      "gastrocnemius__right",
+      "gluteus-maximus__left",
+      "gluteus-maximus__right",
+      "hamstrings__left",
+      "hamstrings__right",
       "heart",
       "kidney__left",
       "kidney__right",
       "large-intestine",
+      "latissimus__left",
+      "latissimus__right",
       "liver",
       "lung__left",
       "lung__right",
+      "median-nerve__left",
+      "median-nerve__right",
+      "muscles",
+      "nerves",
+      "obliques__left",
+      "obliques__right",
       "organs",
       "pancreas",
       "patella__left",
       "patella__right",
+      "pectoralis__left",
+      "pectoralis__right",
       "pelvis",
+      "quadriceps__left",
+      "quadriceps__right",
+      "radial-nerve__left",
+      "radial-nerve__right",
+      "rectus-abdominis__left",
+      "rectus-abdominis__right",
+      "rotator-cuff__left",
+      "rotator-cuff__right",
+      "sciatic-nerve__left",
+      "sciatic-nerve__right",
       "skeleton",
       "skin",
       "small-intestine",
+      "spinal-cord",
       "spine",
       "spleen",
       "tibia__left",
-      "tibia__right"
+      "tibia__right",
+      "trapezius__left",
+      "trapezius__right",
+      "triceps__left",
+      "triceps__right",
+      "ulnar-nerve__left",
+      "ulnar-nerve__right",
+      "vagus__left",
+      "vagus__right"
     ],
     "neutralForm": {
       "verticesMoved": 0
+    },
+    "layers": {
+      "muscles": {
+        "bytes": 257236,
+        "meshes": [
+          "biceps__left",
+          "biceps__right",
+          "deltoid__left",
+          "deltoid__right",
+          "gastrocnemius__left",
+          "gastrocnemius__right",
+          "gluteus-maximus__left",
+          "gluteus-maximus__right",
+          "hamstrings__left",
+          "hamstrings__right",
+          "latissimus__left",
+          "latissimus__right",
+          "muscles",
+          "obliques__left",
+          "obliques__right",
+          "pectoralis__left",
+          "pectoralis__right",
+          "quadriceps__left",
+          "quadriceps__right",
+          "rectus-abdominis__left",
+          "rectus-abdominis__right",
+          "rotator-cuff__left",
+          "rotator-cuff__right",
+          "trapezius__left",
+          "trapezius__right",
+          "triceps__left",
+          "triceps__right"
+        ]
+      },
+      "nerves": {
+        "bytes": 94620,
+        "meshes": [
+          "brachial-plexus__left",
+          "brachial-plexus__right",
+          "cranial-nerves",
+          "femoral-nerve__left",
+          "femoral-nerve__right",
+          "median-nerve__left",
+          "median-nerve__right",
+          "nerves",
+          "radial-nerve__left",
+          "radial-nerve__right",
+          "sciatic-nerve__left",
+          "sciatic-nerve__right",
+          "spinal-cord",
+          "ulnar-nerve__left",
+          "ulnar-nerve__right",
+          "vagus__left",
+          "vagus__right"
+        ]
+      }
     }
   },
   "girl": {
-    "bytes": 451204,
+    "bytes": 451216,
     "meshes": [
       "appendix",
+      "biceps__left",
+      "biceps__right",
       "bladder",
+      "brachial-plexus__left",
+      "brachial-plexus__right",
       "brain",
       "cartilage",
+      "cranial-nerves",
+      "deltoid__left",
+      "deltoid__right",
+      "femoral-nerve__left",
+      "femoral-nerve__right",
       "femur__left",
       "femur__right",
       "gallbladder",
+      "gastrocnemius__left",
+      "gastrocnemius__right",
+      "gluteus-maximus__left",
+      "gluteus-maximus__right",
+      "hamstrings__left",
+      "hamstrings__right",
       "heart",
       "kidney__left",
       "kidney__right",
       "large-intestine",
+      "latissimus__left",
+      "latissimus__right",
       "liver",
       "lung__left",
       "lung__right",
+      "median-nerve__left",
+      "median-nerve__right",
+      "muscles",
+      "nerves",
+      "obliques__left",
+      "obliques__right",
       "organs",
       "pancreas",
       "patella__left",
       "patella__right",
+      "pectoralis__left",
+      "pectoralis__right",
       "pelvis",
+      "quadriceps__left",
+      "quadriceps__right",
+      "radial-nerve__left",
+      "radial-nerve__right",
+      "rectus-abdominis__left",
+      "rectus-abdominis__right",
+      "rotator-cuff__left",
+      "rotator-cuff__right",
+      "sciatic-nerve__left",
+      "sciatic-nerve__right",
       "skeleton",
       "skin",
       "small-intestine",
+      "spinal-cord",
       "spine",
       "spleen",
       "tibia__left",
-      "tibia__right"
+      "tibia__right",
+      "trapezius__left",
+      "trapezius__right",
+      "triceps__left",
+      "triceps__right",
+      "ulnar-nerve__left",
+      "ulnar-nerve__right",
+      "vagus__left",
+      "vagus__right"
     ],
     "neutralForm": {
       "verticesMoved": 0
+    },
+    "layers": {
+      "muscles": {
+        "bytes": 257140,
+        "meshes": [
+          "biceps__left",
+          "biceps__right",
+          "deltoid__left",
+          "deltoid__right",
+          "gastrocnemius__left",
+          "gastrocnemius__right",
+          "gluteus-maximus__left",
+          "gluteus-maximus__right",
+          "hamstrings__left",
+          "hamstrings__right",
+          "latissimus__left",
+          "latissimus__right",
+          "muscles",
+          "obliques__left",
+          "obliques__right",
+          "pectoralis__left",
+          "pectoralis__right",
+          "quadriceps__left",
+          "quadriceps__right",
+          "rectus-abdominis__left",
+          "rectus-abdominis__right",
+          "rotator-cuff__left",
+          "rotator-cuff__right",
+          "trapezius__left",
+          "trapezius__right",
+          "triceps__left",
+          "triceps__right"
+        ]
+      },
+      "nerves": {
+        "bytes": 94012,
+        "meshes": [
+          "brachial-plexus__left",
+          "brachial-plexus__right",
+          "cranial-nerves",
+          "femoral-nerve__left",
+          "femoral-nerve__right",
+          "median-nerve__left",
+          "median-nerve__right",
+          "nerves",
+          "radial-nerve__left",
+          "radial-nerve__right",
+          "sciatic-nerve__left",
+          "sciatic-nerve__right",
+          "spinal-cord",
+          "ulnar-nerve__left",
+          "ulnar-nerve__right",
+          "vagus__left",
+          "vagus__right"
+        ]
+      }
     }
   }
 } as const;
@@ -279,6 +679,1207 @@ export const CHILD_REPORT = {
         "dxMm": 3,
         "dzMm": -3
       }
+    }
+  },
+  "za": {
+    "man": {
+      "muscles/muscles": {
+        "outsideBefore": 0.073,
+        "outsideAfter": 0.06,
+        "shrink": 1,
+        "dxMm": 3,
+        "dzMm": -6
+      },
+      "muscles/latissimus__left": {
+        "outsideBefore": 0.065,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": 0
+      },
+      "muscles/latissimus__right": {
+        "outsideBefore": 0.065,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "muscles/trapezius__left": {
+        "outsideBefore": 0.026,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 6
+      },
+      "muscles/trapezius__right": {
+        "outsideBefore": 0.029,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 6
+      },
+      "muscles/pectoralis__left": {
+        "outsideBefore": 0.106,
+        "outsideAfter": 0,
+        "shrink": 0.97,
+        "dxMm": 0,
+        "dzMm": -9
+      },
+      "muscles/pectoralis__right": {
+        "outsideBefore": 0.106,
+        "outsideAfter": 0,
+        "shrink": 0.97,
+        "dxMm": 0,
+        "dzMm": -9
+      },
+      "muscles/obliques__left": {
+        "outsideBefore": 0.02,
+        "outsideAfter": 0,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 0
+      },
+      "muscles/obliques__right": {
+        "outsideBefore": 0.02,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 6,
+        "dzMm": -6
+      },
+      "muscles/biceps__left": {
+        "outsideBefore": 0.003,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 3,
+        "dzMm": 0
+      },
+      "muscles/biceps__right": {
+        "outsideBefore": 0.003,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": -3,
+        "dzMm": 0
+      },
+      "muscles/deltoid__left": {
+        "outsideBefore": 0.043,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/deltoid__right": {
+        "outsideBefore": 0.043,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/quadriceps__left": {
+        "outsideBefore": 0.205,
+        "outsideAfter": 0.043,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "muscles/quadriceps__right": {
+        "outsideBefore": 0.201,
+        "outsideAfter": 0.043,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "muscles/gastrocnemius__left": {
+        "outsideBefore": 0.222,
+        "outsideAfter": 0.149,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "muscles/gastrocnemius__right": {
+        "outsideBefore": 0.218,
+        "outsideAfter": 0.149,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 0
+      },
+      "muscles/hamstrings__left": {
+        "outsideBefore": 0.176,
+        "outsideAfter": 0.055,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -6
+      },
+      "muscles/hamstrings__right": {
+        "outsideBefore": 0.173,
+        "outsideAfter": 0.029,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -6
+      },
+      "muscles/muscles/pointsMovedInside": 875,
+      "muscles/latissimus__left/pointsMovedInside": 0,
+      "muscles/latissimus__right/pointsMovedInside": 0,
+      "muscles/trapezius__left/pointsMovedInside": 0,
+      "muscles/trapezius__right/pointsMovedInside": 0,
+      "muscles/pectoralis__left/pointsMovedInside": 2,
+      "muscles/pectoralis__right/pointsMovedInside": 1,
+      "muscles/obliques__left/pointsMovedInside": 4,
+      "muscles/obliques__right/pointsMovedInside": 4,
+      "muscles/rectus-abdominis__left/pointsMovedInside": 0,
+      "muscles/rectus-abdominis__right/pointsMovedInside": 0,
+      "muscles/biceps__left/pointsMovedInside": 0,
+      "muscles/biceps__right/pointsMovedInside": 0,
+      "muscles/triceps__left/pointsMovedInside": 0,
+      "muscles/triceps__right/pointsMovedInside": 1,
+      "muscles/deltoid__left/pointsMovedInside": 0,
+      "muscles/deltoid__right/pointsMovedInside": 0,
+      "muscles/rotator-cuff__left/pointsMovedInside": 0,
+      "muscles/rotator-cuff__right/pointsMovedInside": 0,
+      "muscles/quadriceps__left/pointsMovedInside": 34,
+      "muscles/quadriceps__right/pointsMovedInside": 31,
+      "muscles/gastrocnemius__left/pointsMovedInside": 95,
+      "muscles/gastrocnemius__right/pointsMovedInside": 95,
+      "muscles/hamstrings__left/pointsMovedInside": 39,
+      "muscles/hamstrings__right/pointsMovedInside": 22,
+      "muscles/gluteus-maximus__left/pointsMovedInside": 0,
+      "muscles/gluteus-maximus__right/pointsMovedInside": 0,
+      "nerves/nerves": {
+        "outsideBefore": 0.003,
+        "outsideAfter": 0.003,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "nerves/cranial-nerves": {
+        "outsideBefore": 0.037,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -9
+      },
+      "nerves/brachial-plexus__left": {
+        "outsideBefore": 0.09,
+        "outsideAfter": 0.007,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/brachial-plexus__right": {
+        "outsideBefore": 0.103,
+        "outsideAfter": 0.007,
+        "shrink": 0.91,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/ulnar-nerve__left": {
+        "outsideBefore": 0.479,
+        "outsideAfter": 0.319,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/ulnar-nerve__right": {
+        "outsideBefore": 0.495,
+        "outsideAfter": 0.316,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/radial-nerve__left": {
+        "outsideBefore": 0.391,
+        "outsideAfter": 0.192,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/radial-nerve__right": {
+        "outsideBefore": 0.397,
+        "outsideAfter": 0.209,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -6
+      },
+      "nerves/median-nerve__left": {
+        "outsideBefore": 0.408,
+        "outsideAfter": 0.271,
+        "shrink": 0.94,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/median-nerve__right": {
+        "outsideBefore": 0.418,
+        "outsideAfter": 0.278,
+        "shrink": 0.94,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__left": {
+        "outsideBefore": 0.42,
+        "outsideAfter": 0.248,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__right": {
+        "outsideBefore": 0.417,
+        "outsideAfter": 0.221,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__left": {
+        "outsideBefore": 0.319,
+        "outsideAfter": 0.143,
+        "shrink": 0.97,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__right": {
+        "outsideBefore": 0.326,
+        "outsideAfter": 0.153,
+        "shrink": 0.97,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/spinal-cord/pointsMovedInside": 0,
+      "nerves/nerves/pointsMovedInside": 52,
+      "nerves/cranial-nerves/pointsMovedInside": 7,
+      "nerves/vagus__left/pointsMovedInside": 0,
+      "nerves/vagus__right/pointsMovedInside": 0,
+      "nerves/brachial-plexus__left/pointsMovedInside": 0,
+      "nerves/brachial-plexus__right/pointsMovedInside": 3,
+      "nerves/ulnar-nerve__left/pointsMovedInside": 62,
+      "nerves/ulnar-nerve__right/pointsMovedInside": 67,
+      "nerves/radial-nerve__left/pointsMovedInside": 48,
+      "nerves/radial-nerve__right/pointsMovedInside": 51,
+      "nerves/median-nerve__left/pointsMovedInside": 59,
+      "nerves/median-nerve__right/pointsMovedInside": 61,
+      "nerves/femoral-nerve__left/pointsMovedInside": 60,
+      "nerves/femoral-nerve__right/pointsMovedInside": 50,
+      "nerves/sciatic-nerve__left/pointsMovedInside": 31,
+      "nerves/sciatic-nerve__right/pointsMovedInside": 30
+    },
+    "woman": {
+      "muscles/muscles": {
+        "outsideBefore": 0.066,
+        "outsideAfter": 0.056,
+        "shrink": 1,
+        "dxMm": 3,
+        "dzMm": -6
+      },
+      "muscles/latissimus__left": {
+        "outsideBefore": 0.061,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": 0
+      },
+      "muscles/latissimus__right": {
+        "outsideBefore": 0.061,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "muscles/trapezius__left": {
+        "outsideBefore": 0.064,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 6
+      },
+      "muscles/trapezius__right": {
+        "outsideBefore": 0.064,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": -3,
+        "dzMm": 3
+      },
+      "muscles/pectoralis__left": {
+        "outsideBefore": 0.106,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "muscles/pectoralis__right": {
+        "outsideBefore": 0.106,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "muscles/obliques__left": {
+        "outsideBefore": 0.1,
+        "outsideAfter": 0.01,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 0
+      },
+      "muscles/obliques__right": {
+        "outsideBefore": 0.103,
+        "outsideAfter": 0.01,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "muscles/rectus-abdominis__left": {
+        "outsideBefore": 0.02,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "muscles/rectus-abdominis__right": {
+        "outsideBefore": 0.02,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "muscles/biceps__left": {
+        "outsideBefore": 0.015,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "muscles/biceps__right": {
+        "outsideBefore": 0.015,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "muscles/quadriceps__left": {
+        "outsideBefore": 0.145,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": -6
+      },
+      "muscles/quadriceps__right": {
+        "outsideBefore": 0.066,
+        "outsideAfter": 0,
+        "shrink": 0.91,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "muscles/gastrocnemius__left": {
+        "outsideBefore": 0.104,
+        "outsideAfter": 0,
+        "shrink": 0.88,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/gastrocnemius__right": {
+        "outsideBefore": 0.291,
+        "outsideAfter": 0.07,
+        "shrink": 0.88,
+        "dxMm": -3,
+        "dzMm": 9
+      },
+      "muscles/hamstrings__left": {
+        "outsideBefore": 0.068,
+        "outsideAfter": 0,
+        "shrink": 0.94,
+        "dxMm": 6,
+        "dzMm": 6
+      },
+      "muscles/hamstrings__right": {
+        "outsideBefore": 0.225,
+        "outsideAfter": 0.033,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/gluteus-maximus__left": {
+        "outsideBefore": 0.015,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 3
+      },
+      "muscles/gluteus-maximus__right": {
+        "outsideBefore": 0.021,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 6
+      },
+      "muscles/muscles/pointsMovedInside": 852,
+      "muscles/latissimus__left/pointsMovedInside": 2,
+      "muscles/latissimus__right/pointsMovedInside": 1,
+      "muscles/trapezius__left/pointsMovedInside": 0,
+      "muscles/trapezius__right/pointsMovedInside": 3,
+      "muscles/pectoralis__left/pointsMovedInside": 0,
+      "muscles/pectoralis__right/pointsMovedInside": 0,
+      "muscles/obliques__left/pointsMovedInside": 17,
+      "muscles/obliques__right/pointsMovedInside": 17,
+      "muscles/rectus-abdominis__left/pointsMovedInside": 4,
+      "muscles/rectus-abdominis__right/pointsMovedInside": 4,
+      "muscles/biceps__left/pointsMovedInside": 0,
+      "muscles/biceps__right/pointsMovedInside": 3,
+      "muscles/triceps__left/pointsMovedInside": 0,
+      "muscles/triceps__right/pointsMovedInside": 0,
+      "muscles/deltoid__left/pointsMovedInside": 0,
+      "muscles/deltoid__right/pointsMovedInside": 0,
+      "muscles/rotator-cuff__left/pointsMovedInside": 0,
+      "muscles/rotator-cuff__right/pointsMovedInside": 0,
+      "muscles/quadriceps__left/pointsMovedInside": 11,
+      "muscles/quadriceps__right/pointsMovedInside": 14,
+      "muscles/gastrocnemius__left/pointsMovedInside": 11,
+      "muscles/gastrocnemius__right/pointsMovedInside": 60,
+      "muscles/hamstrings__left/pointsMovedInside": 2,
+      "muscles/hamstrings__right/pointsMovedInside": 18,
+      "muscles/gluteus-maximus__left/pointsMovedInside": 0,
+      "muscles/gluteus-maximus__right/pointsMovedInside": 0,
+      "nerves/nerves": {
+        "outsideBefore": 0.013,
+        "outsideAfter": 0.003,
+        "shrink": 0.94,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/cranial-nerves": {
+        "outsideBefore": 0.013,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "nerves/brachial-plexus__left": {
+        "outsideBefore": 0.017,
+        "outsideAfter": 0,
+        "shrink": 0.97,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "nerves/brachial-plexus__right": {
+        "outsideBefore": 0.02,
+        "outsideAfter": 0,
+        "shrink": 0.97,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "nerves/ulnar-nerve__left": {
+        "outsideBefore": 0.726,
+        "outsideAfter": 0.43,
+        "shrink": 1,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/ulnar-nerve__right": {
+        "outsideBefore": 0.73,
+        "outsideAfter": 0.433,
+        "shrink": 1,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/radial-nerve__left": {
+        "outsideBefore": 0.328,
+        "outsideAfter": 0.172,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/radial-nerve__right": {
+        "outsideBefore": 0.318,
+        "outsideAfter": 0.169,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/median-nerve__left": {
+        "outsideBefore": 0.474,
+        "outsideAfter": 0.281,
+        "shrink": 0.88,
+        "dxMm": 3,
+        "dzMm": -9
+      },
+      "nerves/median-nerve__right": {
+        "outsideBefore": 0.474,
+        "outsideAfter": 0.275,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__left": {
+        "outsideBefore": 0.15,
+        "outsideAfter": 0,
+        "shrink": 0.88,
+        "dxMm": 3,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__right": {
+        "outsideBefore": 0.407,
+        "outsideAfter": 0.117,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__left": {
+        "outsideBefore": 0.425,
+        "outsideAfter": 0.216,
+        "shrink": 0.97,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__right": {
+        "outsideBefore": 0.389,
+        "outsideAfter": 0.143,
+        "shrink": 0.97,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/spinal-cord/pointsMovedInside": 0,
+      "nerves/nerves/pointsMovedInside": 43,
+      "nerves/cranial-nerves/pointsMovedInside": 4,
+      "nerves/vagus__left/pointsMovedInside": 0,
+      "nerves/vagus__right/pointsMovedInside": 0,
+      "nerves/brachial-plexus__left/pointsMovedInside": 0,
+      "nerves/brachial-plexus__right/pointsMovedInside": 0,
+      "nerves/ulnar-nerve__left/pointsMovedInside": 93,
+      "nerves/ulnar-nerve__right/pointsMovedInside": 93,
+      "nerves/radial-nerve__left/pointsMovedInside": 46,
+      "nerves/radial-nerve__right/pointsMovedInside": 39,
+      "nerves/median-nerve__left/pointsMovedInside": 56,
+      "nerves/median-nerve__right/pointsMovedInside": 59,
+      "nerves/femoral-nerve__left/pointsMovedInside": 2,
+      "nerves/femoral-nerve__right/pointsMovedInside": 37,
+      "nerves/sciatic-nerve__left/pointsMovedInside": 36,
+      "nerves/sciatic-nerve__right/pointsMovedInside": 32
+    },
+    "boy": {
+      "muscles/muscles": {
+        "outsideBefore": 0.179,
+        "outsideAfter": 0.166,
+        "shrink": 1,
+        "dxMm": -3,
+        "dzMm": -3
+      },
+      "muscles/latissimus__left": {
+        "outsideBefore": 0.201,
+        "outsideAfter": 0.165,
+        "shrink": 1,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/latissimus__right": {
+        "outsideBefore": 0.201,
+        "outsideAfter": 0.165,
+        "shrink": 1,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/trapezius__left": {
+        "outsideBefore": 0.003,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 3,
+        "dzMm": 0
+      },
+      "muscles/trapezius__right": {
+        "outsideBefore": 0.003,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": -3,
+        "dzMm": 0
+      },
+      "muscles/pectoralis__left": {
+        "outsideBefore": 0.055,
+        "outsideAfter": 0,
+        "shrink": 0.94,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/pectoralis__right": {
+        "outsideBefore": 0.055,
+        "outsideAfter": 0,
+        "shrink": 0.94,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/obliques__left": {
+        "outsideBefore": 0.05,
+        "outsideAfter": 0.043,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "muscles/obliques__right": {
+        "outsideBefore": 0.05,
+        "outsideAfter": 0.043,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "muscles/biceps__left": {
+        "outsideBefore": 0.094,
+        "outsideAfter": 0.006,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -6
+      },
+      "muscles/biceps__right": {
+        "outsideBefore": 0.094,
+        "outsideAfter": 0.006,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -6
+      },
+      "muscles/triceps__left": {
+        "outsideBefore": 0.426,
+        "outsideAfter": 0.185,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/triceps__right": {
+        "outsideBefore": 0.426,
+        "outsideAfter": 0.185,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/deltoid__left": {
+        "outsideBefore": 0.414,
+        "outsideAfter": 0.215,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/deltoid__right": {
+        "outsideBefore": 0.414,
+        "outsideAfter": 0.215,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/rotator-cuff__left": {
+        "outsideBefore": 0.073,
+        "outsideAfter": 0.003,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": 6
+      },
+      "muscles/rotator-cuff__right": {
+        "outsideBefore": 0.073,
+        "outsideAfter": 0.003,
+        "shrink": 0.91,
+        "dxMm": 6,
+        "dzMm": 6
+      },
+      "muscles/quadriceps__left": {
+        "outsideBefore": 0.185,
+        "outsideAfter": 0.007,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "muscles/quadriceps__right": {
+        "outsideBefore": 0.185,
+        "outsideAfter": 0.007,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "muscles/gastrocnemius__left": {
+        "outsideBefore": 0.364,
+        "outsideAfter": 0.149,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/gastrocnemius__right": {
+        "outsideBefore": 0.364,
+        "outsideAfter": 0.149,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/hamstrings__left": {
+        "outsideBefore": 0.251,
+        "outsideAfter": 0.117,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/hamstrings__right": {
+        "outsideBefore": 0.251,
+        "outsideAfter": 0.117,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/muscles/pointsMovedInside": 2653,
+      "muscles/latissimus__left/pointsMovedInside": 218,
+      "muscles/latissimus__right/pointsMovedInside": 219,
+      "muscles/trapezius__left/pointsMovedInside": 1,
+      "muscles/trapezius__right/pointsMovedInside": 1,
+      "muscles/pectoralis__left/pointsMovedInside": 0,
+      "muscles/pectoralis__right/pointsMovedInside": 0,
+      "muscles/obliques__left/pointsMovedInside": 94,
+      "muscles/obliques__right/pointsMovedInside": 94,
+      "muscles/rectus-abdominis__left/pointsMovedInside": 0,
+      "muscles/rectus-abdominis__right/pointsMovedInside": 0,
+      "muscles/biceps__left/pointsMovedInside": 7,
+      "muscles/biceps__right/pointsMovedInside": 7,
+      "muscles/triceps__left/pointsMovedInside": 163,
+      "muscles/triceps__right/pointsMovedInside": 164,
+      "muscles/deltoid__left/pointsMovedInside": 187,
+      "muscles/deltoid__right/pointsMovedInside": 182,
+      "muscles/rotator-cuff__left/pointsMovedInside": 7,
+      "muscles/rotator-cuff__right/pointsMovedInside": 7,
+      "muscles/quadriceps__left/pointsMovedInside": 9,
+      "muscles/quadriceps__right/pointsMovedInside": 10,
+      "muscles/gastrocnemius__left/pointsMovedInside": 94,
+      "muscles/gastrocnemius__right/pointsMovedInside": 96,
+      "muscles/hamstrings__left/pointsMovedInside": 82,
+      "muscles/hamstrings__right/pointsMovedInside": 89,
+      "muscles/gluteus-maximus__left/pointsMovedInside": 0,
+      "muscles/gluteus-maximus__right/pointsMovedInside": 0,
+      "nerves/nerves": {
+        "outsideBefore": 0.03,
+        "outsideAfter": 0.02,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 3
+      },
+      "nerves/cranial-nerves": {
+        "outsideBefore": 0.259,
+        "outsideAfter": 0.203,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -6
+      },
+      "nerves/vagus__left": {
+        "outsideBefore": 0.318,
+        "outsideAfter": 0.09,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/vagus__right": {
+        "outsideBefore": 0.103,
+        "outsideAfter": 0,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -3
+      },
+      "nerves/brachial-plexus__left": {
+        "outsideBefore": 0.189,
+        "outsideAfter": 0.15,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/brachial-plexus__right": {
+        "outsideBefore": 0.189,
+        "outsideAfter": 0.146,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -3
+      },
+      "nerves/ulnar-nerve__left": {
+        "outsideBefore": 0.909,
+        "outsideAfter": 0.863,
+        "shrink": 1,
+        "dxMm": 6,
+        "dzMm": -6
+      },
+      "nerves/ulnar-nerve__right": {
+        "outsideBefore": 0.909,
+        "outsideAfter": 0.863,
+        "shrink": 1,
+        "dxMm": -6,
+        "dzMm": -6
+      },
+      "nerves/radial-nerve__left": {
+        "outsideBefore": 0.477,
+        "outsideAfter": 0.328,
+        "shrink": 0.88,
+        "dxMm": 3,
+        "dzMm": -9
+      },
+      "nerves/radial-nerve__right": {
+        "outsideBefore": 0.477,
+        "outsideAfter": 0.328,
+        "shrink": 0.88,
+        "dxMm": -3,
+        "dzMm": -9
+      },
+      "nerves/median-nerve__left": {
+        "outsideBefore": 0.621,
+        "outsideAfter": 0.402,
+        "shrink": 0.91,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/median-nerve__right": {
+        "outsideBefore": 0.621,
+        "outsideAfter": 0.402,
+        "shrink": 0.91,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__left": {
+        "outsideBefore": 0.42,
+        "outsideAfter": 0.13,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__right": {
+        "outsideBefore": 0.42,
+        "outsideAfter": 0.13,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__left": {
+        "outsideBefore": 0.146,
+        "outsideAfter": 0.09,
+        "shrink": 0.97,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__right": {
+        "outsideBefore": 0.159,
+        "outsideAfter": 0.086,
+        "shrink": 0.97,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/spinal-cord/pointsMovedInside": 0,
+      "nerves/nerves/pointsMovedInside": 175,
+      "nerves/cranial-nerves/pointsMovedInside": 274,
+      "nerves/vagus__left/pointsMovedInside": 18,
+      "nerves/vagus__right/pointsMovedInside": 1,
+      "nerves/brachial-plexus__left/pointsMovedInside": 83,
+      "nerves/brachial-plexus__right/pointsMovedInside": 86,
+      "nerves/ulnar-nerve__left/pointsMovedInside": 260,
+      "nerves/ulnar-nerve__right/pointsMovedInside": 256,
+      "nerves/radial-nerve__left/pointsMovedInside": 94,
+      "nerves/radial-nerve__right/pointsMovedInside": 97,
+      "nerves/median-nerve__left/pointsMovedInside": 106,
+      "nerves/median-nerve__right/pointsMovedInside": 108,
+      "nerves/femoral-nerve__left/pointsMovedInside": 40,
+      "nerves/femoral-nerve__right/pointsMovedInside": 36,
+      "nerves/sciatic-nerve__left/pointsMovedInside": 33,
+      "nerves/sciatic-nerve__right/pointsMovedInside": 39
+    },
+    "girl": {
+      "muscles/muscles": {
+        "outsideBefore": 0.206,
+        "outsideAfter": 0.179,
+        "shrink": 1,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "muscles/latissimus__left": {
+        "outsideBefore": 0.278,
+        "outsideAfter": 0.207,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 9
+      },
+      "muscles/latissimus__right": {
+        "outsideBefore": 0.278,
+        "outsideAfter": 0.207,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": 9
+      },
+      "muscles/pectoralis__left": {
+        "outsideBefore": 0.048,
+        "outsideAfter": 0,
+        "shrink": 0.88,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/pectoralis__right": {
+        "outsideBefore": 0.048,
+        "outsideAfter": 0,
+        "shrink": 0.88,
+        "dxMm": 0,
+        "dzMm": 0
+      },
+      "muscles/obliques__left": {
+        "outsideBefore": 0.063,
+        "outsideAfter": 0.043,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "muscles/obliques__right": {
+        "outsideBefore": 0.063,
+        "outsideAfter": 0.043,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "muscles/biceps__left": {
+        "outsideBefore": 0.17,
+        "outsideAfter": 0.061,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 6
+      },
+      "muscles/biceps__right": {
+        "outsideBefore": 0.17,
+        "outsideAfter": 0.061,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 6
+      },
+      "muscles/triceps__left": {
+        "outsideBefore": 0.541,
+        "outsideAfter": 0.327,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/triceps__right": {
+        "outsideBefore": 0.541,
+        "outsideAfter": 0.327,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/deltoid__left": {
+        "outsideBefore": 0.414,
+        "outsideAfter": 0.298,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/deltoid__right": {
+        "outsideBefore": 0.414,
+        "outsideAfter": 0.298,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/rotator-cuff__left": {
+        "outsideBefore": 0.096,
+        "outsideAfter": 0.023,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/rotator-cuff__right": {
+        "outsideBefore": 0.096,
+        "outsideAfter": 0.023,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/quadriceps__left": {
+        "outsideBefore": 0.221,
+        "outsideAfter": 0.003,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "muscles/quadriceps__right": {
+        "outsideBefore": 0.221,
+        "outsideAfter": 0.003,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "muscles/gastrocnemius__left": {
+        "outsideBefore": 0.348,
+        "outsideAfter": 0.139,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/gastrocnemius__right": {
+        "outsideBefore": 0.354,
+        "outsideAfter": 0.139,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/hamstrings__left": {
+        "outsideBefore": 0.264,
+        "outsideAfter": 0.127,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": 9
+      },
+      "muscles/hamstrings__right": {
+        "outsideBefore": 0.264,
+        "outsideAfter": 0.127,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": 9
+      },
+      "muscles/muscles/pointsMovedInside": 3047,
+      "muscles/latissimus__left/pointsMovedInside": 254,
+      "muscles/latissimus__right/pointsMovedInside": 257,
+      "muscles/trapezius__left/pointsMovedInside": 0,
+      "muscles/trapezius__right/pointsMovedInside": 0,
+      "muscles/pectoralis__left/pointsMovedInside": 0,
+      "muscles/pectoralis__right/pointsMovedInside": 0,
+      "muscles/obliques__left/pointsMovedInside": 107,
+      "muscles/obliques__right/pointsMovedInside": 99,
+      "muscles/rectus-abdominis__left/pointsMovedInside": 0,
+      "muscles/rectus-abdominis__right/pointsMovedInside": 0,
+      "muscles/biceps__left/pointsMovedInside": 43,
+      "muscles/biceps__right/pointsMovedInside": 43,
+      "muscles/triceps__left/pointsMovedInside": 294,
+      "muscles/triceps__right/pointsMovedInside": 293,
+      "muscles/deltoid__left/pointsMovedInside": 259,
+      "muscles/deltoid__right/pointsMovedInside": 258,
+      "muscles/rotator-cuff__left/pointsMovedInside": 30,
+      "muscles/rotator-cuff__right/pointsMovedInside": 28,
+      "muscles/quadriceps__left/pointsMovedInside": 12,
+      "muscles/quadriceps__right/pointsMovedInside": 11,
+      "muscles/gastrocnemius__left/pointsMovedInside": 99,
+      "muscles/gastrocnemius__right/pointsMovedInside": 102,
+      "muscles/hamstrings__left/pointsMovedInside": 95,
+      "muscles/hamstrings__right/pointsMovedInside": 88,
+      "muscles/gluteus-maximus__left/pointsMovedInside": 0,
+      "muscles/gluteus-maximus__right/pointsMovedInside": 0,
+      "nerves/spinal-cord": {
+        "outsideBefore": 0.01,
+        "outsideAfter": 0,
+        "shrink": 1,
+        "dxMm": 3,
+        "dzMm": -3
+      },
+      "nerves/nerves": {
+        "outsideBefore": 0.043,
+        "outsideAfter": 0.03,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -3
+      },
+      "nerves/cranial-nerves": {
+        "outsideBefore": 0.276,
+        "outsideAfter": 0.166,
+        "shrink": 1,
+        "dxMm": 0,
+        "dzMm": -9
+      },
+      "nerves/vagus__left": {
+        "outsideBefore": 0.598,
+        "outsideAfter": 0.19,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/vagus__right": {
+        "outsideBefore": 0.195,
+        "outsideAfter": 0.003,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/brachial-plexus__left": {
+        "outsideBefore": 0.213,
+        "outsideAfter": 0.176,
+        "shrink": 0.88,
+        "dxMm": 3,
+        "dzMm": 0
+      },
+      "nerves/brachial-plexus__right": {
+        "outsideBefore": 0.215,
+        "outsideAfter": 0.175,
+        "shrink": 0.88,
+        "dxMm": -3,
+        "dzMm": 0
+      },
+      "nerves/ulnar-nerve__left": {
+        "outsideBefore": 0.912,
+        "outsideAfter": 0.873,
+        "shrink": 1,
+        "dxMm": 6,
+        "dzMm": 0
+      },
+      "nerves/ulnar-nerve__right": {
+        "outsideBefore": 0.912,
+        "outsideAfter": 0.873,
+        "shrink": 1,
+        "dxMm": -6,
+        "dzMm": 0
+      },
+      "nerves/radial-nerve__left": {
+        "outsideBefore": 0.454,
+        "outsideAfter": 0.328,
+        "shrink": 0.88,
+        "dxMm": -3,
+        "dzMm": 0
+      },
+      "nerves/radial-nerve__right": {
+        "outsideBefore": 0.454,
+        "outsideAfter": 0.328,
+        "shrink": 0.88,
+        "dxMm": 3,
+        "dzMm": 0
+      },
+      "nerves/median-nerve__left": {
+        "outsideBefore": 0.582,
+        "outsideAfter": 0.363,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/median-nerve__right": {
+        "outsideBefore": 0.582,
+        "outsideAfter": 0.363,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__left": {
+        "outsideBefore": 0.404,
+        "outsideAfter": 0.15,
+        "shrink": 0.88,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/femoral-nerve__right": {
+        "outsideBefore": 0.404,
+        "outsideAfter": 0.15,
+        "shrink": 0.88,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__left": {
+        "outsideBefore": 0.123,
+        "outsideAfter": 0.07,
+        "shrink": 0.97,
+        "dxMm": -6,
+        "dzMm": -9
+      },
+      "nerves/sciatic-nerve__right": {
+        "outsideBefore": 0.126,
+        "outsideAfter": 0.073,
+        "shrink": 0.97,
+        "dxMm": 6,
+        "dzMm": -9
+      },
+      "nerves/spinal-cord/pointsMovedInside": 1,
+      "nerves/nerves/pointsMovedInside": 245,
+      "nerves/cranial-nerves/pointsMovedInside": 259,
+      "nerves/vagus__left/pointsMovedInside": 62,
+      "nerves/vagus__right/pointsMovedInside": 3,
+      "nerves/brachial-plexus__left/pointsMovedInside": 89,
+      "nerves/brachial-plexus__right/pointsMovedInside": 95,
+      "nerves/ulnar-nerve__left/pointsMovedInside": 268,
+      "nerves/ulnar-nerve__right/pointsMovedInside": 262,
+      "nerves/radial-nerve__left/pointsMovedInside": 94,
+      "nerves/radial-nerve__right/pointsMovedInside": 95,
+      "nerves/median-nerve__left/pointsMovedInside": 108,
+      "nerves/median-nerve__right/pointsMovedInside": 92,
+      "nerves/femoral-nerve__left/pointsMovedInside": 47,
+      "nerves/femoral-nerve__right/pointsMovedInside": 48,
+      "nerves/sciatic-nerve__left/pointsMovedInside": 38,
+      "nerves/sciatic-nerve__right/pointsMovedInside": 29
     }
   }
 } as const;

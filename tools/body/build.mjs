@@ -24,13 +24,13 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTMeshoptCompression } from '@gltf-transform/extensions';
 import { quantize, reorder, prune } from '@gltf-transform/functions';
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
-import { REGIONS, LAYER_NODES, LAYERS, BODIES, meshName, femaleNode } from '../../src/body/regions.ts';
+import { REGIONS, LAYER_NODES, LAYERS, BODIES, meshName, femaleNode, ZA_LAYERS } from '../../src/body/regions.ts';
 import { principalLength, insideTest, hanging } from '../../src/body/geometry.ts';
 
 const REPO = fileURLToPath(new URL('../../', import.meta.url));
@@ -192,6 +192,20 @@ export function neutralise(positions, indices) {
   return moved.size + flattened;
 }
 
+/** A line through points (their principal axis), pointing down; and the point on it at height y. */
+export function lineFit(points, y) {
+  const n = points.length;
+  if (n < 3) throw new Error(`an arm needs at least 3 sections, found ${n}`);
+  const c = [0, 1, 2].map((k) => points.reduce((s, p) => s + p[k], 0) / n);
+  const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (const p of points) { const d = [0, 1, 2].map((k) => p[k] - c[k]); for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) C[a][b] += d[a] * d[b]; }
+  let v = [0.2, -1, 0.1];
+  for (let it = 0; it < 60; it++) { const w = C.map((r) => r[0] * v[0] + r[1] * v[1] + r[2] * v[2]); const l = Math.hypot(...w); v = w.map((x) => x / l); }
+  if (v[1] > 0) v = v.map((x) => -x);
+  const t = (y - c[1]) / v[1];
+  return { pivot: [c[0] + t * v[0], y, c[2] + t * v[2]], dir: v, points: n, samples: points.filter((_, i) => i % 6 === 0).map((p) => p.map((x) => +x.toFixed(3))) };
+}
+
 /** Landmarks and widths of an outline: the sole, knee, crotch, neck and crown heights, and slices of the trunk, head and leg. */
 export function measure(positions, indices) {
   const b = bounds(positions), H = b.size[1], cx = b.centre[0];
@@ -228,7 +242,18 @@ export function measure(positions, indices) {
   for (let y = crotch + 0.62 * (b.max[1] - crotch); y < b.max[1] - 0.06 * H; y += 0.002 * H) { const w = central(y)?.width ?? Infinity; if (w < best) { best = w; neck = y; } }
   let knee = 0; best = Infinity;
   for (let f = 0.35; f <= 0.7; f += 0.005) { const y = b.min[1] + f * (crotch - b.min[1]); const w = leg(y).width; if (w < best) { best = w; knee = y; } }
+  // The left arm's axis: the middles of its sections (loops wholly left of the midline; below the crotch, the
+  // outermost of two, as one is the leg), fitted with a line. Its pivot is where that line is at shoulder height.
+  const armPoints = [];
+  for (let y = b.min[1] + 0.3 * H; y < neck; y += 0.005 * H) {
+    const left = section(y).filter((l) => l.lo > cx + 0.005 * H);
+    if (y < crotch && left.length < 2) continue;
+    const arm = left.sort((a, c) => c.xc - a.xc)[0];
+    if (arm && (y >= crotch || left.length >= 2)) armPoints.push([arm.xc, y, arm.zc]);
+  }
+  const arm = lineFit(armPoints, crotch + 0.8 * (neck - crotch));
   return {
+    arm,
     H, cx, sole: b.min[1], knee, crotch, neck, crown: b.max[1],
     // The waist and the lower chest: both below where the arms meet the trunk (from 0.64 of the way up in the atlas woman).
     trunk: central(crotch + TRUNK_AT.abdomen * (neck - crotch)),
@@ -385,6 +410,7 @@ async function atlasPieces(dir, body) {
   const find = (male) => { const name = SOURCES[body].node(male); const n = byName.get(name); if (!n) throw new Error(`${body}: source has no node ${name}`); return n; };
   const pieces = [];
   for (const [id, def] of Object.entries(REGIONS)) {
+    if (def.za) continue; // the Z-Anatomy layers are built apart (zaLayer)
     const sides = Array.isArray(def.nodes) ? [[null, def.nodes]] : [['right', def.nodes.right], ['left', def.nodes.left]];
     for (const [side, names] of sides) pieces.push({ name: meshName(id, side), layer: def.layer, region: id, side, roots: names.map(find) });
   }
@@ -612,12 +638,12 @@ function reduce({ positions, indices }, budget) {
   return { positions: pos, indices: out };
 }
 
-async function write(body, pieces, credit) {
+async function write(body, pieces, credit, layer = null) {
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
   const doc = new Document();
-  doc.getRoot().getAsset().extras = { body, built: 'tools/body/build.mjs', licence: 'CC-BY-4.0' };
-  // The credit the licences ask for travels with the file (assets/body/LICENSE has it in full).
-  doc.getRoot().getAsset().copyright = [
+  doc.getRoot().getAsset().extras = { body, layer, built: 'tools/body/build.mjs', licence: layer ? ZA.licence : 'CC-BY-4.0' };
+  // The credit the licences ask for travels with the file (assets/body/LICENSE, and packages/body-za/LICENSE for a layer, have it in full).
+  doc.getRoot().getAsset().copyright = layer ? ZA.copyright(layer, credit === 'adapted') : [
     'Human Reference Atlas 3D reference objects (HuBMAP CCF v2.0; Herr et al., Sci Data 2023;10:171), CC BY 4.0; Visible Human data courtesy of the U.S. National Library of Medicine',
     'brain: Allen Human Reference Atlas - 3D, 2020 (RRID:SCR_017764), © 2019 Allen Institute for Brain Science, CC BY 4.0',
     ...(credit === 'adapted' ? ['adapted using paediatric reference measurements (components/body/references.json); outline from MakeHuman, CC0 1.0'] : []),
@@ -627,7 +653,8 @@ async function write(body, pieces, credit) {
   doc.createScene('body').addChild(root);
   const lines = [];
   for (const p of pieces) {
-    const { positions, indices } = reduce(weldPositions(p), BUDGET[p.region ?? p.name] ?? BUDGET[p.name] ?? BUDGET_ORGAN);
+    const { positions, indices } = reduce(weldPositions(p), p.budget ?? BUDGET[p.region ?? p.name] ?? BUDGET[p.name] ?? BUDGET_ORGAN);
+    if (p.contain) p.contain(positions);
     const prim = doc.createPrimitive()
       .setAttribute('POSITION', doc.createAccessor().setType('VEC3').setArray(positions).setBuffer(buffer))
       .setIndices(doc.createAccessor().setType('SCALAR').setArray(indices).setBuffer(buffer));
@@ -637,11 +664,226 @@ async function write(body, pieces, credit) {
   doc.createExtension(EXTMeshoptCompression).setRequired(true).setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
   await doc.transform(reorder({ encoder: MeshoptEncoder }), quantize({ quantizePosition: 14 }), prune());
   const bytes = await io.writeBinary(doc);
-  await writeFile(join(REPO, output(body)), bytes);
+  const path = layer ? zaOutput(layer, body) : output(body);
+  await mkdir(dirname(join(REPO, path)), { recursive: true });
+  await writeFile(join(REPO, path), bytes);
   console.log(lines.join('\n'));
-  console.log(`wrote ${output(body)}: ${(bytes.length / 1024).toFixed(0)} KB, sha256 ${sha(bytes)}`);
+  console.log(`wrote ${path}: ${(bytes.length / 1024).toFixed(0)} KB, sha256 ${sha(bytes)}`);
   // The neutral form is recorded: how many outline vertices the builder moved to make it (Sami, 17 Nov).
-  return { bytes: bytes.length, meshes: pieces.map((p) => p.name).sort(), neutralForm: { verticesMoved: pieces.find((p) => p.name === 'skin').neutralised ?? 0 } };
+  const skin = pieces.find((p) => p.name === 'skin');
+  return { bytes: bytes.length, meshes: pieces.map((p) => p.name).sort(), ...(skin ? { neutralForm: { verticesMoved: skin.neutralised ?? 0 } } : {}) };
+}
+
+// ------------------------------------------------------- Z-Anatomy layers
+//
+// The muscles and the nerves come from Z-Anatomy (CC BY-SA 4.0; built on BodyParts3D, which Z-Anatomy
+// credits as CC BY-SA 2.1 JP; its cranial nerves follow University of Dundee, CAHID, CC BY 4.0). They are
+// share-alike, so everything made from them goes to packages/body-za (its own LICENSE and NOTICE), never
+// into this package's assets. Pinned: LluisV/Z-Anatomy at ZA.commit, each FBX checked by SHA-256, converted
+// to glTF by Blender (tools/body/za-export.py) with every structure's exact name and groups kept.
+
+export const ZA = {
+  repo: 'LluisV/Z-Anatomy',
+  commit: '6c7f9016bd5899ac8edafd31b9900c151df42ed6',
+  files: {
+    muscles: { fbx: 'MuscularSystem100.fbx', sha256: '4c19df534d5d84aabbce08604306aa0485b43e8a2483c72a95b569e1dfea2279' },
+    nerves: { fbx: 'NervousSystem100.fbx', sha256: '3ea1aad64956cad27348a27b8fb50494b7cc307c6bc77bee0810ec2a67dff2b1' },
+    regions: { fbx: 'Regions of human body100.fbx', sha256: '9d8da01d4719f9a61ee6ccfcaef85f788c4c67e9bcd74f5725c6946ab8b44199' },
+  },
+  licence: 'CC-BY-SA-4.0',
+  copyright: (layer, adapted) => [
+    `${layer}: Z-Anatomy - The open source atlas of anatomy - CC-BY-SA 4.0 (LluisV/Z-Anatomy at 6c7f901)`,
+    'BodyParts3D - The Database Center for Life Science - CC-BY-SA 2.1 Japan',
+    ...(layer === 'nerves' ? ['Cranial Nerves and Foramina - by University of Dundee, CAHID - CC-BY 4.0'] : []),
+    `fitted to the Human Reference Atlas body (HuBMAP, CC BY 4.0)${adapted ? ' and adapted to a child using paediatric reference measurements' : ''}; this file is CC BY-SA 4.0`,
+  ].join('; '),
+};
+export const zaOutput = (layer, body) => `packages/body-za/assets/${layer}/${body}.glb`;
+/** Triangles per region and side, and for each layer's rest: the per-layer budget is the sum. */
+const ZA_BUDGET = { muscles: { region: 1400, 'rotator-cuff': 1400, 'rectus-abdominis': 1200, rest: 26000 }, nerves: { region: 700, 'spinal-cord': 1600, 'cranial-nerves': 2400, 'brachial-plexus': 1200, rest: 8000 } };
+/** What a layer keeps of its source: muscles without their fasciae, bursae and sheaths; nerves without the brain (the Allen atlas's is drawn), the meninges and the sense organs (the inner ear is CC BY-NC-SA). */
+const ZA_KEEP = {
+  muscles: (name, path) => !/fascia|bursa|sheath|retinacul/i.test(`${name} ${path}`),
+  nerves: (name, path) => path.startsWith('Peripheral nervous system.g') || path.includes('Spinal cord.g'),
+};
+
+async function zaGlb(dir, key) {
+  const f = ZA.files[key], za = join(dir, 'za');
+  await mkdir(za, { recursive: true });
+  const fbx = join(za, f.fbx);
+  await fetchChecked(fbx, `https://raw.githubusercontent.com/${ZA.repo}/${ZA.commit}/Resources/Models/FBX/${encodeURIComponent(f.fbx)}`, f.sha256);
+  const glb = join(za, f.fbx.replace(/\.fbx$/, '.glb').replace(/ /g, '-'));
+  if (!(await exists(glb))) execFileSync(arg('--blender') ?? '/Applications/Blender.app/Contents/MacOS/Blender', ['--background', '--factory-startup', '--python', join(REPO, 'tools/body/za-export.py'), '--', fbx, glb], { stdio: 'ignore' });
+  return glb;
+}
+
+/** Every mesh of a Z-Anatomy glTF, one by one: its name, its groups, world-space positions and indices. */
+async function zaMeshes(dir, key) {
+  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+  const doc = await io.read(await zaGlb(dir, key));
+  const out = [];
+  for (const node of doc.getRoot().listNodes()) {
+    if (!node.getMesh()) continue;
+    const g = { positions: [], indices: [] };
+    const solo = { getMesh: () => node.getMesh(), getWorldMatrix: () => node.getWorldMatrix(), listChildren: () => [] };
+    collect(solo, new Set(), g);
+    const e = node.getExtras();
+    out.push({ name: String(e.za_name ?? node.getName()), path: String(e.za_path ?? ''), ...g });
+  }
+  return out;
+}
+
+/** The region (and side) a Z-Anatomy structure belongs to: its own name or a group's, the side from its .r or .l. */
+function zaRegion(layer, name, path) {
+  const strip = (s) => s.replace(/\.(l|r)$/, '');
+  const side = /\.r$/.test(name) ? 'right' : /\.l$/.test(name) ? 'left' : null;
+  const names = [strip(name), ...path.split(' / ').map(strip), name, ...path.split(' / ')];
+  for (const [id, def] of Object.entries(REGIONS)) {
+    if (def.layer !== layer || !def.za) continue;
+    if (!def.za.some((n) => names.includes(n) || names.includes(strip(n)))) continue;
+    if (def.paired && !side) continue;
+    return { id, side: def.paired ? side : null };
+  }
+  return null;
+}
+
+/** The map from Z-Anatomy's body to one of ours: the body map through the outline's sections, the arms turned about their pivot. */
+function zaMap(A, C) {
+  const { bones } = bodyMap(A, C);
+  const s = (C.crown - C.sole) / (A.crown - A.sole);
+  // Rodrigues: the rotation taking unit a to unit b.
+  const rotation = (a, b) => {
+    const v = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], c = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const k = 1 / (1 + c), [x, y, z] = v;
+    return [[c + k * x * x, k * x * y - z, k * x * z + y], [k * y * x + z, c + k * y * y, k * y * z - x], [k * z * x - y, k * z * y + x, c + k * z * z]];
+  };
+  const R = rotation(A.arm.dir, C.arm.dir);
+  const shoulderHalf = A.arm.pivot[0] - A.cx;
+  // limb: a mesh of the arm itself (its muscles and nerves), turned whole wherever it reaches, so a hand
+  // that hangs beside the thigh is not torn from its forearm. armWeight: how much a point is an arm point
+  // by where it is alone (zaLayer calls a mesh a limb when most of its points are).
+  const at = ([x0, y, z]) => {
+    const side = x0 < A.cx ? -1 : 1;
+    const x = A.cx + side * (x0 - A.cx);
+    const d = [x - A.arm.pivot[0], y - A.arm.pivot[1], z - A.arm.pivot[2]];
+    const along = d[0] * A.arm.dir[0] + d[1] * A.arm.dir[1] + d[2] * A.arm.dir[2];
+    const radial = Math.hypot(d[0] - along * A.arm.dir[0], d[1] - along * A.arm.dir[1], d[2] - along * A.arm.dir[2]);
+    return { side, x, d, along, radial };
+  };
+  const armWeight = (p) => {
+    const { x, along, radial } = at(p);
+    return smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.45 * A.H, 0.5 * A.H, along))
+      * smooth(0.7 * shoulderHalf, 0.95 * shoulderHalf, x - A.cx) * (1 - smooth(0.06 * A.H, 0.09 * A.H, radial));
+  };
+  const map = ([x0, y, z], limb = false) => {
+    const body = bones.map([x0, y, z]);
+    // Work on the left: mirror the right across the midline, and back.
+    const { side, x, d, along, radial } = at([x0, y, z]);
+    // An arm point: below the shoulder along the arm, beside the trunk, and near the arm's own axis (so the
+    // hips and legs, also below and beside, are never swung with it). A trunk mesh only blends near the
+    // shoulder, where the pectoralis and latissimus reach the humerus: lower, the side of the chest and belly
+    // sit beside the hanging arm in the source and stay with the trunk.
+    const w = limb ? smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.12 * A.H, 0.16 * A.H, radial)) : smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.1 * A.H, 0.16 * A.H, along))
+      * smooth(0.7 * shoulderHalf, 0.95 * shoulderHalf, x - A.cx) * (1 - smooth(0.06 * A.H, 0.09 * A.H, radial));
+    if (w <= 0) return body;
+    const r = R.map((row) => (row[0] * d[0] + row[1] * d[1] + row[2] * d[2]) * s);
+    const arm = [C.arm.pivot[0] + r[0], C.arm.pivot[1] + r[1], C.arm.pivot[2] + r[2]];
+    const armX = C.cx + side * (arm[0] - C.cx);
+    return [(1 - w) * body[0] + w * armX, (1 - w) * body[1] + w * arm[1], (1 - w) * body[2] + w * arm[2]];
+  };
+  return Object.assign(map, { armWeight });
+}
+
+/** One Z-Anatomy layer fitted to one body: a mesh per region and side, the rest as one, each inside the skin. */
+async function zaLayer(sources, layer, body, skin, report) {
+  const map = zaMap(sources.A, measure(skin.positions, skin.indices));
+  const insideSkin = insideTest(skin.positions, skin.indices);
+  const pieces = new Map();
+  const add = (name, region, g) => { const p = pieces.get(name) ?? { name, layer, region, positions: [], indices: [] }; append(p, g); pieces.set(name, p); };
+  for (const m of sources[layer]) {
+    if (!ZA_KEEP[layer](m.name, m.path)) continue;
+    const r = zaRegion(layer, m.name, m.path);
+    let sum = 0;
+    for (let i = 0; i < m.positions.length; i += 3) sum += map.armWeight([m.positions[i], m.positions[i + 1], m.positions[i + 2]]);
+    const positions = [], limb = /Muscular system of upper limb\.g|Brachial plexus\.g \/ Branches of/.test(m.path) || sum / (m.positions.length / 3) > 0.5;
+    for (let i = 0; i < m.positions.length; i += 3) positions.push(...map([m.positions[i], m.positions[i + 1], m.positions[i + 2]], limb));
+    add(r ? meshName(r.id, r.side) : layer, r?.id ?? null, { positions, indices: m.indices });
+  }
+  // Inside the skin: the smallest move or shrink that brings a piece inside (reported).
+  for (const p of pieces.values()) {
+    const out = (dx = 0, dz = 0, k = 1, c = [0, 0, 0]) => {
+      const n = p.positions.length / 3, step = Math.max(1, Math.floor(n / 300));
+      let o = 0, t = 0;
+      for (let i = 0; i < n; i += step) { t++; if (!insideSkin([0, 1, 2].map((j) => c[j] + (p.positions[i * 3 + j] - c[j]) * k + (j === 0 ? dx : j === 2 ? dz : 0)))) o++; }
+      return o / t;
+    };
+    const before = out();
+    if (before <= 0.002) continue;
+    const c = bounds(p.positions).centre;
+    const moves = [];
+    for (const k of [1, 0.97, 0.94, 0.91, 0.88]) for (const dz of [0, 3, -3, 6, -6, 9, -9]) for (const dx of [0, 3, -3, 6, -6]) moves.push({ k, dz: dz / 1000, dx: dx / 1000, cost: (1 - k) * 100 + Math.abs(dz) + Math.abs(dx) });
+    moves.sort((a, b) => a.cost - b.cost);
+    let best = { k: 1, dx: 0, dz: 0, f: before };
+    for (const m of moves) { const f = out(m.dx, m.dz, m.k, c); if (f < best.f - 1e-9) best = { ...m, f }; if (f <= 0.002) break; }
+    for (let i = 0; i < p.positions.length; i += 3) for (let j = 0; j < 3; j++) p.positions[i + j] = c[j] + (p.positions[i + j] - c[j]) * best.k + (j === 0 ? best.dx : j === 2 ? best.dz : 0);
+    report[`${layer}/${p.name}`] = { outsideBefore: +before.toFixed(3), outsideAfter: +best.f.toFixed(3), shrink: best.k, dxMm: best.dx * 1000, dzMm: best.dz * 1000 };
+  }
+  // Budgets: each region its own, the rest one mesh.
+  for (const p of pieces.values()) p.budget = p.region ? (ZA_BUDGET[layer][p.region] ?? ZA_BUDGET[layer].region) : ZA_BUDGET[layer].rest;
+  // Last, point by point (after simplifying): a muscle or nerve point still outside the skin goes to just
+  // inside it, the least depth (1 mm to 4 cm) past the nearest skin point that is inside. Muscles lie against the skin, so the outline's own shape
+  // (not the source's) decides where their surface ends. Counted in the report.
+  const cell = 0.02, grid = new Map();
+  for (let i = 0; i < skin.positions.length; i += 3) {
+    const key = `${Math.floor(skin.positions[i] / cell)},${Math.floor(skin.positions[i + 1] / cell)},${Math.floor(skin.positions[i + 2] / cell)}`;
+    (grid.get(key) ?? grid.set(key, []).get(key)).push(i);
+  }
+  const nearest = (p) => {
+    const c = p.map((v) => Math.floor(v / cell));
+    for (let r = 1; r <= 4; r++) {
+      let best = -1, bd = Infinity;
+      for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) for (const i of grid.get(`${c[0] + dx},${c[1] + dy},${c[2] + dz}`) ?? []) {
+        const d = (skin.positions[i] - p[0]) ** 2 + (skin.positions[i + 1] - p[1]) ** 2 + (skin.positions[i + 2] - p[2]) ** 2;
+        if (d < bd) { bd = d; best = i; }
+      }
+      if (best >= 0) return [skin.positions[best], skin.positions[best + 1], skin.positions[best + 2]];
+    }
+    return null;
+  };
+  for (const p of pieces.values()) {
+    p.contain = (positions) => {
+      let moved = 0;
+      for (let i = 0; i < positions.length; i += 3) {
+        const q = [positions[i], positions[i + 1], positions[i + 2]];
+        if (insideSkin(q)) continue;
+        const s = nearest(q);
+        if (!s) continue;
+        const d = [s[0] - q[0], s[1] - q[1], s[2] - q[2]], l = Math.hypot(...d) || 1;
+        for (const depth of [0.001, 0.002, 0.004, 0.008, 0.015, 0.025, 0.04]) {
+          const t = [s[0] + (d[0] / l) * depth, s[1] + (d[1] / l) * depth, s[2] + (d[2] / l) * depth];
+          if (insideSkin(t)) { positions[i] = t[0]; positions[i + 1] = t[1]; positions[i + 2] = t[2]; moved++; break; }
+        }
+      }
+      // Where the skin folds (the armpit), the nearest skin point can lead into the fold, not inside:
+      // those points go toward the nearest point of their own mesh that is inside, if it is within 3 cm
+      // (a fingertip is never pulled to the hip).
+      const ok = [];
+      for (let i = 0; i < positions.length; i += 3) if (insideSkin([positions[i], positions[i + 1], positions[i + 2]])) ok.push(i);
+      if (ok.length) for (let i = 0; i < positions.length; i += 3) {
+        const q = [positions[i], positions[i + 1], positions[i + 2]];
+        if (insideSkin(q)) continue;
+        let best = ok[0], bd = Infinity;
+        for (const j of ok) { const d = (positions[j] - q[0]) ** 2 + (positions[j + 1] - q[1]) ** 2 + (positions[j + 2] - q[2]) ** 2; if (d < bd) { bd = d; best = j; } }
+        if (bd > 0.03 ** 2) continue;
+        for (const t of [0.25, 0.5, 0.75, 1]) {
+          const r = [0, 1, 2].map((k) => q[k] + (positions[best + k] - q[k]) * t);
+          if (insideSkin(r)) { positions[i] = r[0]; positions[i + 1] = r[1]; positions[i + 2] = r[2]; moved++; break; }
+        }
+      }
+      report[`${layer}/${p.name}/pointsMovedInside`] = moved;
+    };
+  }
+  return [...pieces.values()];
 }
 
 async function main() {
@@ -651,17 +893,40 @@ async function main() {
   await MeshoptSimplifier.ready;
   await MeshoptEncoder.ready;
   const manifest = {}, reports = {};
-  const adult = {};
+  const adult = {}, skins = {};
   for (const body of ['man', 'woman']) {
     adult[body] = await atlasPieces(dir, body);
+    skins[body] = adult[body].find((p) => p.name === 'skin');
     manifest[body] = await write(body, adult[body], 'atlas');
   }
   for (const body of ['boy', 'girl']) {
     const { pieces, report } = await childPieces(dir, body, adult[REFERENCES.bodies[body].from]);
     reports[body] = report;
+    skins[body] = pieces.find((p) => p.name === 'skin');
     manifest[body] = await write(body, pieces, 'adapted');
   }
   for (const b of BODIES) if (!manifest[b]) throw new Error(`no ${b}`);
+  // The Z-Anatomy layers, fitted to each body's own outline (packages/body-za).
+  if (!process.argv.includes('--no-za')) {
+    const sources = { muscles: await zaMeshes(dir, 'muscles'), nerves: await zaMeshes(dir, 'nerves') };
+    const zaSkin = { positions: [], indices: [] };
+    for (const m of await zaMeshes(dir, 'regions')) append(zaSkin, m);
+    const zw = weldPositions(zaSkin);
+    sources.A = measure(Array.from(zw.positions), Array.from(zw.indices));
+    console.log(`Z-Anatomy outline: ${JSON.stringify({ H: +sources.A.H.toFixed(3), arm: sources.A.arm })}`);
+    for (const body of BODIES) {
+      // The skin as it is written (simplified the same way), so "inside" here is inside the shipped outline.
+      const s = reduce(weldPositions(skins[body]), BUDGET.skin), skin ={ positions: Array.from(s.positions), indices: Array.from(s.indices) };
+      manifest[body].layers = {};
+      reports.za ??= {};
+      reports.za[body] = {};
+      for (const layer of ZA_LAYERS) {
+        const pieces = await zaLayer(sources, layer, body, skin, reports.za[body]);
+        manifest[body].layers[layer] = await write(body, pieces, body === 'boy' || body === 'girl' ? 'adapted' : 'atlas', layer);
+        manifest[body].meshes = [...manifest[body].meshes, ...manifest[body].layers[layer].meshes].sort();
+      }
+    }
+  }
   const ts = `// Generated by tools/body/build.mjs from the built meshes. Do not edit: run \`npm run body:asset\`.\n` +
     `// Which meshes each body has (a region missing from a body is an error for the model, not a blank render),\n` +
     `// each mesh file's size, and what the child bodies measured out to (components/body/references.json).\n` +

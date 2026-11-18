@@ -50,6 +50,8 @@ export interface ThemeColours {
   readonly down: string;
   readonly buildings: string;
   readonly cartilage: string;
+  readonly muscle: string;
+  readonly nerve: string;
   readonly sequential: readonly string[];
   readonly diverging: readonly string[];
 }

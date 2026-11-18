@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "body",
+  "title": "The muscles over the skeleton",
+  "description": "Two layers stacked: the bones solid, the muscles see-through over them; the right quadriceps lit over the right thigh bone.",
+  "host": "ava",
+  "size": { "width": 640 },
+  "scale": 2,
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "quadriceps", "side": "right" }, { "region": "femur", "side": "right", "role": "related" }] }, "options": { "body": "man", "layers": ["skeleton", "muscles"], "focus": "quadriceps" } }
+}
