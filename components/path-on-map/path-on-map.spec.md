@@ -52,16 +52,25 @@ Back to front.
 
 | # | part | what it is | drawn with |
 |---|---|---|---|
-| 1 | **basemap** | the street map: land, water, parks, roads, labels, POI icons | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
+| 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; shown or hidden by `showBuildings` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
-| 5 | **start marker** | a ring at each path's first point | circle |
-| 6 | **path label** | the group's `label`, right of the start marker | map text |
-| 7 | **legend** | the value's name and unit, the colour ramp, its low and high ends | canvas overlay, bottom-left |
-| 8 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
-| 9 | **map controls** | zoom in, zoom out, compass | map SDK, top-right (masked) |
-| 10 | **attribution** | the basemap's required credit | map SDK, bottom-right (masked) |
+| 5 | **basemap labels** | the street map's text and POI icons: street, place and building names | the surface's style (its symbol layers) |
+| 6 | **start marker** | a ring at each path's first point | circle |
+| 7 | **path label** | the group's `label`, right of the start marker | map text |
+| 8 | **legend** | the value's name and unit, the colour ramp, its low and high ends | canvas overlay, bottom-left |
+| 9 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
+| 10 | **map controls** | zoom in, zoom out, compass | map SDK, top-right (masked) |
+| 11 | **attribution** | the basemap's required credit | map SDK, bottom-right (masked) |
+
+The path and its casing go under the basemap's labels, so the names of the
+streets the path follows and crosses stay readable (each label keeps its own
+halo); the start marker and the path label go over them. A platform inserts
+the buildings, casing and path before the style's first label layer (in
+MapLibre, the first `symbol` layer) and adds the start marker and path label
+on top. With no basemap (the plain ground) there are no labels to go under,
+and the parts stack in the order above.
 
 ## Measurements
 

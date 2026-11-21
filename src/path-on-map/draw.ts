@@ -9,7 +9,7 @@
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import { validate } from "../validate.ts";
 import type { Theme, ViewError } from "../types.ts";
-import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
+import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, UNDER_LABELS, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
 
 /** Thrown by drawPaths when the input doesn't meet the contract: nothing on the map has changed. */
 export class PathInputError extends Error {
@@ -57,7 +57,7 @@ export function checkPaths(input: PathsInput): { ok: true; value: Paths } | { ok
 
 const LABEL_CLASS = "zc-path-label";
 
-/** Under the basemap's first label, so place names stay readable over the buildings. */
+/** The basemap's first label: the buildings and the route's line go under it, so place and street names stay readable. */
 function firstSymbol(map: MapLibreMap): string | undefined {
   return map.getStyle().layers.find((l) => l.type === "symbol" && !Object.values(PATH_LAYERS).includes(l.id as never))?.id;
 }
@@ -105,9 +105,13 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   const features = pathFeatures(p, theme);
   map.addSource(PATH_SOURCES.segments, { type: "geojson", data: features.segments });
   map.addSource(PATH_SOURCES.starts, { type: "geojson", data: features.starts });
-  if (map.getSource("basemap")) map.addLayer(buildingsLayer(theme, p.options.showBuildings), firstSymbol(map));
+  // The buildings and the route's line go under the basemap's labels, so street names stay readable
+  // over the route; the start marker and the route's label go on top. With no basemap labels (the
+  // plain ground) there is nothing to go under, and every layer goes on top, in order.
+  const labels = firstSymbol(map);
+  if (map.getSource("basemap")) map.addLayer(buildingsLayer(theme, p.options.showBuildings), labels);
   const glyphs = Boolean(map.getStyle().glyphs);
-  for (const layer of pathLayers(theme, p.options, glyphs)) map.addLayer(layer);
+  for (const layer of pathLayers(theme, p.options, glyphs)) map.addLayer(layer, UNDER_LABELS.has(layer.id) ? labels : undefined);
   const markers: MapLibreMarker[] = [];
   // Room the HTML labels need beside their starts, per side, so framing keeps them on the map.
   const room = { top: 0, right: 0, bottom: 0, left: 0 };

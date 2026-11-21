@@ -150,10 +150,13 @@ export function pathFeatures(p: Paths, theme: Theme): { segments: FeatureCollect
 /** The ids of what drawPaths adds, back to front. */
 export const PATH_SOURCES = { segments: "path-on-map", starts: "path-on-map-starts" } as const;
 export const PATH_LAYERS = { buildings: "path-buildings-3d", casing: "path-casing", line: "path-line", start: "path-start", label: "path-label" } as const;
+/** The layers drawn under the basemap's labels (before its first symbol layer); the rest go on top. */
+export const UNDER_LABELS: ReadonlySet<string> = new Set([PATH_LAYERS.buildings, PATH_LAYERS.casing, PATH_LAYERS.line]);
 
 /**
  * The path's layers, back to front: casing, line, start ring and, when the map has a glyph set
- * (`labels`), the label as a symbol layer. A map without glyphs (no basemap host) gets its labels
+ * (`labels`), the label as a symbol layer. On a basemap, drawPaths puts the casing and line under
+ * the basemap's labels (UNDER_LABELS) and the start ring and label over them. A map without glyphs (no basemap host) gets its labels
  * as HTML beside the start instead (draw.ts), in the theme's UI face.
  */
 export function pathLayers(theme: Theme, options: PathOptions, labels = true): LayerSpecification[] {
