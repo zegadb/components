@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Toronto, compact",
+  "description": "The compact card in a desktop chat column: the place, the temperature now, one line on tomorrow, five days. ECCC's Toronto page of 21 Nov 2026 (recorded in avacanada/ava), as Ava reads it.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "dataFile": "data/toronto.json",
+  "spec": {
+    "component": "weather",
+    "data": {}
+  }
+}

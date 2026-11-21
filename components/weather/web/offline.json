@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Toronto, offline, as of the last forecast",
+  "description": "The compact card when Ava could not reach ECCC: the same reading with the clock and \"Offline · as of\" under it.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "dataFile": "data/toronto-offline.json",
+  "spec": {
+    "component": "weather",
+    "data": {}
+  }
+}

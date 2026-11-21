@@ -1,0 +1,240 @@
+{
+ "place": "Toronto",
+ "today": "2026-11-21",
+ "now": {
+  "temp_c": 10.3,
+  "condition": "Mainly Sunny",
+  "icon": "mainly-clear",
+  "night": false,
+  "wind": "SSE 10 km/h, gusts 27 km/h",
+  "observed": "2026-11-21T15:00-05:00"
+ },
+ "hours": [
+  {
+   "at": "2026-11-21T16:00-05:00",
+   "temp_c": 14,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T17:00-05:00",
+   "temp_c": 13,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T18:00-05:00",
+   "temp_c": 13,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T19:00-05:00",
+   "temp_c": 12,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T20:00-05:00",
+   "temp_c": 11,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T21:00-05:00",
+   "temp_c": 9,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T22:00-05:00",
+   "temp_c": 8,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-21T23:00-05:00",
+   "temp_c": 7,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T00:00-05:00",
+   "temp_c": 6,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T01:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T02:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T03:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T04:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T05:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T06:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T07:00-05:00",
+   "temp_c": 5,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T08:00-05:00",
+   "temp_c": 6,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T09:00-05:00",
+   "temp_c": 6,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T10:00-05:00",
+   "temp_c": 7,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T11:00-05:00",
+   "temp_c": 8,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T12:00-05:00",
+   "temp_c": 10,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T13:00-05:00",
+   "temp_c": 11,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T14:00-05:00",
+   "temp_c": 12,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  },
+  {
+   "at": "2026-11-22T15:00-05:00",
+   "temp_c": 13,
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0
+  }
+ ],
+ "days": [
+  {
+   "date": "2026-11-21",
+   "low_c": 5,
+   "icon": "clear",
+   "night": true,
+   "condition": "Clear"
+  },
+  {
+   "date": "2026-11-22",
+   "high_c": 14,
+   "low_c": 6,
+   "icon": "clear",
+   "condition": "Sunny"
+  },
+  {
+   "date": "2026-11-23",
+   "high_c": 8,
+   "low_c": -5,
+   "icon": "showers",
+   "condition": "Chance of showers",
+   "pop": 30
+  },
+  {
+   "date": "2026-11-24",
+   "high_c": 4,
+   "low_c": -9,
+   "icon": "flurries",
+   "condition": "Chance of flurries",
+   "pop": 30
+  },
+  {
+   "date": "2026-11-25",
+   "high_c": 4,
+   "low_c": -2,
+   "icon": "clear",
+   "condition": "Sunny"
+  },
+  {
+   "date": "2026-11-26",
+   "high_c": 3,
+   "low_c": 1,
+   "icon": "mix",
+   "condition": "Chance of rain showers or flurries",
+   "pop": 30
+  },
+  {
+   "date": "2026-11-27",
+   "high_c": 4,
+   "icon": "mix",
+   "condition": "Chance of flurries or rain showers",
+   "pop": 40
+  }
+ ],
+ "sun": {
+  "rise": "2026-11-21T07:19-05:00",
+  "set": "2026-11-21T16:47-05:00"
+ }
+}

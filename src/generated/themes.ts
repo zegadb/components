@@ -43,7 +43,51 @@ export const THEMES = {
         "#DCD8E6",
         "#8D72F3",
         "#4527C4"
-      ]
+      ],
+      "weather": {
+        "skies": {
+          "clear-day": [
+            "#1858BE",
+            "#2766C2"
+          ],
+          "partly-day": [
+            "#2A5A9E",
+            "#3A69A8"
+          ],
+          "overcast-day": [
+            "#4A5868",
+            "#59677A"
+          ],
+          "rain-day": [
+            "#34495F",
+            "#465B72"
+          ],
+          "snow-day": [
+            "#4A6380",
+            "#52698A"
+          ],
+          "storm": [
+            "#2B2C47",
+            "#433F5E"
+          ],
+          "clear-night": [
+            "#0D1B3B",
+            "#1F3266"
+          ],
+          "cloudy-night": [
+            "#1C2231",
+            "#333C4F"
+          ]
+        },
+        "ink": "#FFFFFF",
+        "pop": "#D2EDFF",
+        "sun": "#FFC93C",
+        "moon": "#F3ECD2",
+        "cloud": "#FFFFFF",
+        "drop": "#7CC8FF",
+        "bolt": "#FFD23F",
+        "edge": "#FFFFFF"
+      }
     },
     "dark": {
       "ground": "#1C1A29",
@@ -80,7 +124,51 @@ export const THEMES = {
         "#4B4663",
         "#7259DE",
         "#CDBFFF"
-      ]
+      ],
+      "weather": {
+        "skies": {
+          "clear-day": [
+            "#164FAA",
+            "#2159AE"
+          ],
+          "partly-day": [
+            "#26518E",
+            "#335E97"
+          ],
+          "overcast-day": [
+            "#414E5D",
+            "#4F5C6E"
+          ],
+          "rain-day": [
+            "#2F4256",
+            "#3E5166"
+          ],
+          "snow-day": [
+            "#435A75",
+            "#4A5F7E"
+          ],
+          "storm": [
+            "#262740",
+            "#3B3754"
+          ],
+          "clear-night": [
+            "#0B1733",
+            "#1B2C5A"
+          ],
+          "cloudy-night": [
+            "#181D2A",
+            "#2C3445"
+          ]
+        },
+        "ink": "#FFFFFF",
+        "pop": "#D2EDFF",
+        "sun": "#F7C23A",
+        "moon": "#EDE6CC",
+        "cloud": "#F4F6FA",
+        "drop": "#74BFF5",
+        "bolt": "#F7CB3A",
+        "edge": "#FFFFFF"
+      }
     }
   },
   "zega": {
@@ -124,7 +212,51 @@ export const THEMES = {
         "#C9C0B2",
         "#D98A5C",
         "#9C4220"
-      ]
+      ],
+      "weather": {
+        "skies": {
+          "clear-day": [
+            "#1858BE",
+            "#2766C2"
+          ],
+          "partly-day": [
+            "#2A5A9E",
+            "#3A69A8"
+          ],
+          "overcast-day": [
+            "#4A5868",
+            "#59677A"
+          ],
+          "rain-day": [
+            "#34495F",
+            "#465B72"
+          ],
+          "snow-day": [
+            "#4A6380",
+            "#52698A"
+          ],
+          "storm": [
+            "#2B2C47",
+            "#433F5E"
+          ],
+          "clear-night": [
+            "#0D1B3B",
+            "#1F3266"
+          ],
+          "cloudy-night": [
+            "#1C2231",
+            "#333C4F"
+          ]
+        },
+        "ink": "#FFFFFF",
+        "pop": "#D2EDFF",
+        "sun": "#FFC93C",
+        "moon": "#F3ECD2",
+        "cloud": "#FFFFFF",
+        "drop": "#7CC8FF",
+        "bolt": "#FFD23F",
+        "edge": "#FFFFFF"
+      }
     },
     "dark": {
       "ground": "#1E1610",
@@ -161,7 +293,51 @@ export const THEMES = {
         "#6B6259",
         "#B8683D",
         "#F0A878"
-      ]
+      ],
+      "weather": {
+        "skies": {
+          "clear-day": [
+            "#164FAA",
+            "#2159AE"
+          ],
+          "partly-day": [
+            "#26518E",
+            "#335E97"
+          ],
+          "overcast-day": [
+            "#414E5D",
+            "#4F5C6E"
+          ],
+          "rain-day": [
+            "#2F4256",
+            "#3E5166"
+          ],
+          "snow-day": [
+            "#435A75",
+            "#4A5F7E"
+          ],
+          "storm": [
+            "#262740",
+            "#3B3754"
+          ],
+          "clear-night": [
+            "#0B1733",
+            "#1B2C5A"
+          ],
+          "cloudy-night": [
+            "#181D2A",
+            "#2C3445"
+          ]
+        },
+        "ink": "#FFFFFF",
+        "pop": "#D2EDFF",
+        "sun": "#F7C23A",
+        "moon": "#EDE6CC",
+        "cloud": "#F4F6FA",
+        "drop": "#74BFF5",
+        "bolt": "#F7CB3A",
+        "edge": "#FFFFFF"
+      }
     }
   }
 } as const satisfies Record<string, HostTheme>;

@@ -1,0 +1,137 @@
+{
+  "$schema": "../../schemas/contract.schema.json",
+  "format": 2,
+  "id": "weather",
+  "version": "1.0.0",
+  "title": "Weather",
+  "category": "Weather",
+  "description": "One place's weather as a card: the temperature now, the sky, and the days ahead (compact); or with the next hours and the details too (full). Temperatures in °C. A host draws it from a forecast it read itself (Ava: Environment and Climate Change Canada), and shows the source's credit once, under it.",
+  "surface": { "kind": "card", "description": "A rounded card whose sky follows the condition and day or night, white text on it; its height follows what it holds." },
+  "marks": ["glyph", "label"],
+  "size": { "aspect": 0.4, "minHeight": 150, "maxHeight": 640 },
+  "$defs": {
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "The place's own date, YYYY-MM-DD." },
+    "time": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?([+-]\\d{2}:\\d{2}|Z)$", "description": "A date-time with the place's UTC offset (2026-11-21T16:00-05:00): the card shows the place's own clock." },
+    "temp": { "type": "number", "minimum": -90, "maximum": 60, "description": "°C." },
+    "icon": { "enum": ["clear", "mainly-clear", "partly-cloudy", "cloudy", "showers", "rain", "freezing-rain", "mix", "flurries", "snow", "thunderstorm", "fog", "wind", "blowing-snow"], "description": "The sky's kind (an ECCC code maps to one: ecccGlyph())." },
+    "night": { "type": "boolean", "description": "Night: the moon instead of the sun, and a night sky." },
+    "pop": { "type": "number", "minimum": 0, "maximum": 100, "description": "Chance of precipitation in %, only when the source gives one: never 0 for unknown." },
+    "words": { "type": "string", "minLength": 1, "maxLength": 60 }
+  },
+  "data": {
+    "type": "object",
+    "required": ["place", "today"],
+    "additionalProperties": false,
+    "properties": {
+      "place": { "type": "string", "minLength": 1, "maxLength": 60, "description": "The place's name, as the source names it (\"Toronto\", \"Montréal\")." },
+      "today": { "$ref": "#/$defs/date" },
+      "now": {
+        "type": "object",
+        "required": ["temp_c"],
+        "additionalProperties": false,
+        "description": "The latest observation.",
+        "properties": {
+          "temp_c": { "$ref": "#/$defs/temp" },
+          "condition": { "$ref": "#/$defs/words" },
+          "icon": { "$ref": "#/$defs/icon" },
+          "night": { "$ref": "#/$defs/night" },
+          "feels_c": { "$ref": "#/$defs/temp" },
+          "wind": { "type": "string", "minLength": 1, "maxLength": 40, "description": "As the source words it: \"SSE 10 km/h, gusts 27 km/h\"." },
+          "observed": { "$ref": "#/$defs/time" }
+        }
+      },
+      "hours": {
+        "type": "array",
+        "maxItems": 48,
+        "description": "The next hours, in order.",
+        "items": {
+          "type": "object",
+          "required": ["at"],
+          "additionalProperties": false,
+          "properties": { "at": { "$ref": "#/$defs/time" }, "temp_c": { "$ref": "#/$defs/temp" }, "icon": { "$ref": "#/$defs/icon" }, "night": { "$ref": "#/$defs/night" }, "pop": { "$ref": "#/$defs/pop" } }
+        }
+      },
+      "days": {
+        "type": "array",
+        "maxItems": 8,
+        "description": "One per day from today, in order: its high and low (either may be missing: tonight has no high), its sky by day.",
+        "items": {
+          "type": "object",
+          "required": ["date"],
+          "additionalProperties": false,
+          "properties": {
+            "date": { "$ref": "#/$defs/date" },
+            "high_c": { "$ref": "#/$defs/temp" },
+            "low_c": { "$ref": "#/$defs/temp" },
+            "icon": { "$ref": "#/$defs/icon" },
+            "night": { "$ref": "#/$defs/night" },
+            "condition": { "$ref": "#/$defs/words" },
+            "pop": { "$ref": "#/$defs/pop" }
+          }
+        }
+      },
+      "sun": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": { "rise": { "$ref": "#/$defs/time" }, "set": { "$ref": "#/$defs/time" } }
+      },
+      "stale": {
+        "type": "object",
+        "required": ["as_of", "offline"],
+        "additionalProperties": false,
+        "description": "When this isn't the latest: the host's \"as of\" time, already in words, and whether it couldn't reach the source.",
+        "properties": { "as_of": { "type": "string", "minLength": 1, "maxLength": 48 }, "offline": { "type": "boolean" } }
+      },
+      "summary": { "type": "string", "minLength": 1, "maxLength": 100, "description": "The compact card's one line; otherwise the card says how tomorrow compares." }
+    }
+  },
+  "options": {
+    "size": { "enum": ["compact", "full"], "default": "compact", "description": "compact: now and the days ahead. full: now, the next hours, the days and the details (feels like, wind, precipitation, sunrise and sunset)." },
+    "lang": { "enum": ["en", "fr", null], "default": null, "description": "The card's own words (Today, Feels like, the days' names); the host's language when null." }
+  },
+  "examples": {
+    "valid": [
+      {
+        "title": "Toronto, compact",
+        "spec": {
+          "component": "weather",
+          "data": {
+            "place": "Toronto", "today": "2026-11-21",
+            "now": { "temp_c": 10.3, "condition": "Mainly Sunny", "icon": "mainly-clear", "night": false },
+            "days": [
+              { "date": "2026-11-21", "low_c": 2, "icon": "clear", "night": true },
+              { "date": "2026-11-22", "high_c": 8, "low_c": -1, "icon": "clear" },
+              { "date": "2026-11-23", "high_c": 8, "low_c": -3, "icon": "showers", "pop": 30 }
+            ]
+          }
+        }
+      },
+      {
+        "title": "Montréal, full, in French",
+        "spec": {
+          "component": "weather",
+          "data": {
+            "place": "Montréal", "today": "2026-11-21",
+            "now": { "temp_c": 4, "condition": "Généralement ensoleillé", "icon": "mainly-clear", "feels_c": 1, "wind": "O 15 km/h" },
+            "hours": [{ "at": "2026-11-21T17:00-05:00", "temp_c": 3, "icon": "clear", "night": true }, { "at": "2026-11-21T18:00-05:00", "temp_c": 2, "icon": "clear", "night": true }],
+            "days": [{ "date": "2026-11-21", "low_c": -4, "icon": "clear", "night": true }, { "date": "2026-11-22", "high_c": 3, "low_c": -2, "icon": "mainly-clear" }],
+            "sun": { "rise": "2026-11-21T07:01-05:00", "set": "2026-11-21T16:17-05:00" }
+          },
+          "options": { "size": "full", "lang": "fr" }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "title": "A low above the high",
+        "spec": { "component": "weather", "data": { "place": "Toronto", "today": "2026-11-21", "days": [{ "date": "2026-11-22", "high_c": 2, "low_c": 8 }] } },
+        "error": { "code": "range", "at": "data.days[0]", "message": "the low (8) is above the high (2)", "help": "high_c is the day's highest and low_c the night's lowest" }
+      },
+      {
+        "title": "Nothing to show",
+        "spec": { "component": "weather", "data": { "place": "Toronto", "today": "2026-11-21" } },
+        "error": { "code": "required", "at": "data", "message": "a weather card needs now, hours or days", "help": "give the observation (now), the next hours or the days ahead" }
+      }
+    ]
+  }
+}

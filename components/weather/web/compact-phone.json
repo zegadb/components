@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Toronto, compact, at a phone's chat width",
+  "description": "The compact card in the 358-point column: two columns still, the days' names short.",
+  "host": "ava",
+  "size": {
+    "width": 358
+  },
+  "scale": 2,
+  "dataFile": "data/toronto.json",
+  "spec": {
+    "component": "weather",
+    "data": {}
+  }
+}

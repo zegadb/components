@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Toronto, full, at a phone's chat width",
+  "description": "The full card in the 358-point column: five hours, the details two to a row.",
+  "host": "ava",
+  "size": {
+    "width": 358
+  },
+  "scale": 2,
+  "dataFile": "data/toronto.json",
+  "spec": {
+    "component": "weather",
+    "data": {},
+    "options": {
+      "size": "full"
+    }
+  }
+}

@@ -18,7 +18,7 @@
     "ramp": { "type": "array", "minItems": 3, "maxItems": 9, "items": { "$ref": "#/$defs/colour" } },
     "mode": {
       "type": "object",
-      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "cartilage", "muscle", "nerve", "sequential", "diverging"],
+      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "cartilage", "muscle", "nerve", "sequential", "diverging", "weather"],
       "additionalProperties": false,
       "properties": {
         "ground": { "$ref": "#/$defs/colour" }, "panel": { "$ref": "#/$defs/colour" }, "ink": { "$ref": "#/$defs/colour" },
@@ -30,7 +30,28 @@
         "nerve": { "$ref": "#/$defs/colour" },
         "series": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/colour" } },
         "sequential": { "$ref": "#/$defs/ramp" },
-        "diverging": { "$ref": "#/$defs/ramp" }
+        "diverging": { "$ref": "#/$defs/ramp" },
+        "weather": { "$ref": "#/$defs/weather" }
+      }
+    },
+    "sky": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/colour" }, "description": "A sky's gradient, top to bottom." },
+    "weather": {
+      "type": "object",
+      "required": ["skies", "ink", "pop", "sun", "moon", "cloud", "drop", "bolt", "edge"],
+      "additionalProperties": false,
+      "properties": {
+        "skies": {
+          "type": "object",
+          "required": ["clear-day", "partly-day", "overcast-day", "rain-day", "snow-day", "storm", "clear-night", "cloudy-night"],
+          "additionalProperties": false,
+          "properties": {
+            "clear-day": { "$ref": "#/$defs/sky" }, "partly-day": { "$ref": "#/$defs/sky" }, "overcast-day": { "$ref": "#/$defs/sky" }, "rain-day": { "$ref": "#/$defs/sky" },
+            "snow-day": { "$ref": "#/$defs/sky" }, "storm": { "$ref": "#/$defs/sky" }, "clear-night": { "$ref": "#/$defs/sky" }, "cloudy-night": { "$ref": "#/$defs/sky" }
+          }
+        },
+        "ink": { "$ref": "#/$defs/colour" }, "pop": { "$ref": "#/$defs/colour" }, "sun": { "$ref": "#/$defs/colour" }, "moon": { "$ref": "#/$defs/colour" },
+        "cloud": { "$ref": "#/$defs/colour" }, "drop": { "$ref": "#/$defs/colour" }, "bolt": { "$ref": "#/$defs/colour" },
+        "edge": { "$ref": "#/$defs/colour", "description": "The card's hairline edge (at low opacity), so a night sky still has an edge on a dark page." }
       }
     },
     "host": {

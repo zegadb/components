@@ -13,6 +13,7 @@
     "./body": { "types": "./dist/body/index.d.ts", "default": "./dist/body/index.js" },
     "./body/draw": { "types": "./dist/body/draw.d.ts", "default": "./dist/body/draw.js" },
     "./body/*.glb": "./assets/body/*.glb",
+    "./weather": { "types": "./dist/weather/index.d.ts", "default": "./dist/weather/index.js" },
     "./basemap": { "types": "./dist/basemap.d.ts", "default": "./dist/basemap.js" },
     "./tokens.css": "./generated/tokens.css",
     "./themes.css": "./generated/themes.css",
