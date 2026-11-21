@@ -771,7 +771,7 @@ export const CONTRACTS = {
     "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; 3D tilts the camera so buildings stand up. Points are [longitude, latitude], in path order.",
     "surface": {
       "kind": "map",
-      "description": "The host’s street map (MapLibre): its basemap, or the plain ground where there is none. The component adds the paths, their casing, start markers, labels, the legend and the extruded buildings."
+      "description": "The host’s street map (MapLibre): its basemap, or the plain ground where there is none. The component adds the paths, their casing, start markers, labels, the legend and the extruded buildings: the buildings, casing and paths under the basemap’s labels, the start markers and path labels over them."
     },
     "marks": [
       "path",
