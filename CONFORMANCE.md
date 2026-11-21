@@ -124,7 +124,11 @@ view spec inline, or its `data` from `web/data/`), a host theme
 `tools/render/web.mjs` draws each in both modes exactly as a host does
 (`validate`, `render`, `toDom`; for a map, MapLibre with
 `pathOnMap.plainStyle` and `drawChecked`), offline, at scale 2, and judges it
-with the same `diffInPage` and default tolerance.
+with the same `diffInPage` and default tolerance. Each fixture goes through
+the entry its host would import: the body's through `@zegadb/components/body`
+(and `drawBody` from `@zegadb/components/body/draw`), every other one through
+the main entry, which carries no body code (`src/entries.test.ts` bundles it
+and fails if any of the body's strings are in it).
 
 Text differs between operating systems, so the references are rendered and
 verified in **one pinned image**, `mcr.microsoft.com/playwright:v1.63.0-noble`

@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validate, explain, COMPONENT_IDS } from "./validate.ts";
-import { CONTRACTS } from "./generated/contracts.ts";
-import { toolDefinitions, componentOfTool } from "./index.ts";
+import { validate, explain, COMPONENT_IDS, toolDefinitions, componentOfTool, contractText } from "./index.ts";
+import * as withBody from "./body/index.ts";
 
 const first = (spec: unknown) => {
   const v = validate(spec);
@@ -11,14 +10,26 @@ const first = (spec: unknown) => {
 };
 
 test("every contract's valid examples validate, and its invalid ones give exactly the error written", () => {
-  for (const id of COMPONENT_IDS) {
-    const c = CONTRACTS[id];
-    for (const e of c.examples.valid) assert.equal(validate(e.spec).ok, true, `${id}: ${e.title}: ${JSON.stringify(validate(e.spec))}`);
+  for (const id of withBody.COMPONENT_IDS) {
+    const c = withBody.CONTRACTS[id];
+    for (const e of c.examples.valid) assert.equal(withBody.validate(e.spec).ok, true, `${id}: ${e.title}: ${JSON.stringify(withBody.validate(e.spec))}`);
     for (const e of c.examples.invalid) {
-      const v = validate(e.spec);
+      const v = withBody.validate(e.spec);
       assert.equal(v.ok, false, `${id}: ${e.title} passed`);
       if (!v.ok) assert.deepEqual(v.errors[0], e.error, `${id}: ${e.title}`);
     }
+  }
+});
+
+test("the main entry draws everything but the body; @zegadb/components/body adds it, and checks the rest the same", () => {
+  assert.deepEqual(COMPONENT_IDS, ["function-plot", "path-on-map", "price-chart"]);
+  assert.deepEqual(withBody.COMPONENT_IDS, ["body", ...COMPONENT_IDS]);
+  const body = { component: "body", data: { highlight: [{ region: "liver" }] } };
+  assert.deepEqual(first(body), { code: "component", at: "component", message: "`body` is not a component", help: "use one of function-plot, path-on-map, price-chart" });
+  assert.equal(withBody.validate(body).ok, true);
+  for (const id of COMPONENT_IDS) {
+    for (const e of withBody.CONTRACTS[id].examples.valid) assert.deepEqual(withBody.validate(e.spec), validate(e.spec), `${id}: ${e.title}`);
+    assert.equal(withBody.contractText(id), contractText(id));
   }
 });
 
@@ -73,14 +84,18 @@ test("explain() is what a model gets back: every error, where and what to do", (
 });
 
 test("one tool per component, whose input schema is the contract's own", () => {
-  const tools = toolDefinitions();
-  assert.deepEqual(tools.map((t) => t.name), COMPONENT_IDS.map((id) => `draw_${id.replace(/-/g, "_")}`));
-  for (const t of tools) {
-    assert.equal(componentOfTool(t.name), t.component);
-    assert.ok(!JSON.stringify(t.inputSchema).includes("$ref"), `${t.name} keeps a $ref`);
-    const props = (t.inputSchema.properties as Record<string, unknown>);
-    assert.deepEqual(Object.keys(props), ["data", "options"]);
+  for (const entry of [{ toolDefinitions, componentOfTool, COMPONENT_IDS }, withBody]) {
+    const tools = entry.toolDefinitions();
+    assert.deepEqual(tools.map((t) => t.name), entry.COMPONENT_IDS.map((id) => `draw_${id.replace(/-/g, "_")}`));
+    for (const t of tools) {
+      assert.equal(entry.componentOfTool(t.name), t.component);
+      assert.ok(!JSON.stringify(t.inputSchema).includes("$ref"), `${t.name} keeps a $ref`);
+      const props = (t.inputSchema.properties as Record<string, unknown>);
+      assert.deepEqual(Object.keys(props), ["data", "options"]);
+    }
+    assert.equal(entry.componentOfTool("draw_nothing"), null);
+    assert.equal(entry.componentOfTool("function-plot"), null);
   }
-  assert.equal(componentOfTool("draw_nothing"), null);
-  assert.equal(componentOfTool("function-plot"), null);
+  assert.equal(componentOfTool("draw_body"), null, "the main entry has no body tool");
+  assert.equal(withBody.componentOfTool("draw_body"), "body");
 });

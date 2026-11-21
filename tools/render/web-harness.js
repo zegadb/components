@@ -1,10 +1,12 @@
 // The web conformance harness's page: draws one web fixture, in one mode,
 // with the built package (dist/), exactly as a host does (validate, render,
 // toDom; for a map, the host's MapLibre and drawChecked), and marks the
-// document ready when the frame is final. web.mjs screenshots #stage.
+// document ready when the frame is final. web.mjs screenshots #stage. A body
+// fixture is checked and sized by "@zegadb/components/body", as a body host does;
+// every other fixture by the main entry.
 //
 //   /tools/render/web.html?fixture=<path from the repo root>&mode=light|dark[&hover=<0–1>]
-import { validate, render, theme, toDom, attachHover, pathOnMap } from '/dist/index.js';
+import { theme, toDom, attachHover, pathOnMap } from '/dist/index.js';
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode') === 'dark' ? 'dark' : 'light';
@@ -24,6 +26,7 @@ async function main() {
   stage.style.width = `${fixture.size.width}px`;
   await document.fonts.load(`12px ${t.font.ui}`);
   await document.fonts.load(`600 12px ${t.font.ui}`);
+  const { validate, render } = await import(spec.component === 'body' ? '/dist/body/index.js' : '/dist/index.js');
   const checked = validate(spec);
   if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
   const drawn = render(checked.view, { width: fixture.size.width, theme: t, id: 'fx' });

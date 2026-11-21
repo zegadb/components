@@ -9,9 +9,9 @@
 // Mesh ids are node names in the Human Reference Atlas's 3D reference
 // objects, the Visible Human male (HuBMAP CCF, `3d-vh-m-united.glb`, release
 // v2.0), licensed under CC BY 4.0; the female's are femaleNode() of them.
-import type { CONTRACTS } from "../generated/contracts.ts";
+import type { CONTRACT } from "../generated/contracts/body.ts";
 
-export type RegionId = (typeof CONTRACTS)["body"]["$defs"]["region"]["enum"][number];
+export type RegionId = (typeof CONTRACT)["$defs"]["region"]["enum"][number];
 export type Layer = "skin" | "skeleton" | "organs" | "muscles" | "nerves";
 /** The layers drawn from Z-Anatomy (CC BY-SA 4.0): they ship in their own package, @zegadb/components-body-za, and load only when asked for. */
 export const ZA_LAYERS = ["muscles", "nerves"] as const;

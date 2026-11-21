@@ -80,7 +80,8 @@ export async function bodyRuntime(browser, origin) {
   const problems = await Promise.race([timeout, page.evaluate(async () => {
     const out = [];
     const { drawBody } = await import('/dist/body/draw.js');
-    const { theme, validate } = await import('/dist/index.js');
+    const { theme } = await import('/dist/index.js');
+    const { validate } = await import('/dist/body/index.js');
     const t = theme('ava', 'light');
     document.body.innerHTML = '';
     const spec = (options = {}) => validate({ component: 'body', data: { highlight: [{ region: 'liver' }, { region: 'gallbladder', role: 'related' }] }, options }).view;

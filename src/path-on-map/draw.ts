@@ -7,7 +7,7 @@
 //
 // MapLibre is the host's (a peer dependency): this module only takes a map.
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
-import { validate } from "../validate.ts";
+import { validate } from "../builtin.ts";
 import type { Theme, ViewError } from "../types.ts";
 import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, UNDER_LABELS, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
 

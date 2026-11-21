@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { validate, explain } from "../validate.ts";
+import { explain } from "../index.ts";
+import { validate } from "./index.ts";
 import { theme } from "../theme.ts";
 import { looks, roleColour } from "./draw.ts";
 import { REGIONS, LAYERS, BODIES, ZA_LAYERS, HEAD_MUSCLES, isPaired, meshName, type Body, type RegionId, type ZaLayer } from "./regions.ts";

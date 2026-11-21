@@ -65,6 +65,24 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 // (needs @protomaps/basemaps); AVA_BASEMAP (main entry, no map code) is its origin, credit, palette
 ```
 
+**Entry points.** Each is a `package.json` export; a host bundles only what it imports.
+
+| entry | what |
+|---|---|
+| `@zegadb/components` | `validate`, `render`, `toolDefinitions`, themes, SVG helpers, `pathOnMap`; function-plot, path-on-map and price-chart. No body, no map or three.js code |
+| `@zegadb/components/body` | the same `validate`, `render`, `toolDefinitions`, `COMPONENT_IDS`, `CONTRACTS` with the body added; `BODY_REGIONS`, `bodyRegionName`, the `body` model, `BODY` |
+| `@zegadb/components/body/draw` | `drawBody()` (three.js) |
+| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()` (MapLibre) |
+| `@zegadb/components/basemap` | `basemapStyle()` (@protomaps/basemaps) |
+
+The body's contract, region table and mesh manifest are large, so they are
+only in its entry. A host that draws a body imports `validate` and `render`
+from `@zegadb/components/body` instead of the main entry (everything else
+checks and draws the same), or registers it with its own list:
+`registry([BODY, ...BUILT_IN])` (`registry`, `BUILT_IN` from the main
+entry, `BODY` from the body's). `src/entries.test.ts` bundles the other
+entries and fails if any of the body's strings are in them.
+
 - **Basemaps:** a host's street map is defined once here
   (`src/basemaps.ts`; the style in `src/basemap.ts`), so every surface of the host shows the same map. Ava's
   is tiles.addis.gg (Protomaps v4, the world archive, no key) in the "Quiet"

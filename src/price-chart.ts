@@ -5,7 +5,7 @@ import { decimalsFor, formatNumber, linear, niceDomain, niceStep, ticks, type Lo
 import { el, pathData, textWidth, type SvgNode } from "./svg.ts";
 import { withAlpha } from "./theme.ts";
 import { parseTime, timeText, timeTicks } from "./time.ts";
-import { CONTRACTS } from "./generated/contracts.ts";
+import { CONTRACT } from "./generated/contracts/price-chart.ts";
 import type { Theme, ViewError } from "./types.ts";
 
 export interface PricePoint { t: string; o?: number; h?: number; l?: number; c: number; v?: number }
@@ -64,7 +64,7 @@ export function render(data: PriceChartData, options: PriceChartOptions, ctx: Re
   const locale: Locale = ctx.locale ?? "en";
   const id = ctx.id ?? "pc";
   const width = Math.round(ctx.width);
-  const height = heightFor(CONTRACTS["price-chart"].size, width, ctx.height);
+  const height = heightFor(CONTRACT.size, width, ctx.height);
   const candle = options.kind === "candle";
   const percent = options.scale === "percent";
   const font = theme.font.ui;

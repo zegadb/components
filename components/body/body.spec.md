@@ -251,9 +251,17 @@ None yet: inline answers have no gear. The options are the model's to set.
 
 ## Platform notes
 
-- **Web:** three.js (an optional peer dependency, like maplibre-gl):
+- **Web:** the body has its own entry, `@zegadb/components/body`: its
+  `validate`, `render`, `toolDefinitions` (and `COMPONENT_IDS`, `CONTRACTS`,
+  `contractText`, `componentOfTool`) are the main entry's with the body
+  added, and it exports `BODY_REGIONS`, `bodyRegionName` and the `body`
+  model. The main entry carries none of the body (its contract, region table
+  and mesh manifest), so a host that never draws one never bundles it; a host
+  with its own component list registers `BODY` with `registry()`.
+  three.js (an optional peer dependency, like maplibre-gl):
   `drawBody(container, data, options, { theme, asset })` from
-  `@zegadb/components/body/draw`; `render()` says `{ body: true, height }`.
+  `@zegadb/components/body/draw`; the body entry's `render()` says
+  `{ body: true, height }`.
   Labels are HTML text set with textContent, never markup.
   - **Contexts:** a still borrows a WebGL context only while it paints, then copies the frame into a 2D canvas and releases the context (`forceContextLoss`), so a chat full of stills never loses a picture. An interactive body keeps one context, renders only on the controls' changes and during a flight, handles `webglcontextlost`, and releases the context on `dispose()`.
   - **Mounting:** a `ResizeObserver` follows the column, re-framing until the reader touches the camera. A body mounted while hidden waits for a size. An `AbortSignal` cancels a mount; nothing is left behind.
