@@ -72,14 +72,14 @@ export function semantic(data: WeatherData): ViewError[] {
 const WORDS = {
   en: {
     today: "Today", now: "Now", feels: "Feels like", wind: "Wind", precip: "Precipitation", sunrise: "Sunrise", sunset: "Sunset",
-    high: "H:", low: "L:", offline: "Offline", asOf: "as of", nextHours: (n: number) => `next ${n} h`, todayLower: "today",
+    high: "H:", low: "L:", tonight: "Tonight", offline: "Offline", asOf: "as of", nextHours: (n: number) => `next ${n} h`, todayLower: "today",
     warmer: (t: string) => `Warmer tomorrow, with a high of ${t}`, cooler: (t: string) => `Cooler tomorrow, with a high of ${t}`,
     tomorrow: (c: string | null, t: string | null) => `Tomorrow: ${[c, t && `high of ${t}`].filter(Boolean).join(", ")}`,
     sentenceHigh: "high", sentenceLow: "low",
   },
   fr: {
     today: "Auj.", now: "Maint.", feels: "Ressenti", wind: "Vent", precip: "Précipitations", sunrise: "Lever du soleil", sunset: "Coucher",
-    high: "Max.", low: "Min.", offline: "Hors ligne", asOf: "en date du", nextHours: (n: number) => `${n} prochaines h`, todayLower: "aujourd’hui",
+    high: "Max.", low: "Min.", tonight: "Cette nuit", offline: "Hors ligne", asOf: "en date du", nextHours: (n: number) => `${n} prochaines h`, todayLower: "aujourd’hui",
     warmer: (t: string) => `Plus chaud demain, maximum de ${t}`, cooler: (t: string) => `Plus froid demain, maximum de ${t}`,
     tomorrow: (c: string | null, t: string | null) => `Demain : ${[c && c.charAt(0).toLowerCase() + c.slice(1), t && `maximum de ${t}`].filter(Boolean).join(", ")}`,
     sentenceHigh: "max.", sentenceLow: "min.",
@@ -160,7 +160,7 @@ export function skyOf(data: WeatherData): SkyName {
 // ---------------------------------------------------------------------------
 // Drawing.
 
-/** The softer ink's opacity: lows, labels, the hours' times. Every sky holds it at 4.5:1 (the tests check). */
+/** The softer ink's opacity: only low on the card (the details' labels, the range rows' lows), where the sky is deeper; the tests check every text where it sits. */
 export const SOFT = 0.86;
 /** The card's widest, so it reads as a card in a wide column rather than a banner. */
 export const MAX_WIDTH = { compact: 480, full: 500 } as const;
@@ -202,39 +202,87 @@ function wrap(s: string, width: number, size: number, max: number): string[] {
   return lines.slice(0, max);
 }
 
-/** Today's high and low, as the header shows them ("H:8° L:−1°"), or null. */
-function highLow(data: WeatherData, lang: Lang): string | null {
+/**
+ * Today's high and low, as the header shows them: "H:8° L:−1°" / "Max. 8° Min. −1°"; once the
+ * day is over and the source gives only tonight's low, "Tonight L:5°" / "Cette nuit Min. 5°". Or null.
+ */
+export function highLow(data: WeatherData, lang: Lang): string | null {
   const today = data.days?.find((d) => d.date === data.today);
   if (!today) return null;
   const w = WORDS[lang];
-  const parts = [today.high_c !== undefined ? `${w.high}${lang === "fr" ? " " : ""}${temp(today.high_c)}` : null, today.low_c !== undefined ? `${w.low}${lang === "fr" ? " " : ""}${temp(today.low_c)}` : null].filter(Boolean);
+  const sp = lang === "fr" ? " " : "";
+  const high = today.high_c !== undefined ? `${w.high}${sp}${temp(today.high_c)}` : null;
+  const low = today.low_c !== undefined ? `${w.low}${sp}${temp(today.low_c)}` : null;
+  if (!high && low) return `${w.tonight} ${low}`;
+  const parts = [high, low].filter(Boolean);
   return parts.length ? parts.join("  ") : null;
 }
 
-/** One day's row: its name, its sky, its chance of precipitation (when given), its high and low. */
+/** Glyph sizes: a day row's, an hour's, the header's. */
+const GLYPH = { row: 31, hour: 36, header: 48, line: 28 } as const;
+
+/** One day's row on the compact card: its name, its sky, its chance (when given), then high and low, tight at the right. */
 function dayRow(ctx: Ctx, d: WeatherDay, data: WeatherData, lang: Lang, x0: number, x1: number, top: number, rowH: number, iconX: number, size: number): SvgNode {
   const base = top + rowH / 2 + size * 0.36;
-  const icon = 22;
+  const icon = GLYPH.row;
   const parts: (SvgNode | null)[] = [
     text(ctx, fit(dayText(d.date, data.today, lang), iconX - x0 - 6, size), x0, base, size),
     d.icon ? glyph(d.icon, d.night ?? false, iconX, top + (rowH - icon) / 2, icon, ctx.c) : null,
-    popShown(d.pop) ? text(ctx, popText(d.pop, lang), iconX + icon + 3, base - 0.5, size - 1.5, { fill: ctx.c.pop, "font-weight": 600, "data-part": "pop" }) : null,
-    d.high_c !== undefined ? text(ctx, temp(d.high_c), x1 - 38, base, size, { "text-anchor": "end", "font-weight": 600, "data-part": "high" }) : null,
-    d.low_c !== undefined ? text(ctx, temp(d.low_c), x1, base, size, { "text-anchor": "end", "fill-opacity": SOFT, "data-part": "low" }) : null,
+    popShown(d.pop) ? text(ctx, popText(d.pop, lang), iconX + icon + 2, base - 0.5, size - 1.5, { fill: ctx.c.pop, "font-weight": 600, "data-part": "pop" }) : null,
+    d.high_c !== undefined ? text(ctx, temp(d.high_c), x1 - 36, base, size, { "text-anchor": "end", "font-weight": 600, "data-part": "high" }) : null,
+    // The low in full ink at regular weight (the high is semibold): the rows reach the sky's lighter top.
+    d.low_c !== undefined ? text(ctx, temp(d.low_c), x1, base, size, { "text-anchor": "end", "data-part": "low" }) : null,
   ];
   return el("g", { "data-part": "day", "data-date": d.date }, parts);
 }
 
-/** The "as of" line when the card isn't the latest. */
-function staleRow(ctx: Ctx, data: WeatherData, lang: Lang, x: number, y: number, width: number): SvgNode | null {
+/**
+ * One day's row on the full card, on a fixed grid: the day | its glyph, the chance under it (when
+ * given) | the low | a bar from low to high on the week's range (a faint track, the fill cool to warm
+ * across the week) | the high.
+ */
+function rangeRow(ctx: Ctx, id: string, d: WeatherDay, data: WeatherData, lang: Lang, grid: RangeGrid, top: number, rowH: number): SvgNode {
+  const size = 14.5;
+  const base = top + rowH / 2 + size * 0.36;
+  const icon = GLYPH.row;
+  const pop = popShown(d.pop);
+  const iconY = top + (rowH - icon) / 2 - (pop ? 6 : 0);
+  const x = (t: number) => grid.bar0 + ((t - grid.min) / (grid.max - grid.min || 1)) * (grid.bar1 - grid.bar0);
+  const barY = top + rowH / 2;
+  const lo = d.low_c, hi = d.high_c;
+  const fill = lo !== undefined && hi !== undefined
+    ? el("rect", { x: x(lo) - 2.5, y: barY - 2.5, width: Math.max(5, x(hi) - x(lo) + 5), height: 5, rx: 2.5, fill: `url(#${id}-range)`, "data-part": "range" })
+    : lo !== undefined || hi !== undefined
+      ? el("circle", { cx: x((lo ?? hi)!), cy: barY, r: 2.5, fill: `url(#${id}-range)`, "data-part": "range" })
+      : null;
+  const parts: (SvgNode | null)[] = [
+    text(ctx, fit(dayText(d.date, data.today, lang), grid.icon - grid.x0 - 4, size), grid.x0, base, size),
+    d.icon ? glyph(d.icon, d.night ?? false, grid.icon, iconY, icon, ctx.c) : null,
+    pop ? text(ctx, popText(d.pop!, lang), grid.icon + icon / 2, iconY + icon + 9, 11, { "text-anchor": "middle", fill: ctx.c.pop, "font-weight": 600, "data-part": "pop" }) : null,
+    lo !== undefined ? text(ctx, temp(lo), grid.bar0 - 10, base, size, { "text-anchor": "end", "fill-opacity": SOFT, "data-part": "low" }) : null,
+    el("rect", { x: grid.bar0 - 2.5, y: barY - 2.5, width: grid.bar1 - grid.bar0 + 5, height: 5, rx: 2.5, fill: ctx.c.ink, "fill-opacity": 0.16, "data-part": "track" }),
+    fill,
+    hi !== undefined ? text(ctx, temp(hi), grid.x1, base, size, { "text-anchor": "end", "font-weight": 600, "data-part": "high" }) : null,
+  ];
+  return el("g", { "data-part": "day", "data-date": d.date }, parts);
+}
+
+interface RangeGrid { x0: number; icon: number; bar0: number; bar1: number; x1: number; min: number; max: number }
+
+/** "Offline · as of …" (or "As of …"), small, in the header, when the card isn't the latest: one or two lines. */
+function staleLine(ctx: Ctx, data: WeatherData, lang: Lang, x: number, y: number, width: number): { node: SvgNode; height: number } | null {
   if (!data.stale) return null;
   const w = WORDS[lang];
   const words = data.stale.offline ? `${w.offline} · ${w.asOf} ${data.stale.as_of}` : `${w.asOf.charAt(0).toUpperCase()}${w.asOf.slice(1)} ${data.stale.as_of}`;
-  // A small clock: the card shows an older reading.
-  return el("g", { "data-part": "stale" },
-    el("circle", { cx: x + 6, cy: y - 4.5, r: 5.5, fill: "none", stroke: ctx.c.ink, "stroke-width": 1.3, "stroke-opacity": SOFT }),
-    el("path", { d: `M${x + 6} ${y - 7.5}v3.2l2 1.4`, fill: "none", stroke: ctx.c.ink, "stroke-width": 1.3, "stroke-linecap": "round", "stroke-opacity": SOFT }),
-    text(ctx, fit(words, width - 18, 12.5), x + 17, y, 12.5, { "fill-opacity": SOFT }));
+  const lines = wrap(words, width - 15, 12, 2);
+  // A small clock: the card shows an older reading. Full ink, not the softer: it sits near the sky's lighter top.
+  return {
+    node: el("g", { "data-part": "stale" },
+      el("circle", { cx: x + 5, cy: y - 4, r: 4.6, fill: "none", stroke: ctx.c.ink, "stroke-width": 1.2 }),
+      el("path", { d: `M${x + 5} ${y - 6.6}v2.7l1.7 1.2`, fill: "none", stroke: ctx.c.ink, "stroke-width": 1.2, "stroke-linecap": "round" }),
+      lines.map((l, i) => text(ctx, l, x + 14, y + i * 15, 12))),
+    height: 19 + (lines.length - 1) * 15,
+  };
 }
 
 function frame(ctx: Ctx, id: string, sky: SkyName, width: number, height: number): SvgNode[] {
@@ -265,7 +313,7 @@ export function render(data: WeatherData, options: WeatherOptions, rctx: RenderC
   const id = rctx.id ?? "wx";
   const width = Math.round(Math.min(rctx.width, MAX_WIDTH[options.size]));
   const sky = skyOf(data);
-  const drawn = options.size === "full" ? full(ctx, data, lang, width) : compact(ctx, data, lang, width);
+  const drawn = options.size === "full" ? full(ctx, id, data, lang, width) : compact(ctx, data, lang, width);
   const summary = sentence(data, lang);
   const svg = el("svg", { width, height: drawn.height, viewBox: `0 0 ${width} ${drawn.height}`, role: "img", "aria-label": summary, "font-family": ctx.font, "data-component": "weather", "data-size": options.size },
     el("title", {}, data.place), frame(ctx, id, sky, width, drawn.height), drawn.parts);
@@ -277,11 +325,13 @@ function compact(ctx: Ctx, data: WeatherData, lang: Lang, width: number): { part
   const pad = width < 400 ? 16 : 18;
   const days = (data.days ?? []).slice(0, 5);
   const twoCol = days.length > 0 && width >= 320;
-  const leftW = twoCol ? Math.round((width - 2 * pad) * 0.4) : width - 2 * pad;
+  const leftW = twoCol ? Math.round((width - 2 * pad) * (width < 400 ? 0.36 : 0.4)) : width - 2 * pad;
   const parts: SvgNode[] = [];
   const placeSize = 16, numeral = width < 400 ? 50 : 56;
   parts.push(text(ctx, fit(data.place, leftW, placeSize), pad, pad + 14, placeSize, { "font-weight": 600, "data-part": "place" }));
   let y = pad + 14;
+  const stale = staleLine(ctx, data, lang, pad, y + 19, leftW);
+  if (stale) { parts.push(stale.node); y += stale.height; }
   if (data.now) {
     y += numeral * 0.95;
     parts.push(text(ctx, temp(data.now.temp_c), pad - 2, y, numeral, { "font-weight": 300, "data-part": "now" }));
@@ -292,58 +342,59 @@ function compact(ctx: Ctx, data: WeatherData, lang: Lang, width: number): { part
   const line = summaryLine(data, lang);
   const lines = line ? wrap(line, leftW, 13.5, twoCol ? 3 : 2) : [];
   const icon = data.now?.icon;
-  const bottomH = (icon ? 26 : 0) + lines.length * 17;
-  const rowH = 31;
+  const bottomH = (icon ? GLYPH.line + 4 : 0) + lines.length * 17;
+  const rowH = 36;
   const rightH = twoCol ? days.length * rowH : 0;
   const leftH = y - pad + 14 + bottomH;
-  const staleH = data.stale ? 26 : 0;
   // A narrow card (under 320 pt: a phone's chat bubble) stacks the days under the line, full width.
   const stackH = !twoCol && days.length ? 8 + days.length * rowH : 0;
   const inner = twoCol ? Math.max(leftH, rightH, 116) : leftH;
-  const height = Math.round(pad * 2 + inner + stackH + staleH);
+  const height = Math.round(pad * 2 + inner + stackH);
   const bottom = pad + inner;
   if (stackH) {
     const x0 = pad, x1 = width - pad;
     const nameW = Math.max(...days.map((d) => textWidth(dayText(d.date, data.today, lang), 14))) + 12;
     const iconX = x0 + Math.min(Math.max(nameW, 48), 64);
-    parts.push(el("line", { x1: x0, x2: x1, y1: bottom + 4, y2: bottom + 4, stroke: ctx.c.ink, "stroke-opacity": 0.22, "stroke-width": 1, "data-part": "rule" }));
+    parts.push(el("line", { x1: x0, x2: x1, y1: bottom + 4, y2: bottom + 4, stroke: ctx.c.ink, "stroke-opacity": 0.2, "stroke-width": 1, "data-part": "rule" }));
     days.forEach((d, i) => parts.push(dayRow(ctx, d, data, lang, x0, x1, bottom + 8 + i * rowH, rowH, iconX, 14)));
   }
   let by = bottom - lines.length * 17;
-  if (icon) parts.push(glyph(icon, data.now?.night ?? false, pad, by - 26, 22, ctx.c));
+  if (icon) parts.push(glyph(icon, data.now?.night ?? false, pad - 2, by - GLYPH.line - 2, GLYPH.line, ctx.c));
   for (const l of lines) { by += 17; parts.push(text(ctx, l, pad, by - 4, 13.5, { "data-part": "summary" })); }
   if (twoCol) {
     const x0 = pad + leftW + 16, x1 = width - pad;
-    const nameW = Math.max(...days.map((d) => textWidth(dayText(d.date, data.today, lang), 14))) + 10;
+    const nameW = Math.max(...days.map((d) => textWidth(dayText(d.date, data.today, lang), 14))) + 8;
     const iconX = x0 + Math.min(Math.max(nameW, 44), 58);
     const top = pad + (inner - rightH) / 2;
     days.forEach((d, i) => parts.push(dayRow(ctx, d, data, lang, x0, x1, top + i * rowH, rowH, iconX, 14)));
   }
-  const st = staleRow(ctx, data, lang, pad, height - pad + 2, width - 2 * pad);
-  if (st) parts.push(st);
   return { parts, height };
 }
 
 /** The header (place, now, condition, high and low), the next hours, the days, the details. */
-function full(ctx: Ctx, data: WeatherData, lang: Lang, width: number): { parts: SvgNode[]; height: number } {
+function full(ctx: Ctx, id: string, data: WeatherData, lang: Lang, width: number): { parts: SvgNode[]; height: number } {
   const w = WORDS[lang];
   const pad = width < 400 ? 16 : 20;
   const inner = width - 2 * pad;
   const parts: SvgNode[] = [];
-  const rule = (y: number) => el("line", { x1: pad, x2: width - pad, y1: y, y2: y, stroke: ctx.c.ink, "stroke-opacity": 0.22, "stroke-width": 1, "data-part": "rule" });
+  const rule = (y: number) => el("line", { x1: pad, x2: width - pad, y1: y, y2: y, stroke: ctx.c.ink, "stroke-opacity": 0.2, "stroke-width": 1, "data-part": "rule" });
 
-  // Header: the place and the temperature at the left; the sky, its words, and today's high and low at the right.
+  // Header: the place (and "as of" under it, small) and the temperature at the left; the sky, its words,
+  // and today's high and low at the right.
   const numeral = width < 400 ? 56 : 64;
+  const right = width - pad;
+  const icon = data.now?.icon ?? data.days?.[0]?.icon;
+  const iconW = icon ? GLYPH.header : 0;
   parts.push(text(ctx, fit(data.place, inner * 0.55, 17), pad, pad + 15, 17, { "font-weight": 600, "data-part": "place" }));
   let y = pad + 15;
+  const stale = staleLine(ctx, data, lang, pad, y + 19, inner - iconW - 8);
+  if (stale) { parts.push(stale.node); y += stale.height; }
   const numeralText = data.now ? temp(data.now.temp_c) : null;
   if (numeralText) parts.push(text(ctx, numeralText, pad - 2, y + numeral * 0.95, numeral, { "font-weight": 300, "data-part": "now" }));
   const rightW = inner - (numeralText ? Math.max(textWidth(numeralText, numeral) * 0.92, textWidth(data.place, 17) * 0.6) : 0) - 12;
-  const right = width - pad;
-  const icon = data.now?.icon ?? data.days?.[0]?.icon;
-  if (icon) parts.push(glyph(icon, data.now?.night ?? data.days?.[0]?.night ?? false, right - 30, pad - 2, 30, ctx.c));
+  if (icon) parts.push(glyph(icon, data.now?.night ?? data.days?.[0]?.night ?? false, right - iconW + 4, pad - 6, iconW, ctx.c));
   const cond = data.now?.condition ?? data.days?.[0]?.condition;
-  let ry = pad + 46;
+  let ry = Math.max(pad + 60, y + 30);
   for (const l of cond ? wrap(cond, rightW, 14, 2) : []) { parts.push(text(ctx, l, right, ry, 14, { "text-anchor": "end", "font-weight": 600, "data-part": "condition" })); ry += 18; }
   const hl = highLow(data, lang);
   if (hl) parts.push(text(ctx, hl, right, ry, 14, { "text-anchor": "end", "data-part": "high-low" }));
@@ -364,23 +415,29 @@ function full(ctx: Ctx, data: WeatherData, lang: Lang, width: number): { parts: 
     strip.forEach((s, i) => {
       const cx = pad + colW * (i + 0.5);
       const g: (SvgNode | null)[] = [
-        text(ctx, s.label, cx, top + 13, 12.5, { "text-anchor": "middle", "fill-opacity": SOFT, "font-weight": i === 0 && data.now ? 600 : 400 }),
-        s.icon ? glyph(s.icon, s.night, cx - 13, top + 21, 26, ctx.c) : null,
-        popShown(s.pop) ? text(ctx, popText(s.pop, lang), cx, top + 61, 11.5, { "text-anchor": "middle", fill: ctx.c.pop, "font-weight": 600, "data-part": "pop" }) : null,
-        s.temp !== undefined ? text(ctx, temp(s.temp), cx + 2, top + (withPop ? 80 : 67), 15, { "text-anchor": "middle", "font-weight": 600 }) : null,
+        text(ctx, s.label, cx, top + 13, 12.5, { "text-anchor": "middle", "font-weight": i === 0 && data.now ? 600 : 400 }),
+        s.icon ? glyph(s.icon, s.night, cx - GLYPH.hour / 2, top + 19, GLYPH.hour, ctx.c) : null,
+        popShown(s.pop) ? text(ctx, popText(s.pop, lang), cx, top + 67, 11.5, { "text-anchor": "middle", fill: ctx.c.pop, "font-weight": 600, "data-part": "pop" }) : null,
+        s.temp !== undefined ? text(ctx, temp(s.temp), cx + 2, top + (withPop ? 86 : 74), 15, { "text-anchor": "middle", "font-weight": 600 }) : null,
       ];
       parts.push(el("g", { "data-part": "hour" }, g));
     });
-    y = top + (withPop ? 90 : 77);
+    y = top + (withPop ? 96 : 84);
   }
 
-  // The days.
+  // The days, on a fixed grid: day | glyph (chance under it) | low | the range bar | high.
   const days = (data.days ?? []).slice(0, 6);
   if (days.length) {
     parts.push(rule(y));
-    const rowH = 32, top = y + 4;
-    const iconX = pad + Math.round(inner * 0.36);
-    days.forEach((d, i) => parts.push(dayRow(ctx, d, data, lang, pad, width - pad, top + i * rowH, rowH, iconX, 14.5)));
+    const temps = days.flatMap((d) => [d.low_c, d.high_c]).filter((t): t is number => t !== undefined);
+    const nameW = Math.max(...days.map((d) => textWidth(dayText(d.date, data.today, lang), 14.5))) + 10;
+    const iconX = pad + Math.max(nameW, width < 400 ? 52 : 64);
+    const numW = 34;
+    const grid: RangeGrid = { x0: pad, icon: iconX, bar0: iconX + GLYPH.row + 12 + numW + 10, bar1: right - numW - 10, x1: right, min: Math.min(...temps), max: Math.max(...temps) };
+    const ramp = ctx.c.range;
+    parts.push(el("defs", {}, el("linearGradient", { id: `${id}-range`, x1: grid.bar0, x2: grid.bar1, y1: 0, y2: 0, gradientUnits: "userSpaceOnUse" }, ramp.map((c, i) => el("stop", { offset: i / (ramp.length - 1), "stop-color": c })))));
+    const rowH = days.some((d) => popShown(d.pop)) ? 42 : 38, top = y + 4;
+    days.forEach((d, i) => parts.push(rangeRow(ctx, id, d, data, lang, grid, top + i * rowH, rowH)));
     y = top + days.length * rowH + 4;
   }
 
@@ -414,6 +471,5 @@ function full(ctx: Ctx, data: WeatherData, lang: Lang, width: number): { parts: 
     y += 8 + Math.ceil(tiles.length / per) * tileH;
   }
 
-  if (data.stale) { y += 8; parts.push(staleRow(ctx, data, lang, pad, y + 10, inner)!); y += 16; }
   return { parts, height: Math.round(y + pad - 4) };
 }

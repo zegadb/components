@@ -66,15 +66,17 @@ exported by the entry; a host reading ECCC reads that table rather than copying 
 
 | # | part | what it is | drawn with |
 |---|---|---|---|
-| 1 | sky | the card: a rounded rectangle, a top-to-bottom gradient by condition and day or night, a hairline edge | rect, linearGradient |
+| 1 | sky | the card: a rounded rectangle, a soft vertical gradient (a lighter top easing to a deeper bottom, toward slate) by condition and day or night, a hairline edge | rect, linearGradient |
 | 2 | place | the place's name, top left | text, semibold |
-| 3 | now | the temperature now, large and light | text, light |
-| 4 | header (full) | the sky's glyph, its words and today's high and low, top right | glyph, text |
-| 5 | line (compact) | the glyph now and one line on tomorrow ("Warmer tomorrow, with a high of 14°"), bottom left | glyph, text |
-| 6 | hours (full) | Now, then each next hour: its time, glyph, chance (when shown) and temperature | text, glyph |
-| 7 | days | one row per day: its name, glyph, chance (when shown), high, low | text, glyph |
-| 8 | details (full) | feels like, wind (gusts under it), precipitation, sunrise (sunset under it): only those given | text |
-| 9 | stale | a small clock and "Offline · as of …" (or "As of …"), at the bottom | circle, path, text |
+| 3 | stale | when not the latest: a small clock and "Offline · as of …" (or "As of …") under the place, one or two lines | circle, path, text |
+| 4 | now | the temperature now, large and light | text, light |
+| 5 | header (full) | the sky's glyph, its words and today's high and low ("H:8° L:−1°"; "Tonight L:5°" once only tonight is left), top right | glyph, text |
+| 6 | line (compact) | the glyph now and one line on tomorrow ("Warmer tomorrow, with a high of 14°"), bottom left | glyph, text |
+| 7 | hours (full) | Now, then each next hour: its time (5 PM; 17 h), glyph, chance (when shown) and temperature | text, glyph |
+| 8 | days (compact) | one row per day: its name, glyph, chance beside it (when shown), then high and low tight at the right | text, glyph |
+| 9 | days (full) | one row per day on a fixed grid: name, glyph with the chance under it (when shown), low, the range bar, high | text, glyph, rect |
+| 10 | range bar (full) | a faint track for the week's lowest to highest; the day's low-to-high on it, filled cool to mild to warm across the week; a dot when only one is given | rect, circle, linearGradient |
+| 11 | details (full) | feels like, wind (gusts under it), precipitation, sunrise (sunset under it): only those given | text |
 
 ## Measurements
 
@@ -87,8 +89,9 @@ under 400 pt.
 | place | size | 16 pt (compact), 17 pt (full) | fixed |
 | now | size | 56 pt, 50 pt under 400 pt (compact); 64 pt, 56 pt under 400 pt (full) | fixed |
 | compact columns | split | 40 % now, 60 % days, 16 pt between; under 320 pt one column, the days stacked under the line | width |
-| day row | height | 31 pt (compact), 32 pt (full); 5 rows (compact), 6 (full) | fixed |
-| glyph | size | 22 pt in rows, 26 pt in hours, 30 pt in the header | fixed |
+| day row | height | 36 pt (compact); 38 pt, 42 pt when a chance sits under a glyph (full); 5 rows (compact), 6 (full) | fixed |
+| glyph | size | 31 pt in rows, 36 pt in hours, 28 pt in the compact line, 48 pt in the header | fixed |
+| range bar | track | from the glyph column plus a low's width to a high's width from the right edge; 5 pt tall, round ends | width |
 | hours | columns | one per 56 pt of the inner width, 5 to 8 | width |
 | details | per row | 3 or 4 from 440 pt, else 2 | width |
 | labels | size | 12.5 to 14.5 pt | fixed |
@@ -97,10 +100,14 @@ under 400 pt.
 
 Everything on the card is {theme.weather}: the sky (eight, by the condition now, else the next
 hour's, else today's: clear-day, partly-day, overcast-day, rain-day, snow-day, storm,
-clear-night, cloudy-night), the text in its ink, white in both chat modes, the softer text
-(lows, times, labels) in ink at 86 % opacity, the chance of precipitation in its light blue,
-and the glyphs in their own colours (sun, moon, cloud, drop, bolt). The dark mode's skies are a
-little deeper than the light mode's. Type is the host's UI face (DM Sans for Ava):
+clear-night, cloudy-night), each a lighter top easing to a deeper bottom; the text in its ink,
+white in both chat modes; the details' labels in ink at 86 % opacity (they sit low, on the
+deeper sky; everything nearer the top is full ink, the lows told from the highs by weight); the
+chance of precipitation in its light blue; the glyphs two-tone and multi-colour (a yellow sun, a
+pale moon, white clouds with a light grey one behind, blue drops, white snow, a yellow bolt);
+the range bar's track in ink at 16 % and its fill the three-stop range (cool, mild, warm). The
+dark mode's skies are a little deeper than the light mode's. No text shadow: every text holds
+its contrast without one. Type is the host's UI face (DM Sans for Ava):
 the temperature now at weight 300, the place, highs and values at 600.
 
 ## States
@@ -110,7 +117,7 @@ the temperature now at weight 300, the place, highs and values at 600.
 | empty | no now, hours or days | nothing: validate() refuses it |
 | loading | | the host's own; the card is drawn whole or not at all |
 | error | a spec that fails validate() | nothing; the host says one plain sentence |
-| stale | `stale` given | the clock and "Offline · as of …" at the bottom |
+| stale | `stale` given | the clock and "Offline · as of …" under the place, small: the only "as of" (the host leaves it off its source line when the card shows it) |
 | missing values | a day without a high, a night without a glyph, no gusts | that value is left out; nothing is made up |
 | selected | | none |
 | hover / press | | none |
@@ -130,9 +137,10 @@ None.
 ## Accessibility
 
 The SVG is `role="img"` with an accessible name of a few sentences: the place and now, each
-day's words, high, low and chance, and the "as of" when stale. Every sky's every stop holds the
-ink, the softer ink and the chance's light blue at 4.5:1 or more in both modes (the tests check
-each), so the card reads the same on a light or a dark page. Glyphs are `aria-hidden`; their
+day's words, high, low and chance, and the "as of" when stale. Every piece of text holds 4.5:1
+(3:1 for large text: 24 pt, or 18.66 pt semibold) against the sky right behind it, wherever it
+sits on the card, for every sky, host, mode, size and width (the tests draw each and check each
+text at its baseline and its cap height), so the card reads the same on a light or a dark page. Glyphs are `aria-hidden`; their
 words are in the name.
 
 ## Parameters (gear)
@@ -168,4 +176,5 @@ None: the card has no gear. `size` and `lang` are the host's choice.
 ## Tokens
 
 {theme.weather}: per host and mode in tokens/themes.json. Ava light, clear-day sky
-#1858BE to #2766C2; ink #FFFFFF; the chance's light blue #D2EDFF. Softer ink: ink at 0.86.
+#4577B4 to #2C5A94; overcast #6A7685 to #454F5C; clear night #22325A to #0A1024; ink #FFFFFF;
+the chance's light blue #D6EEFF; range #7FD0FF, #9FE09A, #FFC24B. Softer ink: ink at 0.86.

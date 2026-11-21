@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { validate, render, WEATHER, ECCC_ICONS, ecccGlyph, skyOf, summaryLine, WEATHER_SOFT, WEATHER_MAX_WIDTH, type WeatherData } from "./index.ts";
+import { validate, render, WEATHER, ECCC_ICONS, ecccGlyph, skyOf, summaryLine, WEATHER_MAX_WIDTH, type WeatherData } from "./index.ts";
+import { highLow } from "./card.ts";
 import { theme, HOSTS } from "../theme.ts";
 import { toSvgString, type SvgNode } from "../svg.ts";
 import type { Mode } from "../types.ts";
@@ -32,20 +33,59 @@ const lum = (c: number[]) => { const l = c.map((v) => { v /= 255; return v <= 0.
 const ratio = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 const over = (fg: number[], alpha: number, bg: number[]) => fg.map((v, i) => v * alpha + bg[i]! * (1 - alpha));
 
-test("every sky's every stop holds the ink, the softer ink and the chance's blue at 4.5:1, in every host and mode", () => {
+/** The sky's colour at `y` on a card `height` tall: its two stops, interpolated top to bottom (as SVG does, in sRGB). */
+const skyAt = (stops: readonly string[], y: number, height: number) => {
+  const t = Math.max(0, Math.min(1, y / height));
+  const [a, b] = [rgb(stops[0]!), rgb(stops[1]!)];
+  return a.map((v, i) => v + (b[i]! - v) * t);
+};
+
+/** Every text on a card: where it sits and how it's drawn. */
+const textsOf = (node: SvgNode): { s: string; y: number; size: number; weight: number; fill: string; opacity: number }[] =>
+  node.tag === "text"
+    ? [{ s: words(node), y: Number(node.attrs.y), size: Number(node.attrs["font-size"]), weight: Number(node.attrs["font-weight"] ?? 400), fill: String(node.attrs.fill), opacity: Number(node.attrs["fill-opacity"] ?? 1) }]
+    : node.children.flatMap((c) => (typeof c === "string" ? [] : textsOf(c)));
+
+const SKY_OF: Record<string, Partial<WeatherData["now"]>> = {
+  "clear-day": { icon: "clear", night: false }, "partly-day": { icon: "partly-cloudy", night: false }, "overcast-day": { icon: "cloudy", night: false },
+  "rain-day": { icon: "rain", night: false }, "snow-day": { icon: "snow", night: false }, storm: { icon: "thunderstorm", night: false },
+  "clear-night": { icon: "clear", night: true }, "cloudy-night": { icon: "cloudy", night: true },
+};
+
+test("every text holds 4.5:1 (3:1 when large) against the sky right behind it: every sky, host, mode, size and width", () => {
   let checked = 0;
   for (const host of HOSTS) for (const mode of ["light", "dark"] as const) {
-    const w = theme(host, mode).weather;
-    for (const [sky, stops] of Object.entries(w.skies)) for (const stop of stops) {
-      const bg = rgb(stop);
-      for (const [what, fg] of [["ink", rgb(w.ink)], ["softer ink", over(rgb(w.ink), WEATHER_SOFT, bg)], ["chance", rgb(w.pop)]] as const) {
-        const r = ratio(fg, bg);
-        assert.ok(r >= 4.5, `${host} ${mode} ${sky} ${stop}: ${what} at ${r.toFixed(2)}:1`);
-        checked++;
+    const t = theme(host, mode);
+    for (const [sky, now] of Object.entries(SKY_OF)) for (const size of ["compact", "full"]) for (const width of [300, 358, 640]) for (const [data, lang] of [[toronto, "en"], [montreal, "fr"]] as const) {
+      const card = { ...data, now: { ...data.now!, ...now }, stale: { as_of: "Sat 21 Nov, 15:45 EST", offline: true } };
+      const checked1 = validate({ component: "weather", data: card, options: { size, lang } });
+      assert.ok(checked1.ok);
+      const drawn = render(checked1.view, { width, theme: t, id: "c" });
+      assert.ok("svg" in drawn);
+      assert.equal(parts(drawn.svg, "sky")[0]!.attrs["data-sky"], sky);
+      const stops = t.weather.skies[sky as keyof typeof t.weather.skies];
+      for (const x of textsOf(drawn.svg)) {
+        // WCAG's large text: 24 pt, or 18.66 pt bold.
+        const need = x.size >= 24 || (x.size >= 18.66 && x.weight >= 600) ? 3 : 4.5;
+        for (const y of [x.y, x.y - x.size * 0.72]) {
+          const bg = skyAt(stops, y, drawn.height);
+          const r = ratio(over(rgb(x.fill), x.opacity, bg), bg);
+          assert.ok(r >= need, `${host} ${mode} ${sky} ${size} ${width}: "${x.s}" (${x.size} pt) at ${r.toFixed(2)}:1, needs ${need}`);
+          checked++;
+        }
       }
     }
   }
-  assert.equal(checked, HOSTS.length * 2 * 8 * 2 * 3);
+  assert.ok(checked > 10_000, `${checked} checks`);
+});
+
+test("the skies ease from a lighter top to a deeper bottom, and white holds 3:1 even on the lightest stop", () => {
+  for (const host of HOSTS) for (const mode of ["light", "dark"] as const) {
+    for (const [sky, [top, bottom]] of Object.entries(theme(host, mode).weather.skies)) {
+      assert.ok(lum(rgb(top!)) > lum(rgb(bottom!)), `${host} ${mode} ${sky}: the top is not lighter`);
+      assert.ok(ratio([255, 255, 255], rgb(top!)) >= 3, `${host} ${mode} ${sky}: white on ${top}`);
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -169,9 +209,41 @@ test("in French, every word of the card is French", () => {
   assert.ok("svg" in fr && toSvgString(fr.svg).includes("Auj."));
 });
 
+test("when today has only tonight's low, the header says so: Tonight L: / Cette nuit Min.", () => {
+  const full = draw(toronto, { size: "full" });
+  assert.equal(words(parts(full.svg, "high-low")[0]!), "Tonight L:5°");
+  assert.equal(highLow({ ...toronto, days: [{ date: toronto.today, high_c: 8, low_c: -1 }] }, "en"), "H:8°  L:−1°");
+  assert.equal(highLow(montreal, "fr"), "Cette nuit Min. 4°");
+  assert.equal(highLow({ ...montreal, days: [{ date: montreal.today, high_c: 3, low_c: -4 }] }, "fr"), "Max. 3°  Min. −4°");
+});
+
+test("a full card's day rows put each day's low-to-high on the week's range, a track behind it", () => {
+  const { svg } = draw(toronto, { size: "full" });
+  const rows = parts(svg, "day");
+  const tracks = rows.map((r) => parts(r, "track")[0]!);
+  const x0 = Number(tracks[0]!.attrs.x), w = Number(tracks[0]!.attrs.width);
+  assert.ok(tracks.every((t) => Number(t.attrs.x) === x0 && Number(t.attrs.width) === w), "one track for the week");
+  const days = toronto.days!.slice(0, 6);
+  const temps = days.flatMap((d) => [d.low_c, d.high_c]).filter((t): t is number => t !== undefined);
+  const [min, max] = [Math.min(...temps), Math.max(...temps)];
+  const at = (t: number) => x0 + 2.5 + ((t - min) / (max - min)) * (w - 5);
+  rows.forEach((r, i) => {
+    const d = days[i]!, bar = parts(r, "range")[0]!;
+    if (d.low_c !== undefined && d.high_c !== undefined) {
+      assert.ok(Math.abs(Number(bar.attrs.x) + 2.5 - at(d.low_c)) < 0.02, `${d.date}: starts at its low`);
+      assert.ok(Math.abs(Number(bar.attrs.x) + Number(bar.attrs.width) - 2.5 - at(d.high_c)) < 0.02, `${d.date}: ends at its high`);
+    } else assert.equal(bar.tag, "circle", `${d.date}: one value, a dot`);
+  });
+  // The coldest and warmest of the week reach the track's ends.
+  assert.ok(rows.some((r) => Math.abs(Number(parts(r, "range")[0]!.attrs.x) - x0) < 0.02));
+});
+
 test("the stale card says offline and as of when; a fresh one says neither", () => {
   const stale = draw({ ...toronto, stale: { as_of: "Sat 21 Nov, 15:30 EST", offline: true } });
   assert.equal(words(parts(stale.svg, "stale")[0]!), "Offline · as of Sat 21 Nov, 15:30 EST");
+  // In the header, under the place: above the temperature now.
+  const y = (n: SvgNode) => Number(JSON.stringify(n).match(/"y":([\d.]+)/)![1]);
+  assert.ok(y(parts(stale.svg, "stale")[0]!) < y(parts(stale.svg, "now")[0]!));
   assert.match(stale.summary, /Offline, as of Sat 21 Nov, 15:30 EST\.$/);
   assert.equal(parts(draw(toronto).svg, "stale").length, 0);
   const older = draw({ ...toronto, stale: { as_of: "Sat 21 Nov, 12:00 EST", offline: false } }, { size: "full" });

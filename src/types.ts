@@ -68,6 +68,8 @@ export interface WeatherColours {
   readonly sun: string;
   readonly moon: string;
   readonly cloud: string;
+  readonly cloudBack: string;
+  readonly range: readonly string[];
   readonly drop: string;
   readonly bolt: string;
   readonly edge: string;

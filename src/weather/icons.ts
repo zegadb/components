@@ -95,7 +95,7 @@ function moon(c: WeatherColours, cx: number, cy: number, r: number): SvgNode {
   return el("path", { "data-glyph": "moon", d: `M${cx + k * 0.55} ${cy - r * 0.92}A${r} ${r} 0 1 0 ${cx + r * 0.98} ${cy + k * 0.32}A${k} ${k} 0 0 1 ${cx + k * 0.55} ${cy - r * 0.92}z`, fill: c.moon });
 }
 
-const cloud = (c: WeatherColours, transform?: string, opacity = 1) => el("path", { "data-glyph": "cloud", d: CLOUD, fill: c.cloud, "fill-opacity": opacity, transform });
+const cloud = (c: WeatherColours, transform?: string, back = false) => el("path", { "data-glyph": "cloud", d: CLOUD, fill: back ? c.cloudBack : c.cloud, transform });
 
 const drops = (c: WeatherColours, xs: number[], y = 18, len = 3.6) =>
   xs.map((x) => el("line", { x1: x, y1: y, x2: x - 1.2, y2: y + len, stroke: c.drop, "stroke-width": 1.8, "stroke-linecap": "round" }));
@@ -125,7 +125,7 @@ function drawing(icon: Icon, night: boolean, c: WeatherColours): SvgNode[] {
     case "clear": return [night ? moon(c, 12, 12, 7.2) : sun(c, 12, 12, 4.6, true)];
     case "mainly-clear": return [body(10.5, 10, 4.2), cloud(c, "translate(9.2 10.4) scale(0.58)")];
     case "partly-cloudy": return [body(8.4, 8.2, 3.6), cloud(c, "translate(1.6 4.2) scale(0.92)")];
-    case "cloudy": return [cloud(c, "translate(4.6 -1.4) scale(0.8)", 0.62), cloud(c, "translate(0 3)")];
+    case "cloudy": return [cloud(c, "translate(4.6 -1.4) scale(0.8)", true), cloud(c, "translate(0 3)")];
     case "showers": return [body(7.6, 6.4, 3.1), cloud(c, "translate(1.4 0.6) scale(0.92)"), ...drops(c, [9.6, 14.6])];
     case "rain": return [cloud(c), ...drops(c, [8.2, 12.2, 16.2])];
     case "freezing-rain": return [cloud(c), ...drops(c, [8.2, 16.2]), el("path", { "data-glyph": "ice", d: "M12.2 17.6l1.9 2.3-1.9 2.3-1.9-2.3z", fill: c.drop })];

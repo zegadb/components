@@ -37,7 +37,7 @@
     "sky": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/colour" }, "description": "A sky's gradient, top to bottom." },
     "weather": {
       "type": "object",
-      "required": ["skies", "ink", "pop", "sun", "moon", "cloud", "drop", "bolt", "edge"],
+      "required": ["skies", "ink", "pop", "sun", "moon", "cloud", "cloudBack", "drop", "bolt", "range", "edge"],
       "additionalProperties": false,
       "properties": {
         "skies": {
@@ -51,6 +51,8 @@
         },
         "ink": { "$ref": "#/$defs/colour" }, "pop": { "$ref": "#/$defs/colour" }, "sun": { "$ref": "#/$defs/colour" }, "moon": { "$ref": "#/$defs/colour" },
         "cloud": { "$ref": "#/$defs/colour" }, "drop": { "$ref": "#/$defs/colour" }, "bolt": { "$ref": "#/$defs/colour" },
+        "cloudBack": { "$ref": "#/$defs/colour", "description": "The cloud behind the front one (cloudy): light grey." },
+        "range": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/colour" }, "description": "A day's temperature bar: cool at the week's lowest, through a mild green, to warm at its highest." },
         "edge": { "$ref": "#/$defs/colour", "description": "The card's hairline edge (at low opacity), so a night sky still has an edge on a dark page." }
       }
     },

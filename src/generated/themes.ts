@@ -47,45 +47,51 @@ export const THEMES = {
       "weather": {
         "skies": {
           "clear-day": [
-            "#1858BE",
-            "#2766C2"
+            "#4577B4",
+            "#2C5A94"
           ],
           "partly-day": [
-            "#2A5A9E",
-            "#3A69A8"
+            "#5577A5",
+            "#34527A"
           ],
           "overcast-day": [
-            "#4A5868",
-            "#59677A"
+            "#6A7685",
+            "#454F5C"
           ],
           "rain-day": [
-            "#34495F",
-            "#465B72"
+            "#5A6A7C",
+            "#364456"
           ],
           "snow-day": [
-            "#4A6380",
-            "#52698A"
+            "#67778A",
+            "#434F60"
           ],
           "storm": [
-            "#2B2C47",
-            "#433F5E"
+            "#4B4A63",
+            "#26263A"
           ],
           "clear-night": [
-            "#0D1B3B",
-            "#1F3266"
+            "#22325A",
+            "#0A1024"
           ],
           "cloudy-night": [
-            "#1C2231",
-            "#333C4F"
+            "#343B4C",
+            "#15191F"
           ]
         },
         "ink": "#FFFFFF",
-        "pop": "#D2EDFF",
-        "sun": "#FFC93C",
-        "moon": "#F3ECD2",
+        "pop": "#D6EEFF",
+        "sun": "#FFCB3D",
+        "moon": "#F2EAD0",
         "cloud": "#FFFFFF",
-        "drop": "#7CC8FF",
+        "cloudBack": "#C9D3DF",
+        "drop": "#5FB8FF",
         "bolt": "#FFD23F",
+        "range": [
+          "#7FD0FF",
+          "#9FE09A",
+          "#FFC24B"
+        ],
         "edge": "#FFFFFF"
       }
     },
@@ -128,45 +134,51 @@ export const THEMES = {
       "weather": {
         "skies": {
           "clear-day": [
-            "#164FAA",
-            "#2159AE"
+            "#3F72B0",
+            "#264F84"
           ],
           "partly-day": [
-            "#26518E",
-            "#335E97"
+            "#4D6D9A",
+            "#2E496C"
           ],
           "overcast-day": [
-            "#414E5D",
-            "#4F5C6E"
+            "#5F6B79",
+            "#3D4652"
           ],
           "rain-day": [
-            "#2F4256",
-            "#3E5166"
+            "#505F70",
+            "#303D4D"
           ],
           "snow-day": [
-            "#435A75",
-            "#4A5F7E"
+            "#5E6D80",
+            "#3B4656"
           ],
           "storm": [
-            "#262740",
-            "#3B3754"
+            "#424159",
+            "#212133"
           ],
           "clear-night": [
-            "#0B1733",
-            "#1B2C5A"
+            "#1D2B4E",
+            "#080D1D"
           ],
           "cloudy-night": [
-            "#181D2A",
-            "#2C3445"
+            "#2E3544",
+            "#121519"
           ]
         },
         "ink": "#FFFFFF",
-        "pop": "#D2EDFF",
+        "pop": "#D6EEFF",
         "sun": "#F7C23A",
         "moon": "#EDE6CC",
         "cloud": "#F4F6FA",
-        "drop": "#74BFF5",
+        "cloudBack": "#BFC9D6",
+        "drop": "#58AEF2",
         "bolt": "#F7CB3A",
+        "range": [
+          "#74C6F5",
+          "#93D48E",
+          "#F5B941"
+        ],
         "edge": "#FFFFFF"
       }
     }
@@ -216,45 +228,51 @@ export const THEMES = {
       "weather": {
         "skies": {
           "clear-day": [
-            "#1858BE",
-            "#2766C2"
+            "#4577B4",
+            "#2C5A94"
           ],
           "partly-day": [
-            "#2A5A9E",
-            "#3A69A8"
+            "#5577A5",
+            "#34527A"
           ],
           "overcast-day": [
-            "#4A5868",
-            "#59677A"
+            "#6A7685",
+            "#454F5C"
           ],
           "rain-day": [
-            "#34495F",
-            "#465B72"
+            "#5A6A7C",
+            "#364456"
           ],
           "snow-day": [
-            "#4A6380",
-            "#52698A"
+            "#67778A",
+            "#434F60"
           ],
           "storm": [
-            "#2B2C47",
-            "#433F5E"
+            "#4B4A63",
+            "#26263A"
           ],
           "clear-night": [
-            "#0D1B3B",
-            "#1F3266"
+            "#22325A",
+            "#0A1024"
           ],
           "cloudy-night": [
-            "#1C2231",
-            "#333C4F"
+            "#343B4C",
+            "#15191F"
           ]
         },
         "ink": "#FFFFFF",
-        "pop": "#D2EDFF",
-        "sun": "#FFC93C",
-        "moon": "#F3ECD2",
+        "pop": "#D6EEFF",
+        "sun": "#FFCB3D",
+        "moon": "#F2EAD0",
         "cloud": "#FFFFFF",
-        "drop": "#7CC8FF",
+        "cloudBack": "#C9D3DF",
+        "drop": "#5FB8FF",
         "bolt": "#FFD23F",
+        "range": [
+          "#7FD0FF",
+          "#9FE09A",
+          "#FFC24B"
+        ],
         "edge": "#FFFFFF"
       }
     },
@@ -297,45 +315,51 @@ export const THEMES = {
       "weather": {
         "skies": {
           "clear-day": [
-            "#164FAA",
-            "#2159AE"
+            "#3F72B0",
+            "#264F84"
           ],
           "partly-day": [
-            "#26518E",
-            "#335E97"
+            "#4D6D9A",
+            "#2E496C"
           ],
           "overcast-day": [
-            "#414E5D",
-            "#4F5C6E"
+            "#5F6B79",
+            "#3D4652"
           ],
           "rain-day": [
-            "#2F4256",
-            "#3E5166"
+            "#505F70",
+            "#303D4D"
           ],
           "snow-day": [
-            "#435A75",
-            "#4A5F7E"
+            "#5E6D80",
+            "#3B4656"
           ],
           "storm": [
-            "#262740",
-            "#3B3754"
+            "#424159",
+            "#212133"
           ],
           "clear-night": [
-            "#0B1733",
-            "#1B2C5A"
+            "#1D2B4E",
+            "#080D1D"
           ],
           "cloudy-night": [
-            "#181D2A",
-            "#2C3445"
+            "#2E3544",
+            "#121519"
           ]
         },
         "ink": "#FFFFFF",
-        "pop": "#D2EDFF",
+        "pop": "#D6EEFF",
         "sun": "#F7C23A",
         "moon": "#EDE6CC",
         "cloud": "#F4F6FA",
-        "drop": "#74BFF5",
+        "cloudBack": "#BFC9D6",
+        "drop": "#58AEF2",
         "bolt": "#F7CB3A",
+        "range": [
+          "#74C6F5",
+          "#93D48E",
+          "#F5B941"
+        ],
         "edge": "#FFFFFF"
       }
     }
