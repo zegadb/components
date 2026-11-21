@@ -14,6 +14,7 @@
     "component": "path-on-map",
     "data": {},
     "options": {
+      "view": "3d",
       "valueUnit": "km/h",
       "bearing": -30
     }

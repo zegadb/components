@@ -12,8 +12,9 @@ implementation: this repository's web package, src/path-on-map/ (moved from avac
 
 ## Purpose
 
-Draws ordered paths (a race lap, a delivery route, a run) on the street map
-with 3D buildings, each segment coloured by an optional value at its start
+Draws ordered paths (a race lap, a delivery route, a run) on the street map,
+from straight above for a short route and tilted with 3D buildings for a
+longer one, each segment coloured by an optional value at its start
 point, with a labelled start marker. Pick it when the answer is *where
 something went, in order*, and optionally *how a number changed along the
 way* (speed, distance, sector). It is not for unordered points (a place map)
@@ -43,8 +44,24 @@ is one path. At least 2 rows per path.
 
 Surface parameters: `bounds` (`[w, s, e, n]` or null: frame the paths),
 `basemap` (`auto`, `cities`, `monaco`). Display options: `colorScale`,
-`valueUnit`, `lineWidth` (1–16 pt, default 6), `view` (`2d`, `3d`), `bearing`
-(−180–180°), `showBuildings`.
+`valueUnit`, `lineWidth` (1–16 pt, default 6), `view` (`auto`, `2d`, `3d`;
+default `auto`), `bearing` (−180–180°), `showBuildings`.
+
+`view: auto` (the default since 21 Nov; it was `3d`) looks straight down
+when what is framed (every point of every path, or `bounds`) spans
+`FLAT_MAX_KM` (5 km) or less from its south-west to its north-east corner, a
+great-circle distance, and tilts (`3d`) when it spans more. On a short route
+the tilt and the extruded buildings hide the street names (downtown Toronto:
+Richmond, Adelaide, University, York, Simcoe and Bay are readable only from
+above); a longer route is framed below zoom 13, where there are no buildings,
+and the tilt shows what lies ahead of it. The choice is by length alone:
+whether a route is in a city would need more data than the paths, so a short
+rural route is drawn from above too. An explicit `2d` or `3d` always wins.
+One function decides (`resolveView` in src/path-on-map/model.ts), and the
+validated view carries its answer (its `options.view` is `2d` or `3d`,
+never `auto`), so the camera and anything else drawn from the view read that
+one value. The format-1 binding (zega's explorer) has no
+`auto`; its default stays `3d`.
 
 ## Anatomy
 
@@ -96,7 +113,7 @@ Reference size: 640 × 400 pt at scale 2 (1280 × 800 pixels).
 | gear | panel | {space.md} below the button, {size.gearPanel} wide, padding {space.lg} × {space.xl}, corner {radius.md}, border {stroke.hairline} | fixed |
 | gear | row | three columns: name {size.gearLabel}, control (the rest), value {size.gearValue}; gap {space.md}; {space.sm} above and below | fixed |
 | gear | section title | {space.md} above, {space.xxs} below | fixed |
-| camera | pitch | `view: 3d` 60°, `view: 2d` 0° | option |
+| camera | pitch | `view: 3d` 60°, `view: 2d` 0°; `view: auto` is `2d` when what is framed spans 5 km or less corner to corner, else `3d` | option |
 | camera | framing | every point of every path (or `bounds`) fitted in the view as rotated by `bearing`, with padding the smallest of {space.frame}, a sixth of the width and a sixth of the height; `3d` then zooms out by 0.3 levels; never past zoom 17 | canvas |
 | map controls | placement | top-right, {space.xl} inset | fixed |
 
@@ -197,7 +214,7 @@ else a JSON text field checked on commit.
 | options | `colorScale` | menu | sequential, diverging, solid | sequential |
 | options | `valueUnit` | menu | ft, m, deg, pct, fraction, km/h, yd, s, null | null |
 | options | `lineWidth` | slider, step 0.1 | 1–16 | 6 |
-| options | `view` | menu | 2d, 3d | 3d |
+| options | `view` | menu | auto, 2d, 3d | auto |
 | options | `bearing` | slider, step 1 | −180–180 | 0 |
 | options | `showBuildings` | checkbox | — | true |
 
@@ -230,7 +247,7 @@ host without a basemap: the plain ground, labels as HTML in the host's face):
 
 | fixture | what it proves | tolerance |
 |---|---|---|
-| [web/default](web/default.json) | sequential ramp in Ava's theme, 3D camera with bearing, start marker and HTML label, legend with unit, no basemap | default |
+| [web/default](web/default.json) | sequential ramp in Ava's theme, 3D camera with bearing (`view: 3d` written out: the lap is 1.2 km corner to corner, so `auto` would look straight down), start marker and HTML label, legend with unit, no basemap | default |
 | [web/diverging-zega-phone](web/diverging-zega-phone.json) | diverging ramp in zega's theme, 2D, a phone column, the framing kept clear of the legend | default |
 
 Known gaps in the reference implementation (zegadb/zega at 11cff10), which

@@ -11,8 +11,9 @@ export interface PathOnMapView { component: "path-on-map"; data: pathOnMap.PathO
 export const PATH_ON_MAP: Component<PathOnMapView, { map: true; height: number }, typeof PATH_ON_MAP_CONTRACT> = {
   contract: PATH_ON_MAP_CONTRACT,
   view: (data, options) => {
-    const d = data as pathOnMap.PathOnMapData, o = options as unknown as pathOnMap.PathOptions;
-    return { component: "path-on-map", data: d, options: o, paths: pathOnMap.paths(d, o) };
+    const d = data as pathOnMap.PathOnMapData;
+    const p = pathOnMap.paths(d, options as unknown as pathOnMap.PathOptionsInput);
+    return { component: "path-on-map", data: d, options: p.options, paths: p };
   },
   semantic: (view) => pathOnMap.semantic(view.data),
   render: (_view, ctx) => {

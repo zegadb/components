@@ -7,7 +7,7 @@ export const CONTRACT = {
   "version": "2.0.0",
   "title": "Path on map",
   "category": "Geo",
-  "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; 3D tilts the camera so buildings stand up. Points are [longitude, latitude], in path order.",
+  "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; a short route is seen from straight above, a longer one tilted. Points are [longitude, latitude], in path order.",
   "surface": {
     "kind": "map",
     "description": "The host’s street map (MapLibre): its basemap, or the plain ground where there is none. The component adds the paths, their casing, start markers, labels, the legend and the extruded buildings: the buildings, casing and paths under the basemap’s labels, the start markers and path labels over them."
@@ -128,11 +128,12 @@ export const CONTRACT = {
     },
     "view": {
       "enum": [
+        "auto",
         "2d",
         "3d"
       ],
-      "default": "3d",
-      "description": "2d looks straight down; 3d tilts the camera (pitch 60°) so buildings stand up."
+      "default": "auto",
+      "description": "2d looks straight down; 3d tilts the camera (pitch 60°) so buildings stand up; auto is 2d when what is framed (the paths, or bounds) spans 5 km or less corner to corner, so a walk or a short drive keeps its street names readable, and 3d when it spans more."
     },
     "bearing": {
       "type": "number",
@@ -183,7 +184,7 @@ export const CONTRACT = {
   "examples": {
     "valid": [
       {
-        "title": "Speed along a short run, in 3D",
+        "title": "Speed along a short run, seen from above (short, so auto is 2d)",
         "spec": {
           "component": "path-on-map",
           "data": {

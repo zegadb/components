@@ -13,12 +13,16 @@ import type { Theme } from "../types.ts";
 
 export type LonLat = readonly [number, number];
 export type ColorScale = "sequential" | "diverging" | "solid";
+/** The camera drawn: straight down, or tilted so buildings stand up. */
 export type View = "2d" | "3d";
+/** The `view` option as written: a camera, or `auto` (the default), which resolveView() decides. */
+export type ViewOption = View | "auto";
 export const VALUE_UNITS = ["ft", "m", "deg", "pct", "fraction", "km/h", "yd", "s"] as const;
 export type ValueUnit = (typeof VALUE_UNITS)[number];
 /** [west, south, east, north] in degrees. */
 export type Bounds = readonly [number, number, number, number];
 
+/** The options of a validated view: every option set, `view` resolved to the camera drawn. */
 export interface PathOptions {
   colorScale: ColorScale;
   valueUnit: ValueUnit | null;
@@ -51,7 +55,39 @@ export interface Paths {
   valueName: string;
 }
 
-export const paths = (data: PathOnMapData, options: PathOptions): Paths => ({ paths: data.paths, options, valueName: data.valueName || "value" });
+/** The options as the contract takes them: `view` may be `auto`. */
+export type PathOptionsInput = Omit<PathOptions, "view"> & { view: ViewOption };
+
+/** The paths drawn, with `view` resolved (resolveView): the renderer, the camera and the gear all read this one value. */
+export const paths = (data: PathOnMapData, options: PathOptionsInput): Paths => ({
+  paths: data.paths,
+  options: { ...options, view: resolveView(options.view, data.paths.flatMap((x) => [...x.points]), options.bounds) },
+  valueName: data.valueName || "value",
+});
+
+/**
+ * The longest a framed area's corner-to-corner span can be, in km, for `view: auto` to look straight
+ * down. Under it, 3D's tilt and buildings hide the street names (downtown Toronto, 21 Nov); over it,
+ * the map is zoomed out past the buildings (they start at zoom 13) and the tilt shows what lies ahead
+ * of the route. Length alone: whether a route is in a city would need more data than the paths.
+ */
+export const FLAT_MAX_KM = 5;
+
+/** The great-circle distance between the south-west and north-east corners of what is framed (`bounds`, or the points' box), in km. */
+export function framedDiagonalKm(points: readonly LonLat[], bounds: Bounds | null): number {
+  let [w, s, e, n] = bounds ?? [Infinity, Infinity, -Infinity, -Infinity];
+  if (!bounds) for (const [lon, lat] of points) [w, s, e, n] = [Math.min(w, lon), Math.min(s, lat), Math.max(e, lon), Math.max(n, lat)];
+  if (!(w <= e && s <= n)) return 0;
+  const r = Math.PI / 180;
+  const h = Math.sin(((n - s) * r) / 2) ** 2 + Math.cos(s * r) * Math.cos(n * r) * Math.sin(((e - w) * r) / 2) ** 2;
+  return 2 * 6371.0088 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** The camera drawn: an explicit `2d` or `3d` as written; `auto` looks straight down when what is framed spans FLAT_MAX_KM or less, else tilts. */
+export function resolveView(view: ViewOption, points: readonly LonLat[], bounds: Bounds | null): View {
+  if (view !== "auto") return view;
+  return framedDiagonalKm(points, bounds) <= FLAT_MAX_KM ? "2d" : "3d";
+}
 
 /** The spec's measurements (path-on-map.spec.md, "Measurements"; tokens). */
 export const MEASURES = { casing: 4, casingOpacity: 0.95, markerMin: 6, marker: 3, labelSize: 14, labelOffset: 1.1, labelHalo: 2, buildingsOpacity: 0.88, buildingHeight: 9, frame: 40, pitch3d: 60, maxZoom: 17, zoomOut3d: 0.3 } as const;
