@@ -127,7 +127,12 @@ test('a theme changed without regenerating leaves the package stale', async () =
 
 test('a contract changed without regenerating leaves the package stale', async () => {
   const found = await broken((dir) => edit(join(dir, 'components/function-plot/function-plot.contract.json'), (t) => t.replace('"maxItems": 6,\n        "description": "The curves', '"maxItems": 5,\n        "description": "The curves')));
-  assert.ok(found.includes('src/generated/contracts.ts: stale; run `npm run generate` and commit the result'), found.join('\n'));
+  assert.ok(found.includes('src/generated/contracts/function-plot.ts: stale; run `npm run generate` and commit the result'), found.join('\n'));
+});
+
+test('a generated contract that no contract makes any more is stale', async () => {
+  const found = await broken((dir) => writeFile(join(dir, 'src/generated/contracts/gone.ts'), 'export const CONTRACT = {};\n'));
+  assert.ok(found.includes('src/generated/contracts/gone.ts: stale; run `npm run generate` and commit the result'), found.join('\n'));
 });
 
 test('a format-2 invalid example must give exactly the error validate() gives', async () => {

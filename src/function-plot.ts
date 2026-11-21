@@ -5,7 +5,7 @@ import { heightFor, haloText, legendRows, titleRow, TYPE, type Hover, type Hover
 import { clamp, decimalsFor, formatNumber, linear, niceDomain, niceStep, piLabel, piTicks, quantile, ticks } from "./scale.ts";
 import { el, pathData, textWidth, type SvgNode } from "./svg.ts";
 import { withAlpha } from "./theme.ts";
-import { CONTRACTS } from "./generated/contracts.ts";
+import { CONTRACT } from "./generated/contracts/function-plot.ts";
 import type { ViewError } from "./types.ts";
 
 export interface FunctionSpec { id?: string; fn: string; label?: string; domain?: [number, number] }
@@ -83,7 +83,7 @@ export function render(data: FunctionPlotData, options: FunctionPlotOptions, ctx
   const locale = ctx.locale ?? "en";
   const id = ctx.id ?? "fp";
   const width = Math.round(ctx.width);
-  const height = heightFor(CONTRACTS["function-plot"].size, width, ctx.height);
+  const height = heightFor(CONTRACT.size, width, ctx.height);
   const curves: Curve[] = data.functions.map((f, i) => {
     const parsed = parse(f.fn);
     if (!parsed.ok) throw new Error("render() takes a validated view");

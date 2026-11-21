@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { check } from './lib/schema.js';
 import { components, fixtures, webFixtures, webReferencePaths, frontMatter, referencePaths, STATUSES, ID_PATTERN } from './lib/repo.mjs';
 import { problems as tokenProblems, render } from './tokens.mjs';
-import { generated } from './generate.mjs';
+import { stale } from './generate.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const exists = (path) => access(path).then(() => true, () => false);
@@ -121,7 +121,8 @@ async function checkReferences(root, paths, want, locked, lockImages, out) {
 export async function checkRepo(root = ROOT) {
   const out = [];
   // The package's own validate(), from this root's src/: the check and every host run the same code.
-  const { validate } = await import(join(root, 'src/validate.ts'));
+  // The body's entry's: the main entry's components and the body, so every contract is checked.
+  const { validate } = await import(join(root, 'src/body/index.ts'));
   const schemas = {
     tokens: await json(join(root, 'schemas/tokens.schema.json')),
     themes: await json(join(root, 'schemas/themes.schema.json')),
@@ -155,10 +156,7 @@ export async function checkRepo(root = ROOT) {
     }
   }
   if (!themeErrors.length) {
-    for (const [path, text] of Object.entries(await generated(root))) {
-      const current = await readFile(join(root, path), 'utf8').catch(() => null);
-      if (current !== text) out.push(`${path}: stale; run \`npm run generate\` and commit the result`);
-    }
+    for (const { path } of await stale(root)) out.push(`${path}: stale; run \`npm run generate\` and commit the result`);
   }
 
   // the template, and each component's files

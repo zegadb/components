@@ -10,6 +10,7 @@
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./path-on-map/draw": { "types": "./dist/path-on-map/draw.d.ts", "default": "./dist/path-on-map/draw.js" },
+    "./body": { "types": "./dist/body/index.d.ts", "default": "./dist/body/index.js" },
     "./body/draw": { "types": "./dist/body/draw.d.ts", "default": "./dist/body/draw.js" },
     "./body/*.glb": "./assets/body/*.glb",
     "./basemap": { "types": "./dist/basemap.d.ts", "default": "./dist/basemap.js" },
@@ -41,6 +42,7 @@
     "@types/geojson": "7946.0.16",
     "@types/node": "26.6.6",
     "@types/three": "0.170.0",
+    "esbuild": "0.28.2",
     "maplibre-gl": "6.11.1",
     "meshoptimizer": "0.22.0",
     "three": "0.170.0",
