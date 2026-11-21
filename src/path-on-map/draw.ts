@@ -7,8 +7,9 @@
 //
 // MapLibre is the host's (a peer dependency): this module only takes a map.
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
-import { validate } from "../builtin.ts";
+import { validator } from "../registry.ts";
 import type { Theme, ViewError } from "../types.ts";
+import { PATH_ON_MAP } from "./component.ts";
 import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, UNDER_LABELS, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
 
 /** Thrown by drawPaths when the input doesn't meet the contract: nothing on the map has changed. */
@@ -46,12 +47,15 @@ export interface DrawnPaths {
   remove(): void;
 }
 
+// The main entry's validate(), over path-on-map alone: the same check and errors, and a host that
+// only draws paths bundles no other component's contract or renderer, and no tools.
+const validate = /* @__PURE__ */ validator([PATH_ON_MAP]);
+
 /** The contract's check, for drawPaths' input shape: the validated paths, or the errors. */
 export function checkPaths(input: PathsInput): { ok: true; value: Paths } | { ok: false; errors: ViewError[] } {
   const { options, ...data } = input;
   const checked = validate({ component: "path-on-map", data, ...(options ? { options } : {}) });
   if (!checked.ok) return checked;
-  if (checked.view.component !== "path-on-map") throw new Error("unreachable");
   return { ok: true, value: checked.view.paths };
 }
 
