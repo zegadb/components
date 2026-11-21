@@ -184,6 +184,8 @@ pub mod motion {
         pub const INSTANT: f64 = 0.0;
         /// Hover and press feedback on chrome, in ms.
         pub const FAST: f64 = 150.0;
+        /// A map's 2D | 3D switch easing its pitch, in ms (none with reduced motion).
+        pub const VIEW_SWITCH: f64 = 500.0;
         /// Longest a load or restore may take to a drawn frame, in ms (APS 21).
         pub const SWAP_BUDGET: f64 = 100.0;
     }

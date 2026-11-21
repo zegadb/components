@@ -174,6 +174,8 @@ public enum ZCTokens {
             public static let instant: Double = 0
             /// Hover and press feedback on chrome, in ms.
             public static let fast: Double = 150
+            /// A map's 2D | 3D switch easing its pitch, in ms (none with reduced motion).
+            public static let viewSwitch: Double = 500
             /// Longest a load or restore may take to a drawn frame, in ms (APS 21).
             public static let swapBudget: Double = 100
         }

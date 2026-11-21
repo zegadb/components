@@ -15,7 +15,7 @@ export type LonLat = readonly [number, number];
 export type ColorScale = "sequential" | "diverging" | "solid";
 /** The camera drawn: straight down, or tilted so buildings stand up. */
 export type View = "2d" | "3d";
-/** The `view` option as written: a camera, or `auto` (the default), which resolveView() decides. */
+/** The `view` option as written: a camera (`3d`, the default), or `auto`, which resolveView() decides. */
 export type ViewOption = View | "auto";
 export const VALUE_UNITS = ["ft", "m", "deg", "pct", "fraction", "km/h", "yd", "s"] as const;
 export type ValueUnit = (typeof VALUE_UNITS)[number];
@@ -90,7 +90,17 @@ export function resolveView(view: ViewOption, points: readonly LonLat[], bounds:
 }
 
 /** The spec's measurements (path-on-map.spec.md, "Measurements"; tokens). */
-export const MEASURES = { casing: 4, casingOpacity: 0.95, markerMin: 6, marker: 3, labelSize: 14, labelOffset: 1.1, labelHalo: 2, buildingsOpacity: 0.88, buildingHeight: 9, frame: 40, pitch3d: 60, maxZoom: 17, zoomOut3d: 0.3 } as const;
+export const MEASURES = { casing: 4, casingOpacity: 0.95, markerMin: 6, marker: 3, labelSize: 14, labelOffset: 1.1, labelHalo: 2, buildingsOpacity: 0.88, buildingHeight: 9, frame: 40, pitch3d: 60, maxZoom: 17, zoomOut3d: 0.3, viewSwitchMs: 500 } as const;
+
+/**
+ * How a view looks: the camera's pitch, and how opaque the extruded buildings are. 3d tilts to 60°
+ * and stands the buildings up (when `showBuildings`); 2d looks straight down with the buildings
+ * laid flat, so from above nothing leans over the streets' names. The one rule the first frame
+ * (frameCamera, buildingsLayer) and the 2D | 3D switch (draw.ts setMapView) both read.
+ */
+export function viewLook(view: View, showBuildings: boolean): { pitch: number; buildingsOpacity: number } {
+  return view === "3d" ? { pitch: MEASURES.pitch3d, buildingsOpacity: showBuildings ? MEASURES.buildingsOpacity : 0 } : { pitch: 0, buildingsOpacity: 0 };
+}
 
 /** The theme's colours for the parts that aren't the ramp. */
 export function pathColours(theme: Theme) {
@@ -278,7 +288,7 @@ export function frameCamera(points: readonly LonLat[], size: { width: number; he
   const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
   const center = unmercator(cx * cos - cy * sin, cx * sin + cy * cos);
   const scale = Math.min((width - 2 * pad) / (x1 - x0 || 1e-9), (height - 2 * pad) / (y1 - y0 || 1e-9)) / 512;
-  const pitch = options.view === "3d" ? MEASURES.pitch3d : 0;
+  const { pitch } = viewLook(options.view, false);
   const zoom = Math.max(0, Math.min(MEASURES.maxZoom, Math.log2(scale)) - (pitch ? MEASURES.zoomOut3d : 0));
   return { center, zoom, bearing: options.bearing, pitch };
 }
