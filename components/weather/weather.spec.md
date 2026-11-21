@@ -86,7 +86,7 @@ under 400 pt.
 |---|---|---|---|
 | place | size | 16 pt (compact), 17 pt (full) | fixed |
 | now | size | 56 pt, 50 pt under 400 pt (compact); 64 pt, 56 pt under 400 pt (full) | fixed |
-| compact columns | split | 40 % now, 60 % days, 16 pt between; one column under 320 pt | width |
+| compact columns | split | 40 % now, 60 % days, 16 pt between; under 320 pt one column, the days stacked under the line | width |
 | day row | height | 31 pt (compact), 32 pt (full); 5 rows (compact), 6 (full) | fixed |
 | glyph | size | 22 pt in rows, 26 pt in hours, 30 pt in the header | fixed |
 | hours | columns | one per 56 pt of the inner width, 5 to 8 | width |
@@ -158,6 +158,7 @@ None: the card has no gear. `size` and `lang` are the host's choice.
 |---|---|---|
 | [web/default.json](web/default.json) | compact: the place, now, the line, five days, a chance from the source's words (ECCC's Toronto page, recorded) | default |
 | [web/compact-phone.json](web/compact-phone.json) | compact at a phone's column | default |
+| [web/compact-narrow.json](web/compact-narrow.json) | compact under 320 pt (a phone's chat bubble): the days stacked under the line; a night sky with snow | default |
 | [web/full.json](web/full.json) | full: the header, the hours (0 % shown as nothing), six days, wind with gusts, sunrise and sunset | default |
 | [web/full-phone.json](web/full-phone.json) | full at a phone's column: fewer hours, details two to a row | default |
 | [web/montreal-fr.json](web/montreal-fr.json) | every word in French around ECCC's French | default |

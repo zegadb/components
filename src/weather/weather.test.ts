@@ -196,6 +196,11 @@ test("the card keeps its own width in a wide column, and the column's in a narro
   assert.equal(parts(phone.svg, "hour").length, 5, "Now and four hours at a phone's width");
   assert.equal(parts(draw(toronto, { size: "full" }, 640).svg, "hour").length, 8);
   assert.equal(parts(draw(toronto, {}, 358).svg, "day").length, 5);
+  // Narrower than two columns (a phone's chat bubble): the days stack under the line, all five still there.
+  const narrow = draw(toronto, {}, 300);
+  const rows = parts(narrow.svg, "day");
+  assert.equal(rows.length, 5);
+  assert.ok(Number(JSON.stringify(rows[0]).match(/"y":([\d.]+)/)![1]) > Number(JSON.stringify(parts(narrow.svg, "summary").at(-1)).match(/"y":([\d.]+)/)![1]), "under the line");
 });
 
 test("validate refuses what the schema can't say", () => {

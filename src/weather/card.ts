@@ -297,10 +297,18 @@ function compact(ctx: Ctx, data: WeatherData, lang: Lang, width: number): { part
   const rightH = twoCol ? days.length * rowH : 0;
   const leftH = y - pad + 14 + bottomH;
   const staleH = data.stale ? 26 : 0;
-  const inner = twoCol ? Math.max(leftH, rightH, 116) : leftH + (days.length ? 0 : 0);
-  // One column (no days, or a very narrow card): the days, if any, are not shown; the line says tomorrow.
-  const height = Math.round(pad * 2 + inner + staleH);
+  // A narrow card (under 320 pt: a phone's chat bubble) stacks the days under the line, full width.
+  const stackH = !twoCol && days.length ? 8 + days.length * rowH : 0;
+  const inner = twoCol ? Math.max(leftH, rightH, 116) : leftH;
+  const height = Math.round(pad * 2 + inner + stackH + staleH);
   const bottom = pad + inner;
+  if (stackH) {
+    const x0 = pad, x1 = width - pad;
+    const nameW = Math.max(...days.map((d) => textWidth(dayText(d.date, data.today, lang), 14))) + 12;
+    const iconX = x0 + Math.min(Math.max(nameW, 48), 64);
+    parts.push(el("line", { x1: x0, x2: x1, y1: bottom + 4, y2: bottom + 4, stroke: ctx.c.ink, "stroke-opacity": 0.22, "stroke-width": 1, "data-part": "rule" }));
+    days.forEach((d, i) => parts.push(dayRow(ctx, d, data, lang, x0, x1, bottom + 8 + i * rowH, rowH, iconX, 14)));
+  }
   let by = bottom - lines.length * 17;
   if (icon) parts.push(glyph(icon, data.now?.night ?? false, pad, by - 26, 22, ctx.c));
   for (const l of lines) { by += 17; parts.push(text(ctx, l, pad, by - 4, 13.5, { "data-part": "summary" })); }
