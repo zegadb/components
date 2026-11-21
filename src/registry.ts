@@ -3,7 +3,8 @@
 // spec resolves to, what a schema can't say, and what render() gives. The main entry makes them over
 // function-plot, path-on-map and price-chart (builtin.ts); "@zegadb/components/body" over those and
 // the body (body/index.ts). So a host that never draws a body never bundles one: not its contract,
-// its region table, its mesh manifest or its drawing.
+// its region table, its mesh manifest or its drawing. "@zegadb/components/path-on-map/draw" takes
+// validate() alone (validator()) over path-on-map alone.
 //
 // validate() is the one check every host runs before it draws anything: a view spec against its
 // component's contract (schema), then what a schema can't say (the component's own semantic check).
@@ -79,13 +80,14 @@ export const toolName = (id: string) => `draw_${id.replace(/-/g, "_")}`;
 
 const isRecord = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
 
-/** validate, render and the tools over `list`: the main entry's components, or those and the body. */
-export function registry<const L extends List>(list: L): Registry<L> {
+/**
+ * validate() alone over `list`: registry()'s own, without render or the tools, for an entry that
+ * only checks specs (path-on-map/draw checks a path against path-on-map's contract and nothing else).
+ */
+export function validator<const L extends List>(list: L): (spec: unknown) => Validated<ViewOf<L>> {
   type V = ViewOf<L>;
-  type Id = V["component"];
   const byId = new Map<string, Component<any, any, any>>(list.map((c) => [c.contract.id, c]));
-  const ids = list.map((c) => c.contract.id) as Id[];
-  const contracts = Object.fromEntries(list.map((c) => [c.contract.id, c.contract])) as ContractsOf<L>;
+  const ids = list.map((c) => c.contract.id);
   const envelope: Schema = {
     type: "object",
     required: ["component", "data"],
@@ -134,6 +136,18 @@ export function registry<const L extends List>(list: L): Registry<L> {
     if (more.length) return fail(more);
     return { ok: true, view };
   }
+
+  return validate;
+}
+
+/** validate, render and the tools over `list`: the main entry's components, or those and the body. */
+export function registry<const L extends List>(list: L): Registry<L> {
+  type V = ViewOf<L>;
+  type Id = V["component"];
+  const byId = new Map<string, Component<any, any, any>>(list.map((c) => [c.contract.id, c]));
+  const ids = list.map((c) => c.contract.id) as Id[];
+  const contracts = Object.fromEntries(list.map((c) => [c.contract.id, c.contract])) as ContractsOf<L>;
+  const validate = validator(list);
 
   function render(view: V, ctx: RenderContext): DrawnOf<L> {
     const id = (view as AnyView).component;

@@ -32,6 +32,32 @@ test("the body's strings are distinctive enough to find", async () => {
   assert.ok(found.length > BODY_STRINGS.length * 0.9, `the body's own entry carries only ${found.length} of ${BODY_STRINGS.length}`);
 });
 
+// path-on-map/draw checks a path spec against path-on-map's contract alone: a host that only draws
+// paths (avacanada/ava-web) must not bundle function-plot's or price-chart's contracts, their
+// renderers, or the assistant's tools.
+const contractOf = (id: string) => JSON.parse(readFileSync(new URL(`../components/${id}/${id}.contract.json`, import.meta.url), "utf8")) as unknown;
+const PATH_STRINGS = new Set(strings(contractOf("path-on-map")));
+const OTHER_STRINGS = [...new Set([...strings(contractOf("function-plot")), ...strings(contractOf("price-chart"))])].filter((s) => s.length >= 12 && !PATH_STRINGS.has(s) && !s.includes('"')); // a minifier may quote a string with " in it any way
+// From the renderers (their semantic checks) and the tools (registry.ts toolDefinitions).
+const OTHER_CODE = ["is not after", "candlesticks draw one series", "percent change needs a first close", "does not run bottom to top", "a line is either x = a or y = b", "The picture appears in your reply", "draw_"];
+
+test("function-plot's and price-chart's strings are distinctive enough to find", async () => {
+  assert.ok(OTHER_STRINGS.length > 20, `${OTHER_STRINGS.length} strings`);
+  const out = await bundle("./index.ts");
+  const found = OTHER_STRINGS.filter((s) => out.includes(JSON.stringify(s).slice(1, -1)));
+  assert.ok(found.length > OTHER_STRINGS.length * 0.9, `the main entry carries only ${found.length} of ${OTHER_STRINGS.length}`);
+  for (const word of OTHER_CODE) assert.ok(out.includes(word), `the main entry's bundle has no ${word}`);
+});
+
+test("path-on-map/draw.ts bundles only path-on-map: no other component's contract or renderer, no tools", async () => {
+  const out = await bundle("./path-on-map/draw.ts");
+  const found = OTHER_STRINGS.filter((s) => out.includes(JSON.stringify(s).slice(1, -1)));
+  assert.deepEqual(found.slice(0, 10), [], `${found.length} of function-plot's and price-chart's strings are in the draw entry's bundle (${out.length} bytes)`);
+  for (const word of [...OTHER_CODE, "function-plot", "price-chart"]) assert.ok(!out.includes(word), `the draw entry's bundle has ${word}`);
+  // And it still carries path-on-map's own contract: it validates against it.
+  assert.ok(out.includes("[longitude, latitude] per point"), "the draw entry's bundle has no path-on-map contract");
+});
+
 for (const entry of ["./index.ts", "./path-on-map/draw.ts", "./basemap.ts"]) {
   test(`${entry.slice(2)} bundles no body code: no contract, region table, manifest or drawing`, async () => {
     const out = await bundle(entry);

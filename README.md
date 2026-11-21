@@ -72,7 +72,7 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 | `@zegadb/components` | `validate`, `render`, `toolDefinitions`, themes, SVG helpers, `pathOnMap`; function-plot, path-on-map and price-chart. No body, no map or three.js code |
 | `@zegadb/components/body` | the same `validate`, `render`, `toolDefinitions`, `COMPONENT_IDS`, `CONTRACTS` with the body added; `BODY_REGIONS`, `bodyRegionName`, the `body` model, `BODY` |
 | `@zegadb/components/body/draw` | `drawBody()` (three.js) |
-| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()` (MapLibre) |
+| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()`, `checkPaths()` (MapLibre); checks paths against path-on-map's contract alone, so no other component's code |
 | `@zegadb/components/basemap` | `basemapStyle()` (@protomaps/basemaps) |
 
 The body's contract, region table and mesh manifest are large, so they are
@@ -81,7 +81,9 @@ from `@zegadb/components/body` instead of the main entry (everything else
 checks and draws the same), or registers it with its own list:
 `registry([BODY, ...BUILT_IN])` (`registry`, `BUILT_IN` from the main
 entry, `BODY` from the body's). `src/entries.test.ts` bundles the other
-entries and fails if any of the body's strings are in them.
+entries and fails if any of the body's strings are in them, and fails if
+the path-on-map draw entry carries function-plot's or price-chart's
+contract or code, or the assistant's tools.
 
 - **Basemaps:** a host's street map is defined once here
   (`src/basemaps.ts`; the style in `src/basemap.ts`), so every surface of the host shows the same map. Ava's
