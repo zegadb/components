@@ -44,7 +44,7 @@ tolerance of the reference images ([CONFORMANCE.md](CONFORMANCE.md)).
 |---|---|---|---|
 | [function-plot](components/function-plot/function-plot.spec.md): y = f(x), areas, points, asymptotes | Math | review | <img src="components/function-plot/web/default.reference.png" width="240"> <img src="components/function-plot/web/default.reference.dark.png" width="240"> |
 | [price-chart](components/price-chart/price-chart.spec.md): line or candlesticks, volume, annotations | Finance | review | <img src="components/price-chart/web/default.reference.png" width="240"> <img src="components/price-chart/web/candles-zega.reference.dark.png" width="240"> |
-| [path-on-map](components/path-on-map/path-on-map.spec.md): ordered paths on the map, from above when the route is short (5 km or less corner to corner), tilted when longer | Geo | review | <img src="components/path-on-map/web/default.reference.png" width="240"> <img src="components/path-on-map/web/diverging-zega-phone.reference.dark.png" width="140"> |
+| [path-on-map](components/path-on-map/path-on-map.spec.md): ordered paths on the map, tilted with 3D buildings by default, a "2D \| 3D" switch in the map's controls | Geo | review | <img src="components/path-on-map/web/default.reference.png" width="240"> <img src="components/path-on-map/web/diverging-zega-phone.reference.dark.png" width="140"> |
 | [body](components/body/body.spec.md): a 3D human body (man, woman, boy and girl of 8), organs, skeleton, muscles and nerves lit, still or orbit and fly-to (three.js; body meshes CC BY 4.0, [assets/body/LICENSE](assets/body/LICENSE); muscles and nerves from Z-Anatomy, **share-alike**, only in [packages/body-za](packages/body-za/NOTICE); children from [paediatric references](components/body/references.json)) | Anatomy | draft (zegadb/components#5, phases 1–3) | none yet: proposals await Sami |
 | [globe-arcs](components/globe-arcs/globe-arcs.spec.md): routes as arcs on the globe | Network | review (format 1, zega's explorer) | <img src="components/globe-arcs/globe-arcs.reference.png" width="240"> |
 | [hockey3darena](components/hockey3darena/hockey3darena.spec.md): rink heat | Sports | draft (format 1) | none yet |
@@ -60,7 +60,9 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 // charts: drawn.svg is a tree of SVG elements → toElements(drawn.svg, React.createElement) or toDom()
 // then attachHover(svgElement, drawn.hover, theme) for the crosshair and tooltip
 // path-on-map: drawn is { map: true, height }; the host's MapLibre map + drawChecked() from
-// "@zegadb/components/path-on-map/draw" (pathOnMap.plainStyle(theme) when there is no basemap)
+// "@zegadb/components/path-on-map/draw" (pathOnMap.plainStyle(theme) when there is no basemap);
+// on a map the reader can move it adds the 2D | 3D switch top-right (controls: false to place
+// viewToggle() among the host's own controls, setMapView() to switch)
 // the host's basemap: basemapStyle("ava", mode, lang) from "@zegadb/components/basemap"
 // (needs @protomaps/basemaps); AVA_BASEMAP (main entry, no map code) is its origin, credit, palette
 ```
@@ -72,7 +74,7 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 | `@zegadb/components` | `validate`, `render`, `toolDefinitions`, themes, SVG helpers, `pathOnMap`; function-plot, path-on-map and price-chart. No body, no map or three.js code |
 | `@zegadb/components/body` | the same `validate`, `render`, `toolDefinitions`, `COMPONENT_IDS`, `CONTRACTS` with the body added; `BODY_REGIONS`, `bodyRegionName`, the `body` model, `BODY` |
 | `@zegadb/components/body/draw` | `drawBody()` (three.js) |
-| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()`, `checkPaths()` (MapLibre); checks paths against path-on-map's contract alone, so no other component's code |
+| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()`, `checkPaths()`, the 2D \| 3D switch `viewToggle()` and `setMapView()` (MapLibre); checks paths against path-on-map's contract alone, so no other component's code |
 | `@zegadb/components/basemap` | `basemapStyle()` (@protomaps/basemaps) |
 
 The body's contract, region table and mesh manifest are large, so they are

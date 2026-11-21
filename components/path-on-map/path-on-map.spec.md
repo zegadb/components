@@ -13,9 +13,9 @@ implementation: this repository's web package, src/path-on-map/ (moved from avac
 ## Purpose
 
 Draws ordered paths (a race lap, a delivery route, a run) on the street map,
-from straight above for a short route and tilted with 3D buildings for a
-longer one, each segment coloured by an optional value at its start
-point, with a labelled start marker. Pick it when the answer is *where
+tilted with 3D buildings unless the view says otherwise (the reader switches
+2D | 3D in the map's controls), each segment coloured by an optional value
+at its start point, with a labelled start marker. Pick it when the answer is *where
 something went, in order*, and optionally *how a number changed along the
 way* (speed, distance, sector). It is not for unordered points (a place map)
 or for routes between distant places, where the earth's curvature matters
@@ -44,24 +44,25 @@ is one path. At least 2 rows per path.
 
 Surface parameters: `bounds` (`[w, s, e, n]` or null: frame the paths),
 `basemap` (`auto`, `cities`, `monaco`). Display options: `colorScale`,
-`valueUnit`, `lineWidth` (1–16 pt, default 6), `view` (`auto`, `2d`, `3d`;
-default `auto`), `bearing` (−180–180°), `showBuildings`.
+`valueUnit`, `lineWidth` (1–16 pt, default 6), `view` (`3d`, `2d`, `auto`;
+default `3d`), `bearing` (−180–180°), `showBuildings`.
 
-`view: auto` (the default since 21 Nov; it was `3d`) looks straight down
-when what is framed (every point of every path, or `bounds`) spans
-`FLAT_MAX_KM` (5 km) or less from its south-west to its north-east corner, a
-great-circle distance, and tilts (`3d`) when it spans more. On a short route
-the tilt and the extruded buildings hide the street names (downtown Toronto:
-Richmond, Adelaide, University, York, Simcoe and Bay are readable only from
-above); a longer route is framed below zoom 13, where there are no buildings,
-and the tilt shows what lies ahead of it. The choice is by length alone:
-whether a route is in a city would need more data than the paths, so a short
-rural route is drawn from above too. An explicit `2d` or `3d` always wins.
-One function decides (`resolveView` in src/path-on-map/model.ts), and the
-validated view carries its answer (its `options.view` is `2d` or `3d`,
-never `auto`), so the camera and anything else drawn from the view read that
-one value. The format-1 binding (zega's explorer) has no
-`auto`; its default stays `3d`.
+`view` is how the map opens. `3d` (the default; Sami, 21 Nov) tilts the
+camera so the buildings stand up; `2d` looks straight down with the buildings
+laid flat. On a map the reader can move, the **2D | 3D switch** in the map's
+controls changes it (Interaction): every map opens in 3D and the reader
+flattens it when the street names matter more than the buildings.
+
+`view: auto` is still accepted (it was the default from components#11, 21 Nov,
+until the switch replaced it the same day): it looks straight down when what
+is framed (every point of every path, or `bounds`) spans `FLAT_MAX_KM`
+(5 km) or less from its south-west to its north-east corner, a great-circle
+distance, and tilts (`3d`) when it spans more. An explicit `2d` or `3d` always
+wins. One function decides (`resolveView` in src/path-on-map/model.ts), and
+the validated view carries its answer (its `options.view` is `2d` or `3d`,
+never `auto`), so the camera, the buildings and the switch read that one
+value. The format-1 binding (zega's explorer) has no `auto`; its default is
+`3d` too.
 
 ## Anatomy
 
@@ -70,7 +71,7 @@ Back to front.
 | # | part | what it is | drawn with |
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
-| 2 | **buildings** | building footprints extruded to their mapped heights | the surface; shown or hidden by `showBuildings` |
+| 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
 | 5 | **basemap labels** | the street map's text and POI icons: street, place and building names | the surface's style (its symbol layers) |
@@ -78,7 +79,7 @@ Back to front.
 | 7 | **path label** | the group's `label`, right of the start marker | map text |
 | 8 | **legend** | the value's name and unit, the colour ramp, its low and high ends | canvas overlay, bottom-left |
 | 9 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
-| 10 | **map controls** | zoom in, zoom out, compass | map SDK, top-right (masked) |
+| 10 | **map controls** | zoom in, zoom out, compass (the host's); the 2D \| 3D switch (the component's, on a map the reader can move; none on a still) | map SDK, top-right (masked); the switch DOM over the map's top-right corner |
 | 11 | **attribution** | the basemap's required credit | map SDK, bottom-right (masked) |
 
 The path and its casing go under the basemap's labels, so the names of the
@@ -113,9 +114,11 @@ Reference size: 640 × 400 pt at scale 2 (1280 × 800 pixels).
 | gear | panel | {space.md} below the button, {size.gearPanel} wide, padding {space.lg} × {space.xl}, corner {radius.md}, border {stroke.hairline} | fixed |
 | gear | row | three columns: name {size.gearLabel}, control (the rest), value {size.gearValue}; gap {space.md}; {space.sm} above and below | fixed |
 | gear | section title | {space.md} above, {space.xxs} below | fixed |
-| camera | pitch | `view: 3d` 60°, `view: 2d` 0°; `view: auto` is `2d` when what is framed spans 5 km or less corner to corner, else `3d` | option |
+| camera | pitch | `view: 3d` 60°, `view: 2d` 0°; `view: auto` is `2d` when what is framed spans 5 km or less corner to corner, else `3d`; the switch changes it after (centre, zoom and bearing kept) | option |
+| buildings | opacity | `3d`: {opacity.buildings} when `showBuildings`, else 0; `2d`: 0 | option |
 | camera | framing | every point of every path (or `bounds`) fitted in the view as rotated by `bearing`, with padding the smallest of {space.frame}, a sixth of the width and a sixth of the height; `3d` then zooms out by 0.3 levels; never past zoom 17 | canvas |
 | map controls | placement | top-right, {space.xl} inset | fixed |
+| 2D \| 3D switch | box | {space.xl} from the top and right edges; two buttons side by side, each 29 pt high and at least 34 pt wide, {space.lg} either side of its word; corner {radius.md}, border {stroke.hairline}, a {stroke.hairline} rule between the two | fixed |
 
 Scaling rules: the legend, gear and map controls keep their size in points at
 every canvas size and stay in their corners. The path, marker and label keep
@@ -137,6 +140,7 @@ canvas.
 | start marker | fill {color.panel}, outline {color.ink} |
 | path label | {color.ink}, halo {color.ground}, {type.family.map} |
 | legend | background {color.panel} at {opacity.legend}; border {color.rule}; title {color.ink} {type.size.label} {type.weight.semibold}; ends {color.soft} {type.size.label} with tabular numerals; line height {type.lineHeight.tight}; family {type.family.ui} |
+| 2D \| 3D switch | {color.panel} fill, {color.rule} border and rule; words {color.soft} {type.size.label} {type.weight.semibold} {type.family.ui}; the view shown: {color.accent} fill, {color.panel} word; hover: {color.rule} fill, {color.ink} word; focus ring {color.accent} (on the view shown, {color.ink}) |
 | gear | button: {color.panel} fill, {color.rule} border, {color.ink} glyph. Panel: {color.panel} at {opacity.gearPanel}, {color.rule} border, text {color.ink} {type.size.label}. Section titles: {color.soft}, {type.size.caption}, upper case, tracking {type.tracking.caption}. Values: {color.soft} {type.weight.medium}, right-aligned, tabular. Inputs: {color.ground} fill, {color.rule} border, {radius.sm}; slider and checkbox tint {color.accent}. Error: {color.accent} {type.family.mono} {type.size.gearError}, line height {type.lineHeight.code} |
 
 Legend text: the title is the last segment of the `value` binding's field path
@@ -165,6 +169,7 @@ numbers when the range is 10 or more, else 3 significant digits.
 | rotate | two-finger twist | right-drag or ctrl-drag sideways | changes bearing |
 | tilt | two-finger vertical drag | right-drag or ctrl-drag vertically | changes pitch, up to 70° |
 | zoom buttons, compass | tap | click | zoom by one level; compass resets bearing and pitch to north-up |
+| 2D \| 3D switch | tap the other half | click it, or Enter/Space when focused | `2d`: pitch 0, buildings laid flat; `3d`: pitch 60°, buildings standing. Centre, zoom and bearing stay; nothing is fetched again; no history entry (like moving the camera). A redraw that keeps the camera (a theme change, the plain fallback) keeps the view switched to |
 | open or close the gear | tap the gear | click the gear, or Enter/Space when focused | shows or hides the panel |
 | change a parameter | the control | the control | creates a new history entry with that value; the canvas redraws; invalid input shows the gear error and changes nothing |
 
@@ -173,10 +178,12 @@ a restore puts the entry's own camera back.
 
 ## Animation
 
-None. Loads, restores, theme changes and parameter changes jump straight to
+Loads, restores, theme changes and parameter changes jump straight to
 the new frame ({motion.duration.instant}): the camera does not fly and paths
-do not draw on. Map gestures follow the platform map's own inertia. Reduced
-motion changes nothing because nothing animates.
+do not draw on. Map gestures follow the platform map's own inertia. The one
+animation is the 2D | 3D switch: the pitch eases over
+{motion.duration.viewSwitch} ({motion.easing.standard} or the map's own
+ease), the buildings fading with it. With reduced motion it jumps.
 
 ## Accessibility
 
@@ -188,7 +195,14 @@ motion changes nothing because nothing animates.
   state; each control is named `<section>.<name>` (`options.lineWidth`) and
   carries the contract's description as its hint. The gear error line is a
   live status region.
-- Focus order: gear button, gear controls (when open), map controls.
+- The 2D | 3D switch is a group named "Map view" ("Vue de la carte" in
+  French) of two native buttons, "2D" and "3D" in both languages, each with
+  a hint ("2D: flat, from above", "3D: tilted, buildings standing"; in
+  French "2D : à plat, vue du dessus", "3D : inclinée, bâtiments en
+  relief"); the view shown is `aria-pressed="true"`, the other `false`.
+  Both are in the tab order; Enter or Space presses one.
+- Focus order: gear button, gear controls (when open), map controls (the
+  switch's 2D, then 3D).
 - Contrast: text on the legend and gear passes 4.5:1 in both themes
   ({color.ink} on {color.panel} 14:1; {color.soft} on {color.panel} 4.7:1
   light, 7.2:1 dark). The solid path, {color.accent} on {color.ground}, is
@@ -198,7 +212,7 @@ motion changes nothing because nothing animates.
   light); the casing separates the line from the map but not its colour from
   the ground. Colour is never the only carrier: the legend's numbers state the
   range.
-- Reduced motion: nothing animates (see Animation).
+- Reduced motion: nothing animates, the switch included (see Animation).
 
 ## Parameters (gear)
 
@@ -214,7 +228,7 @@ else a JSON text field checked on commit.
 | options | `colorScale` | menu | sequential, diverging, solid | sequential |
 | options | `valueUnit` | menu | ft, m, deg, pct, fraction, km/h, yd, s, null | null |
 | options | `lineWidth` | slider, step 0.1 | 1–16 | 6 |
-| options | `view` | menu | auto, 2d, 3d | auto |
+| options | `view` | menu | 3d, 2d, auto | 3d |
 | options | `bearing` | slider, step 1 | −180–180 | 0 |
 | options | `showBuildings` | checkbox | — | true |
 
@@ -247,7 +261,7 @@ host without a basemap: the plain ground, labels as HTML in the host's face):
 
 | fixture | what it proves | tolerance |
 |---|---|---|
-| [web/default](web/default.json) | sequential ramp in Ava's theme, 3D camera with bearing (`view: 3d` written out: the lap is 1.2 km corner to corner, so `auto` would look straight down), start marker and HTML label, legend with unit, no basemap | default |
+| [web/default](web/default.json) | sequential ramp in Ava's theme, 3D camera with bearing (`view: 3d`, the default, written out), start marker and HTML label, legend with unit, no basemap | default |
 | [web/diverging-zega-phone](web/diverging-zega-phone.json) | diverging ramp in zega's theme, 2D, a phone column, the framing kept clear of the legend | default |
 
 Known gaps in the reference implementation (zegadb/zega at 11cff10), which
@@ -275,4 +289,5 @@ platform renders fixtures from the same files.
 {type.size.label}, {type.size.gearGlyph}, {type.size.mapLabel},
 {type.weight.medium}, {type.weight.semibold}, {type.lineHeight.tight},
 {type.lineHeight.code}, {type.tracking.caption}, {motion.duration.instant},
-{motion.duration.swapBudget}.
+{motion.duration.swapBudget}, {motion.duration.viewSwitch},
+{motion.easing.standard}.

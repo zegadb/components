@@ -5,7 +5,7 @@
   "version": "2.0.0",
   "title": "Path on map",
   "category": "Geo",
-  "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; a short route is seen from straight above, a longer one tilted. Points are [longitude, latitude], in path order.",
+  "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; tilted so buildings stand up (3D) unless the view says otherwise, and the reader can switch 2D | 3D. Points are [longitude, latitude], in path order.",
   "surface": {
     "kind": "map",
     "description": "The host’s street map (MapLibre): its basemap, or the plain ground where there is none. The component adds the paths, their casing, start markers, labels, the legend and the extruded buildings: the buildings, casing and paths under the basemap’s labels, the start markers and path labels over them."
@@ -130,8 +130,8 @@
         "2d",
         "3d"
       ],
-      "default": "auto",
-      "description": "2d looks straight down; 3d tilts the camera (pitch 60°) so buildings stand up; auto is 2d when what is framed (the paths, or bounds) spans 5 km or less corner to corner, so a walk or a short drive keeps its street names readable, and 3d when it spans more."
+      "default": "3d",
+      "description": "How the map opens: 3d (the default) tilts the camera (pitch 60°) so buildings stand up; 2d looks straight down, the buildings flat; auto is 2d when what is framed (the paths, or bounds) spans 5 km or less corner to corner, else 3d. On a map the reader can move, the 2D | 3D switch in its controls changes it."
     },
     "bearing": {
       "type": "number",
@@ -182,7 +182,7 @@
   "examples": {
     "valid": [
       {
-        "title": "Speed along a short run, seen from above (short, so auto is 2d)",
+        "title": "Speed along a short run, tilted (the default view, 3d)",
         "spec": {
           "component": "path-on-map",
           "data": {

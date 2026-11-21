@@ -138,6 +138,7 @@ export const motion = deepFreeze({
   "duration": {
     "instant": 0,
     "fast": 150,
+    "viewSwitch": 500,
     "swapBudget": 100
   },
   "easing": {
