@@ -45,7 +45,7 @@ spleen, kidney\*, small-intestine, large-intestine, appendix, bladder.
 Bones: spine, pelvis, femur\*, patella\*, tibia\*. Muscles: deltoid\*,
 biceps\*, triceps\*, pectoralis\*, rectus-abdominis\*, obliques\*,
 latissimus\*, trapezius\*, gluteus-maximus\*, quadriceps\*, hamstrings\*,
-gastrocnemius\*, rotator-cuff\*. Nerves: spinal-cord, vagus\*,
+gastrocnemius\*, rotator-cuff\*, masseter\* (the jaw muscle). Nerves: spinal-cord, vagus\*,
 cranial-nerves, median-nerve\*, ulnar-nerve\*, radial-nerve\*,
 brachial-plexus\*, femoral-nerve\*, sciatic-nerve\*. (\* paired: `side` is the
 person's own left or right, or both.) `layers` draws chosen layers alone or
@@ -130,20 +130,27 @@ Left out:
 - the brain (Brainder/White matter, University of Washington, no licence
   stated); the Allen brain stays;
 - the sense organs, including the inner ear, which is CC BY-NC-SA;
-- fasciae, bursae and sheaths.
+- fasciae, bursae and sheaths, and the eye's own muscles.
 
 Every layer is fitted to every body by the same map as the skeleton:
 - through the outline's sections and the leg's ankle, shin and thigh;
-- the arms turned about the shoulder from the source's near-vertical hang
-  to each body's own. An arm mesh (by its place in the source, or with most
-  of its points along the arm) turns whole. A trunk mesh blends only near
-  the shoulder, so the side of the chest is never dragged out to the wrist;
+- an arm mesh (by its place in the source, or with most of its points along
+  the arm) follows the arm's own axis, bend by bend: a point goes to the same
+  fraction of the way from the shoulder to the fingertips, its offset from
+  the axis turned with the axis there and scaled by the arm's thickness
+  there. A trunk mesh (the latissimus and pectoralis included) never follows
+  the arm, so it is not drawn out across the armpit when a body's arms spread
+  wider than the source's;
 - anything still poking through the skin nudged inside.
 
-Known gap: the forearm nerves cross the skin at the elbow. In the children,
-whose arms spread wider, the latissimus, obliques and arm nerves web across
-the armpit. No test guards this yet; the screenshots in the PR are the
-evidence.
+Tests hold the fit: no muscle triangle lies outside the skin across the
+armpit (a "sail"), every nerve point and the middle of every nerve edge is
+inside the skin, the quadriceps is the front of the thigh across its width,
+and each region sits where it does against the bones.
+
+The head's muscles are their own mesh, drawn only when a head muscle (the
+masseter) is lit. Otherwise the skin's veil draws the head: a flayed face is
+not a picture for a chat.
 
 Each layer is loaded only when a picture shows it. The per-layer budget is
 under 300 KB for muscles (about 250 KB) and under 120 KB for nerves (about

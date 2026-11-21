@@ -163,6 +163,25 @@ export async function bodyRuntime(browser, origin) {
         h.dispose();
       } finally { window.fetch = real; }
     });
+    await step('a related muscle shows whole, not its edge', async () => {
+      // The man's muscles from the front, three ways: the quadriceps not lit, lit as the focus (solid), lit as
+      // related (a veil). The veil must change about as much of the picture as the solid colour does: drawn
+      // under the layer's rest, only the outer edge of the thigh changed (0.59 of it; 0.93 drawn over).
+      const pixels = async (highlight) => {
+        const s = validate({ component: 'body', data: { highlight }, options: { body: 'man', frame: 'body', view: 'front', labels: false } }).view;
+        const el = box(320, 320);
+        const h = await within(drawBody(el, s.data, s.options, { theme: t, asset, reducedMotion: true }));
+        const c = el.querySelector('canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data.slice();
+        h.dispose(); el.remove();
+        return d;
+      };
+      const base = await pixels([{ region: 'deltoid', side: 'left' }]);
+      const changed = (d) => { let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - base[i]) + Math.abs(d[i + 1] - base[i + 1]) + Math.abs(d[i + 2] - base[i + 2]) > 24) n++; return n; };
+      const solid = changed(await pixels([{ region: 'deltoid', side: 'left' }, { region: 'quadriceps' }]));
+      const veil = changed(await pixels([{ region: 'deltoid', side: 'left' }, { region: 'quadriceps', role: 'related' }]));
+      if (solid < 200) out.push(`the lit quadriceps changed only ${solid} pixels`);
+      else if (veil < 0.8 * solid) out.push(`a related quadriceps shows ${veil} of the ${solid} pixels a lit one does: drawn under the rest`);
+    });
     await step('failed load', async () => {
       const bad = box(200, 200);
       try { await within(drawBody(bad, v.data, v.options, { theme: t, asset: () => '/assets/body/none.glb', reducedMotion: true })); out.push('a failed load resolved'); } catch { /* expected */ }

@@ -19,7 +19,7 @@ import { autoView, direction, duration, ease, flight, frame, frameStanding, posi
 import { anchorPoint } from "./geometry.ts";
 import { layout, KEY_LINE, type LabelIn } from "./labels.ts";
 import { focusOf, layersOf, sidesOf, type BodyData, type BodyOptions, type Highlight, type Role } from "./model.ts";
-import { ALL_LAYERS, REGIONS, isPaired, isZaLayer, meshName, nameOf, type Body, type Layer, type RegionId, type ZaLayer } from "./regions.ts";
+import { ALL_LAYERS, HEAD_MUSCLES, REGIONS, isHeadMuscle, isPaired, isZaLayer, meshName, nameOf, type Body, type Layer, type RegionId, type ZaLayer } from "./regions.ts";
 import type { Locale } from "../scale.ts";
 import type { Theme } from "../types.ts";
 
@@ -122,6 +122,12 @@ export const roleLook = (role: Role, theme: Theme) =>
   role === "pain" ? { colour: theme.down, opacity: 1 } : role === "related" ? { colour: theme.soft, opacity: 0.45 } : { colour: theme.accent, opacity: 1 };
 export const roleColour = (role: Role, theme: Theme) => roleLook(role, theme).colour;
 
+/** Whether a mesh is a region of a Z-Anatomy layer (muscles, nerves), whose rest is drawn nearly solid. */
+export const overRest = (name: string): boolean => {
+  const id = name.split("__")[0] as RegionId;
+  return id in REGIONS && isZaLayer(REGIONS[id].layer);
+};
+
 /** A dimmed mesh of a layer that is shown: a veil in the axis colour, fainter on a dark ground. */
 const DIM = (theme: Theme) => ({ colour: theme.axis, opacity: theme.mode === "dark" ? 0.22 : 0.3, lit: false });
 
@@ -148,6 +154,10 @@ export function looks(data: BodyData, theme: Theme, options?: Pick<BodyOptions, 
     }
   }
   for (const layer of ALL_LAYERS) out.set(layer, layer === "skin" ? { colour: theme.soft, opacity: 0.1, lit: false } : context(layer));
+  // The head's muscles show only when one of them is lit: else the head is the skin's outline, never a flayed face.
+  const headLit = data.highlight.some((h) => REGIONS[h.region].head);
+  out.set(HEAD_MUSCLES, headLit ? context("muscles") : null);
+  if (!headLit) for (const name of out.keys()) if (isHeadMuscle(name)) out.set(name, null);
   // A child's cartilage (growth plates, the pelvis's seams): solid in its own colour when the skeleton is; else not drawn (it would be noise round organs).
   out.set("cartilage", solid.has("skeleton") ? { colour: theme.cartilage, opacity: 1, lit: false } : null);
   return out;
@@ -257,7 +267,9 @@ export async function drawBody(container: HTMLElement, data: BodyData, options: 
         transparent: l.opacity < 1, opacity: l.opacity, depthWrite: name !== "skin" && !(l.lit && l.opacity < 1),
         side: name === "skin" ? THREE.FrontSide : THREE.DoubleSide,
       });
-      mesh.renderOrder = l.opacity >= 1 ? 0 : l.lit ? 1 : name === "skin" ? 3 : 2;
+      // A translucent lit region of the muscles or nerves draws after its layer's rest: the rest is nearly
+      // solid there and, drawn after, would paint over everything of the region but its outer edge.
+      mesh.renderOrder = l.opacity >= 1 ? 0 : l.lit ? (overRest(name) ? 2.5 : 1) : name === "skin" ? 3 : 2;
     }
   };
   applyTheme();

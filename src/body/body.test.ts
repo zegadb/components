@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { validate, explain } from "../validate.ts";
 import { theme } from "../theme.ts";
 import { looks, roleColour } from "./draw.ts";
-import { REGIONS, LAYERS, BODIES, ZA_LAYERS, isPaired, meshName, type Body, type RegionId, type ZaLayer } from "./regions.ts";
+import { REGIONS, LAYERS, BODIES, ZA_LAYERS, HEAD_MUSCLES, isPaired, meshName, type Body, type RegionId, type ZaLayer } from "./regions.ts";
 import { autoView, flight, frame, direction, position, type Box } from "./camera.ts";
 import { semantic, type BodyData, type BodyOptions } from "./model.ts";
 import { MANIFEST } from "./manifest.ts";
@@ -103,6 +103,28 @@ test("body: the lit meshes are exactly the highlighted regions and sides, colour
   assert.equal(bones.get("liver"), null);
 });
 
+test("body layers: the muscles layer draws the head as the skin's outline, its muscles only when a head muscle is lit", async () => {
+  // Every mesh of the muscles file that lies mostly in the head (most of its points above the chin, about 0.87 of
+  // the height from the sole) must be hidden unless a head muscle is lit: no flayed face in a chat. (The trapezius reaches the skull; it stays.)
+  for (const body of BODIES) {
+    const skin = (await decoded(body)).get("skin")!;
+    let y0 = Infinity, y1 = -Infinity;
+    for (let i = 1; i < skin.positions.length; i += 3) { y0 = Math.min(y0, skin.positions[i]!); y1 = Math.max(y1, skin.positions[i]!); }
+    const chin = y0 + 0.87 * (y1 - y0);
+    const inHead = (g: { positions: number[] }) => { let n = 0; for (let i = 1; i < g.positions.length; i += 3) if (g.positions[i]! > chin) n++; return n / (g.positions.length / 3); };
+    const muscles = await decoded(body, "muscles");
+    const head = [...muscles].filter(([, g]) => inHead(g) > 0.5).map(([name]) => name).sort();
+    assert.ok(head.includes(HEAD_MUSCLES) && head.includes("masseter__left"), `${body}: the head's muscles are in the file (${head.join(", ")})`);
+    const shown = (data: BodyData) => { const l = looks(data, ava); return [...muscles.keys()].filter((name) => l.get(name)); };
+    for (const name of shown({ highlight: [{ region: "quadriceps" }, { region: "deltoid", role: "related" }] })) {
+      assert.ok(inHead(muscles.get(name)!) < 0.5, `${body}: ${name} is drawn in the head with no head muscle lit`);
+    }
+    const lit = shown({ highlight: [{ region: "masseter", side: "left" }] });
+    for (const name of head) assert.ok(lit.includes(name), `${body}: ${name} is drawn when the masseter is lit`);
+    assert.equal(looks({ highlight: [{ region: "masseter", side: "left" }] }, ava).get("masseter__left")!.lit, true);
+  }
+});
+
 test("body: every body has one mesh per region and side and each layer's rest, as its manifest says", () => {
   const meshesOf = (ids: RegionId[]) => ids.flatMap((id) => (isPaired(id) ? [meshName(id, "right"), meshName(id, "left")] : [meshName(id, null)]));
   const base = [...meshesOf(IDS.filter((id) => !REGIONS[id].za)), ...LAYERS].sort();
@@ -112,7 +134,7 @@ test("body: every body has one mesh per region and side and each layer's rest, a
     assert.equal(MANIFEST[body].bytes, readFileSync(fileOf(body)).length, `${body}: the manifest's size is the file's`);
     const all = [...want];
     for (const layer of ZA_LAYERS) {
-      const layerWant = [...meshesOf(IDS.filter((id) => REGIONS[id].layer === layer)), layer].sort();
+      const layerWant = [...meshesOf(IDS.filter((id) => REGIONS[id].layer === layer)), layer, ...(layer === "muscles" ? [HEAD_MUSCLES] : [])].sort();
       assert.deepEqual([...asset(body, layer).keys()].sort(), layerWant, `${body} ${layer}`);
       assert.equal(MANIFEST[body].layers[layer].bytes, readFileSync(fileOf(body, layer)).length, `${body} ${layer}: the manifest's size is the file's`);
       all.push(...layerWant);
@@ -391,6 +413,114 @@ test("body layers: every muscle and nerve lies inside its body's skin, in all fo
   }
 });
 
+test("body layers: no muscle spans the gap between the arm and the trunk (no 'sails' at the armpit), in all four bodies", async () => {
+  // A sail is a sheet of triangles whose corners are on the arm and on the trunk: its corners are inside the
+  // skin, its middle is in the air of the armpit. So: of every muscle mesh, the triangles whose middle lies
+  // outside the skin are at most 2 % of its area, and none of them is long (over 2 % of the height).
+  for (const body of BODIES) {
+    const skin = (await decoded(body)).get("skin")!, inside = insideTest(skin.positions, skin.indices);
+    let y0 = Infinity, y1 = -Infinity;
+    for (let i = 1; i < skin.positions.length; i += 3) { y0 = Math.min(y0, skin.positions[i]!); y1 = Math.max(y1, skin.positions[i]!); }
+    for (const [name, g] of await decoded(body, "muscles")) {
+      const P = (i: number, k: number) => g.positions[i * 3 + k]!;
+      let area = 0, out = 0, longest = 0;
+      for (let t = 0; t < g.indices.length; t += 3) {
+        const [a, b, c] = [g.indices[t]!, g.indices[t + 1]!, g.indices[t + 2]!];
+        const u = [0, 1, 2].map((k) => P(b, k) - P(a, k)), v = [0, 1, 2].map((k) => P(c, k) - P(a, k));
+        const s = Math.hypot(u[1]! * v[2]! - u[2]! * v[1]!, u[2]! * v[0]! - u[0]! * v[2]!, u[0]! * v[1]! - u[1]! * v[0]!) / 2;
+        area += s;
+        // Outside: its middle and the middles of its three edges (a triangle merely grazing the skin is not).
+        const at = (w: readonly number[]) => [0, 1, 2].map((k) => w[0]! * P(a, k) + w[1]! * P(b, k) + w[2]! * P(c, k)) as [number, number, number];
+        if ([[1 / 3, 1 / 3, 1 / 3], [0.5, 0.5, 0], [0, 0.5, 0.5], [0.5, 0, 0.5]].some((w) => inside(at(w)))) continue;
+        out += s;
+        for (const [p, q] of [[a, b], [b, c], [c, a]] as const) longest = Math.max(longest, Math.hypot(P(p, 0) - P(q, 0), P(p, 1) - P(q, 1), P(p, 2) - P(q, 2)));
+      }
+      assert.ok(out / area <= 0.02, `${body}: ${(100 * out / area).toFixed(1)} % of ${name}'s area is outside the skin`);
+      assert.ok(longest <= 0.02 * (y1 - y0), `${body}: a triangle of ${name} ${(longest * 100).toFixed(1)} cm long lies outside the skin (a sail)`);
+    }
+  }
+});
+
+/** The share of a nerve's points and edge middles that may test outside the skin: the point-in-mesh test's own noise where a nerve runs within a millimetre of it. */
+const NERVE_SLACK = 0.005;
+test("body layers: every nerve stays inside the skin, its points and the middle of every edge (the elbow, the face), in all four bodies", async () => {
+  for (const body of BODIES) {
+    const skin = (await decoded(body)).get("skin")!, inside = insideTest(skin.positions, skin.indices);
+    for (const [name, g] of await decoded(body, "nerves")) {
+      const P = (i: number) => [g.positions[i * 3]!, g.positions[i * 3 + 1]!, g.positions[i * 3 + 2]!] as const;
+      // Each place once (a vertex the quantiser split in two is one place), to the millimetre.
+      const outside = new Set<string>();
+      for (let i = 0; i < g.positions.length / 3; i++) if (!inside(P(i))) outside.add(`point ${P(i).map((v) => v.toFixed(3))}`);
+      for (let t = 0; t < g.indices.length; t += 3) for (const [a, b] of [[0, 1], [1, 2], [2, 0]] as const) {
+        const p = P(g.indices[t + a]!), q = P(g.indices[t + b]!), m = [0, 1, 2].map((k) => (p[k]! + q[k]!) / 2) as [number, number, number];
+        if (!inside(m)) outside.add(`edge middle ${m.map((v) => v.toFixed(3))}`);
+      }
+      assert.ok(outside.size <= NERVE_SLACK * (g.positions.length / 3 + g.indices.length), `${body}: ${name} crosses the skin at ${outside.size} places, e.g. ${[...outside].slice(0, 3).join("; ")}`);
+    }
+  }
+});
+
+test("body layers: no trunk muscle is torn out towards the arm (longest edge, for its height, near the man's)", async () => {
+  // A trunk muscle dragged along with an arm (the armpit "sails" of the latissimus and obliques) shows as
+  // triangles far longer than the same muscle has in the man, whose arms hang like the source's.
+  const longest = async (body: Body) => {
+    const skin = (await decoded(body)).get("skin")!;
+    let y0 = Infinity, y1 = -Infinity;
+    for (let i = 1; i < skin.positions.length; i += 3) { y0 = Math.min(y0, skin.positions[i]!); y1 = Math.max(y1, skin.positions[i]!); }
+    const out = new Map<string, number>();
+    for (const [name, g] of await decoded(body, "muscles")) {
+      if (!/^(latissimus|obliques|pectoralis|trapezius|rectus-abdominis)__/.test(name)) continue;
+      let w = 0;
+      for (let t = 0; t < g.indices.length; t += 3) for (const [a, b] of [[0, 1], [1, 2], [2, 0]] as const) {
+        const i = g.indices[t + a]! * 3, j = g.indices[t + b]! * 3;
+        w = Math.max(w, Math.hypot(g.positions[i]! - g.positions[j]!, g.positions[i + 1]! - g.positions[j + 1]!, g.positions[i + 2]! - g.positions[j + 2]!));
+      }
+      out.set(name, w / (y1 - y0));
+    }
+    return out;
+  };
+  const man = await longest("man");
+  assert.equal(man.size, 10);
+  for (const body of BODIES) for (const [name, w] of await longest(body)) {
+    assert.ok(w <= 1.4 * man.get(name)!, `${body}: ${name}'s longest edge is ${(w / man.get(name)!).toFixed(2)} times the man's, for its height`);
+  }
+});
+
+test("body layers: the quadriceps is the front of the thigh, across its width, not a strip at its side", async () => {
+  // Mid-thigh (the middle third of the femur), across the front of the thigh (the femur's middle ± 2.5 % of the
+  // height, in six strips): in every strip the quadriceps is there and is the muscle furthest forward. A region of
+  // the vastus lateralis alone fills only the outer strips; one at the side of the thigh is behind others in front.
+  for (const body of BODIES) {
+    const bones = await decoded(body), muscles = await decoded(body, "muscles"), skin = bones.get("skin")!;
+    let h0 = Infinity, h1 = -Infinity;
+    for (let i = 1; i < skin.positions.length; i += 3) { h0 = Math.min(h0, skin.positions[i]!); h1 = Math.max(h1, skin.positions[i]!); }
+    for (const side of ["right", "left"] as const) {
+      const femur = bones.get(meshName("femur", side))!.positions;
+      let y0 = Infinity, y1 = -Infinity;
+      for (let i = 1; i < femur.length; i += 3) { y0 = Math.min(y0, femur[i]!); y1 = Math.max(y1, femur[i]!); }
+      const lo = y0 + (y1 - y0) / 3, hi = y1 - (y1 - y0) / 3;
+      let fx = 0, n = 0;
+      for (let i = 0; i < femur.length; i += 3) if (femur[i + 1]! >= lo && femur[i + 1]! <= hi) { fx += femur[i]!; n++; }
+      fx /= n;
+      const w = 0.025 * (h1 - h0), strips = Array.from({ length: 6 }, () => ({ quadriceps: -Infinity, other: -Infinity }));
+      for (const [name, g] of muscles) {
+        const own = name === meshName("quadriceps", side);
+        for (let i = 0; i < g.positions.length; i += 3) {
+          const [x, y, z] = [g.positions[i]!, g.positions[i + 1]!, g.positions[i + 2]!];
+          const t = (x - fx + w) / (2 * w);
+          if (y < lo || y > hi || t < 0 || t >= 1) continue;
+          const s = strips[Math.floor(t * 6)]!;
+          if (own) s.quadriceps = Math.max(s.quadriceps, z); else s.other = Math.max(s.other, z);
+        }
+      }
+      // In every strip; in front in all but one (the sartorius crosses the inner edge of the front mid-thigh).
+      strips.forEach((s, i) => assert.ok(s.quadriceps > -Infinity, `${body} ${side}: no quadriceps in strip ${i + 1} of 6 across the front of the thigh`));
+      const behind = strips.map((s, i) => ({ i, by: s.other - s.quadriceps })).filter((s) => s.by > 0.003);
+      assert.ok(behind.length <= 1, `${body} ${side}: another muscle lies in front of the quadriceps in strips ${behind.map((s) => `${s.i + 1} (${(s.by * 1000).toFixed(0)} mm)`).join(", ")} of 6`);
+    }
+  }
+});
+
 test("body layers: muscles and nerves sit where they do against the bones, in all four bodies", () => {
   for (const body of BODIES) {
     const b = asset(body), m = asset(body, "muscles"), n = asset(body, "nerves");
@@ -408,6 +538,19 @@ test("body layers: muscles and nerves sit where they do against the bones, in al
       const deltoid = at(m, meshName("deltoid", side));
       assert.ok(side === "right" ? deltoid[0]! < 0 : deltoid[0]! > 0, `${body} ${side}: deltoid on its own side`);
       assert.ok(deltoid[1]! > at(b, "heart")[1]!, `${body} ${side}: deltoid above the heart`);
+      // The rest of the muscles, each against the trunk's landmarks: front or back of the heart, the side.
+      const heart = at(b, "heart"), pelvis = at(b, "pelvis"), lateral = (p: readonly number[]) => Math.abs(p[0]!);
+      const muscle = (id: Parameters<typeof meshName>[0]) => at(m, meshName(id, side));
+      assert.ok(muscle("pectoralis")[2]! > heart[2]!, `${body} ${side}: pectoralis in front of the heart`);
+      assert.ok(muscle("rectus-abdominis")[2]! > heart[2]! && muscle("rectus-abdominis")[1]! < heart[1]!, `${body} ${side}: rectus abdominis in front, below the heart`);
+      assert.ok(lateral(muscle("obliques")) > lateral(muscle("rectus-abdominis")), `${body} ${side}: the obliques beside the rectus abdominis`);
+      for (const id of ["latissimus", "trapezius", "rotator-cuff"] as const) assert.ok(muscle(id)[2]! < heart[2]!, `${body} ${side}: ${id} behind the heart`);
+      assert.ok(muscle("trapezius")[1]! > muscle("latissimus")[1]!, `${body} ${side}: trapezius above the latissimus`);
+      assert.ok(muscle("gluteus-maximus")[2]! < pelvis[2]! && muscle("gluteus-maximus")[1]! < heart[1]!, `${body} ${side}: gluteus maximus behind the pelvis`);
+      assert.ok(muscle("biceps")[2]! > muscle("triceps")[2]!, `${body} ${side}: biceps in front of the triceps`);
+      assert.ok(muscle("biceps")[1]! < deltoid[1]! && lateral(muscle("biceps")) > lateral(heart), `${body} ${side}: biceps below the deltoid, out on the arm`);
+      const brain = at(b, "brain"), masseter = muscle("masseter");
+      assert.ok(masseter[1]! < brain[1]! && masseter[1]! > muscle("trapezius")[1]! && masseter[2]! > brain[2]! - 0.02 && lateral(masseter) > 0.02, `${body} ${side}: masseter at the side of the jaw, below the brain`);
     }
     assert.ok(at(n, "spinal-cord")[2]! < at(b, "heart")[2]!, `${body}: the spinal cord behind the heart`);
   }

@@ -105,6 +105,7 @@ export const CONTRACTS = {
           "hamstrings",
           "gastrocnemius",
           "rotator-cuff",
+          "masseter",
           "spinal-cord",
           "vagus",
           "cranial-nerves",
@@ -290,7 +291,7 @@ export const CONTRACTS = {
           "error": {
             "code": "enum",
             "at": "data.highlight[0].region",
-            "message": "\"livers\" is not one of \"brain\", \"heart\", \"lung\", \"liver\", \"gallbladder\", \"pancreas\", \"spleen\", \"kidney\", \"small-intestine\", \"large-intestine\", \"appendix\", \"bladder\", \"spine\", \"pelvis\", \"femur\", \"patella\", \"tibia\", \"deltoid\", \"biceps\", \"triceps\", \"pectoralis\", \"rectus-abdominis\", \"obliques\", \"latissimus\", \"trapezius\", \"gluteus-maximus\", \"quadriceps\", \"hamstrings\", \"gastrocnemius\", \"rotator-cuff\", \"spinal-cord\", \"vagus\", \"cranial-nerves\", \"median-nerve\", \"ulnar-nerve\", \"radial-nerve\", \"brachial-plexus\", \"femoral-nerve\", \"sciatic-nerve\"",
+            "message": "\"livers\" is not one of \"brain\", \"heart\", \"lung\", \"liver\", \"gallbladder\", \"pancreas\", \"spleen\", \"kidney\", \"small-intestine\", \"large-intestine\", \"appendix\", \"bladder\", \"spine\", \"pelvis\", \"femur\", \"patella\", \"tibia\", \"deltoid\", \"biceps\", \"triceps\", \"pectoralis\", \"rectus-abdominis\", \"obliques\", \"latissimus\", \"trapezius\", \"gluteus-maximus\", \"quadriceps\", \"hamstrings\", \"gastrocnemius\", \"rotator-cuff\", \"masseter\", \"spinal-cord\", \"vagus\", \"cranial-nerves\", \"median-nerve\", \"ulnar-nerve\", \"radial-nerve\", \"brachial-plexus\", \"femoral-nerve\", \"sciatic-nerve\"",
             "help": "did you mean \"liver\"?",
             "fix": {
               "kind": "safe",
@@ -321,7 +322,7 @@ export const CONTRACTS = {
             "code": "side",
             "at": "data.highlight[0].side",
             "message": "liver is not a paired region, so it takes no side",
-            "help": "remove side; only lung, kidney, femur, patella, tibia, deltoid, biceps, triceps, pectoralis, rectus-abdominis, obliques, latissimus, trapezius, gluteus-maximus, quadriceps, hamstrings, gastrocnemius, rotator-cuff, vagus, median-nerve, ulnar-nerve, radial-nerve, brachial-plexus, femoral-nerve, sciatic-nerve take one"
+            "help": "remove side; only lung, kidney, femur, patella, tibia, deltoid, biceps, triceps, pectoralis, rectus-abdominis, obliques, latissimus, trapezius, gluteus-maximus, quadriceps, hamstrings, gastrocnemius, rotator-cuff, masseter, vagus, median-nerve, ulnar-nerve, radial-nerve, brachial-plexus, femoral-nerve, sciatic-nerve take one"
           }
         },
         {

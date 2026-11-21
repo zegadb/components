@@ -56,8 +56,8 @@ Left out
 
 What these files keep
 
-- Muscles: the muscular system without fasciae, bursae, tendon sheaths and
-  retinacula.
+- Muscles: the muscular system without fasciae, bursae, tendon sheaths,
+  retinacula and the eye's own (extra-ocular) muscles.
 - Nerves: the peripheral nervous system (cranial and spinal nerves, the
   plexuses, ganglia and the autonomic division) and the spinal cord.
 
@@ -66,11 +66,14 @@ Changes
 - Converted from FBX to glTF by Blender (tools/body/za-export.py), keeping
   each structure's exact name.
 - Grouped into one mesh per region and side, as named in
-  @zegadb/components src/body/regions.ts, and one mesh for each layer's rest.
+  @zegadb/components src/body/regions.ts, one mesh for each layer's rest, and
+  one for the head's muscles.
 - Fitted to each body's outline by tools/body/build.mjs: the body map
-  through its sections, the arms turned about the shoulder, and anything
-  still poking through nudged inside. The fit is not a scale, so the shapes
-  are adapted.
+  through its sections, the arm's own muscles and nerves (the brachial
+  plexus included) following the arm's axis from the shoulder to the
+  fingertips (the trunk's muscles stay with the trunk), and anything still
+  poking through the skin nudged inside. The fit is not a scale, so the
+  shapes are adapted.
 - Welded, simplified with meshoptimizer to a budget per layer, quantised and
   meshopt-compressed.
 

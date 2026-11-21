@@ -29,8 +29,8 @@ import { fileURLToPath } from 'node:url';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTMeshoptCompression } from '@gltf-transform/extensions';
 import { quantize, reorder, prune } from '@gltf-transform/functions';
-import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
-import { REGIONS, LAYER_NODES, LAYERS, BODIES, meshName, femaleNode, ZA_LAYERS } from '../../src/body/regions.ts';
+import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
+import { REGIONS, LAYER_NODES, LAYERS, BODIES, meshName, femaleNode, ZA_LAYERS, HEAD_MUSCLES } from '../../src/body/regions.ts';
 import { principalLength, insideTest, hanging } from '../../src/body/geometry.ts';
 
 const REPO = fileURLToPath(new URL('../../', import.meta.url));
@@ -206,6 +206,53 @@ export function lineFit(points, y) {
   return { pivot: [c[0] + t * v[0], y, c[2] + t * v[2]], dir: v, points: n, samples: points.filter((_, i) => i % 6 === 0).map((p) => p.map((x) => +x.toFixed(3))) };
 }
 
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const unit = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+/**
+ * An arm's axis as a path: the shoulder pivot, then the middles of the arm's sections from the armpit down
+ * to the fingertips, smoothed (a section's middle wobbles by a few millimetres), each with the section's
+ * depth front to back (its thickness: unlike its width, a slanted arm's horizontal cut does not stretch it).
+ */
+export function armPath(pivot, points, depths) {
+  const order = points.map((_, i) => i).sort((a, b) => points[b][1] - points[a][1]);
+  const P = order.map((i) => points[i]), D = order.map((i) => depths[i]);
+  const avg = (i, f) => { let s = 0, n = 0; for (let j = Math.max(0, i - 3); j <= Math.min(P.length - 1, i + 3); j++) { s += f(j); n++; } return s / n; };
+  const nodes = [pivot, ...P.map((p, i) => [avg(i, (j) => P[j][0]), p[1], avg(i, (j) => P[j][2])])];
+  const depth = [D[0], ...D.map((_, i) => avg(i, (j) => D[j]))];
+  const s = [0];
+  for (let i = 1; i < nodes.length; i++) s.push(s[i - 1] + Math.hypot(...sub(nodes[i], nodes[i - 1])));
+  // The direction along the sections (not towards the pivot, which is off the sections' line where the arm meets the shoulder).
+  const tangent = nodes.map((_, i) => { const j = Math.max(2, i); return unit(sub(nodes[Math.min(nodes.length - 1, j + 1)], nodes[j - 1])); });
+  return { nodes, depth, s, L: s[s.length - 1], tangent };
+}
+
+/** Where a point is along an arm path: the arc length to its foot on the path (past either end along the end segment), the foot, the path's direction and depth there. */
+export function pathFoot(path, p) {
+  const { nodes, s } = path, last = nodes.length - 2;
+  let best = null;
+  for (let i = 0; i <= last; i++) {
+    const a = nodes[i], ab = sub(nodes[i + 1], a), len2 = dot(ab, ab) || 1e-12;
+    let u = dot(sub(p, a), ab) / len2;
+    if (i > 0) u = Math.max(0, u);
+    if (i < last) u = Math.min(1, u);
+    const foot = [a[0] + ab[0] * u, a[1] + ab[1] * u, a[2] + ab[2] * u], d = Math.hypot(...sub(p, foot));
+    if (!best || d < best.d) best = { d, i, u };
+  }
+  return pathAt(path, s[best.i] + best.u * (s[best.i + 1] - s[best.i]));
+}
+
+/** The point of an arm path at an arc length (past either end along the end segment), with the path's direction and depth there. */
+export function pathAt(path, arc) {
+  const { nodes, s, tangent, depth } = path;
+  let i = 0;
+  while (i < nodes.length - 2 && s[i + 1] < arc) i++;
+  const u = (arc - s[i]) / ((s[i + 1] - s[i]) || 1e-12), c = Math.max(0, Math.min(1, u));
+  return { arc, foot: lerp3(nodes[i], nodes[i + 1], u), tangent: unit(lerp3(tangent[i], tangent[i + 1], c)), depth: depth[i] + (depth[i + 1] - depth[i]) * c };
+}
+
 /** Landmarks and widths of an outline: the sole, knee, crotch, neck and crown heights, and slices of the trunk, head and leg. */
 export function measure(positions, indices) {
   const b = bounds(positions), H = b.size[1], cx = b.centre[0];
@@ -244,16 +291,18 @@ export function measure(positions, indices) {
   for (let f = 0.35; f <= 0.7; f += 0.005) { const y = b.min[1] + f * (crotch - b.min[1]); const w = leg(y).width; if (w < best) { best = w; knee = y; } }
   // The left arm's axis: the middles of its sections (loops wholly left of the midline; below the crotch, the
   // outermost of two, as one is the leg), fitted with a line. Its pivot is where that line is at shoulder height.
-  const armPoints = [];
+  const armPoints = [], armDepths = [];
   for (let y = b.min[1] + 0.3 * H; y < neck; y += 0.005 * H) {
     const left = section(y).filter((l) => l.lo > cx + 0.005 * H);
     if (y < crotch && left.length < 2) continue;
     const arm = left.sort((a, c) => c.xc - a.xc)[0];
-    if (arm && (y >= crotch || left.length >= 2)) armPoints.push([arm.xc, y, arm.zc]);
+    if (arm && (y >= crotch || left.length >= 2)) { armPoints.push([arm.xc, y, arm.zc]); armDepths.push(arm.depth); }
   }
   const arm = lineFit(armPoints, crotch + 0.8 * (neck - crotch));
   return {
     arm,
+    // The arm's own axis, from the shoulder down to the fingertips (armPath): the arm's layers follow it bend by bend.
+    armPath: armPath(arm.pivot, armPoints, armDepths),
     H, cx, sole: b.min[1], knee, crotch, neck, crown: b.max[1],
     // The waist and the lower chest: both below where the arms meet the trunk (from 0.64 of the way up in the atlas woman).
     trunk: central(crotch + TRUNK_AT.abdomen * (neck - crotch)),
@@ -653,8 +702,8 @@ async function write(body, pieces, credit, layer = null) {
   doc.createScene('body').addChild(root);
   const lines = [];
   for (const p of pieces) {
-    const { positions, indices } = reduce(weldPositions(p), p.budget ?? BUDGET[p.region ?? p.name] ?? BUDGET[p.name] ?? BUDGET_ORGAN);
-    if (p.contain) p.contain(positions);
+    const reduced = reduce(weldPositions(p), p.budget ?? BUDGET[p.region ?? p.name] ?? BUDGET[p.name] ?? BUDGET_ORGAN);
+    const positions = reduced.positions, indices = p.contain ? p.contain(positions, reduced.indices) : reduced.indices;
     const prim = doc.createPrimitive()
       .setAttribute('POSITION', doc.createAccessor().setType('VEC3').setArray(positions).setBuffer(buffer))
       .setIndices(doc.createAccessor().setType('SCALAR').setArray(indices).setBuffer(buffer));
@@ -700,10 +749,12 @@ export const ZA = {
 };
 export const zaOutput = (layer, body) => `packages/body-za/assets/${layer}/${body}.glb`;
 /** Triangles per region and side, and for each layer's rest: the per-layer budget is the sum. */
-const ZA_BUDGET = { muscles: { region: 1400, 'rotator-cuff': 1400, 'rectus-abdominis': 1200, rest: 26000 }, nerves: { region: 700, 'spinal-cord': 1600, 'cranial-nerves': 2400, 'brachial-plexus': 1200, rest: 8000 } };
-/** What a layer keeps of its source: muscles without their fasciae, bursae and sheaths; nerves without the brain (the Allen atlas's is drawn), the meninges and the sense organs (the inner ear is CC BY-NC-SA). */
+const ZA_BUDGET = { muscles: { region: 1400, 'rotator-cuff': 1400, 'rectus-abdominis': 1200, masseter: 700, [HEAD_MUSCLES]: 2600, rest: 24000 }, nerves: { region: 700, 'spinal-cord': 1600, 'cranial-nerves': 2400, 'brachial-plexus': 1200, rest: 8000 } };
+/** The head's muscles: their own mesh (HEAD_MUSCLES) when no region of their own, drawn only when a head muscle is lit. */
+const isHeadPath = (path) => path.startsWith('Cranial part of muscular system.g');
+/** What a layer keeps of its source: muscles without their fasciae, bursae, sheaths and the eye's own muscles (inside the orbit); nerves without the brain (the Allen atlas's is drawn), the meninges and the sense organs (the inner ear is CC BY-NC-SA). */
 const ZA_KEEP = {
-  muscles: (name, path) => !/fascia|bursa|sheath|retinacul/i.test(`${name} ${path}`),
+  muscles: (name, path) => !/fascia|bursa|sheath|retinacul|Extra-ocular/i.test(`${name} ${path}`),
   nerves: (name, path) => path.startsWith('Peripheral nervous system.g') || path.includes('Spinal cord.g'),
 };
 
@@ -757,10 +808,30 @@ function zaMap(A, C) {
     const k = 1 / (1 + c), [x, y, z] = v;
     return [[c + k * x * x, k * x * y - z, k * x * z + y], [k * y * x + z, c + k * y * y, k * y * z - x], [k * z * x - y, k * z * y + x, c + k * z * z]];
   };
-  const R = rotation(A.arm.dir, C.arm.dir);
+  const apply = (M, v) => M.map((row) => row[0] * v[0] + row[1] * v[1] + row[2] * v[2]);
+  // An arm point follows the arm's own path, bend by bend: its foot on the source's path goes to the same
+  // fraction of the way along the body's path, and its offset from the axis is turned with the path's
+  // direction there and scaled by the arm's thickness there (so a nerve near the skin at the elbow stays
+  // near, and inside, the body's skin at its elbow), never by one turn for the whole arm.
+  // At the shoulder (above the armpit, where the arm has no section of its own) the arm turns whole about
+  // its pivot, as one line from the shoulder to the hand; it hands over to the path over the next 5 % of
+  // the height below the armpit.
+  const whole = rotation(A.arm.dir, C.arm.dir);
+  const armPoint = (p, rigidOnly = false) => {
+    const f = pathFoot(A.armPath, p), g = pathAt(C.armPath, (f.arc / A.armPath.L) * C.armPath.L);
+    const o = sub(p, f.foot), along = dot(o, f.tangent), across = [0, 1, 2].map((k) => o[k] - along * f.tangent[k]);
+    const k = Math.max(0.7 * s, Math.min(1.4 * s, g.depth / f.depth));
+    const r = apply(rotation(f.tangent, g.tangent), across), stretch = C.armPath.L / A.armPath.L;
+    const path = [0, 1, 2].map((j) => g.foot[j] + k * r[j] + stretch * along * g.tangent[j]);
+    const t = rigidOnly ? 0 : smooth(A.armPath.s[1], A.armPath.s[1] + 0.05 * A.H, f.arc);
+    if (t >= 1) return path;
+    const q = apply(whole, sub(p, A.arm.pivot)), rigid = [0, 1, 2].map((j) => C.arm.pivot[j] + s * q[j]);
+    return lerp3(rigid, path, t);
+  };
   const shoulderHalf = A.arm.pivot[0] - A.cx;
-  // limb: a mesh of the arm itself (its muscles and nerves), turned whole wherever it reaches, so a hand
-  // that hangs beside the thigh is not torn from its forearm. armWeight: how much a point is an arm point
+  // limb: a mesh of the arm itself (its muscles, and the brachial plexus with its branches), following the
+  // arm wherever it reaches, so a hand that hangs beside the thigh is not torn from its forearm, nor a plexus
+  // cord drawn out into a ribbon across the armpit. armWeight: how much a point is an arm point
   // by where it is alone (zaLayer calls a mesh a limb when most of its points are).
   const at = ([x0, y, z]) => {
     const side = x0 < A.cx ? -1 : 1;
@@ -775,19 +846,17 @@ function zaMap(A, C) {
     return smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.45 * A.H, 0.5 * A.H, along))
       * smooth(0.7 * shoulderHalf, 0.95 * shoulderHalf, x - A.cx) * (1 - smooth(0.06 * A.H, 0.09 * A.H, radial));
   };
-  const map = ([x0, y, z], limb = false) => {
+  const map = ([x0, y, z], limb = false, rigidOnly = false) => {
     const body = bones.map([x0, y, z]);
     // Work on the left: mirror the right across the midline, and back.
-    const { side, x, d, along, radial } = at([x0, y, z]);
-    // An arm point: below the shoulder along the arm, beside the trunk, and near the arm's own axis (so the
-    // hips and legs, also below and beside, are never swung with it). A trunk mesh only blends near the
-    // shoulder, where the pectoralis and latissimus reach the humerus: lower, the side of the chest and belly
-    // sit beside the hanging arm in the source and stay with the trunk.
-    const w = limb ? smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.12 * A.H, 0.16 * A.H, radial)) : smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.1 * A.H, 0.16 * A.H, along))
-      * smooth(0.7 * shoulderHalf, 0.95 * shoulderHalf, x - A.cx) * (1 - smooth(0.06 * A.H, 0.09 * A.H, radial));
+    const { side, x, along, radial } = at([x0, y, z]);
+    // A trunk mesh never follows the arm, not even the pectoralis and latissimus where they reach the humerus:
+    // in a body whose arms spread wider than the source's (the children), following drew them out into
+    // sheets from the armpit to the elbow. Their ends stay at the side of the chest, nudged inside the skin.
+    if (!limb) return body;
+    const w = smooth(-0.02 * A.H, 0.05 * A.H, along) * (1 - smooth(0.12 * A.H, 0.16 * A.H, radial));
     if (w <= 0) return body;
-    const r = R.map((row) => (row[0] * d[0] + row[1] * d[1] + row[2] * d[2]) * s);
-    const arm = [C.arm.pivot[0] + r[0], C.arm.pivot[1] + r[1], C.arm.pivot[2] + r[2]];
+    const arm = armPoint([x, y, z], rigidOnly);
     const armX = C.cx + side * (arm[0] - C.cx);
     return [(1 - w) * body[0] + w * armX, (1 - w) * body[1] + w * arm[1], (1 - w) * body[2] + w * arm[2]];
   };
@@ -805,9 +874,13 @@ async function zaLayer(sources, layer, body, skin, report) {
     const r = zaRegion(layer, m.name, m.path);
     let sum = 0;
     for (let i = 0; i < m.positions.length; i += 3) sum += map.armWeight([m.positions[i], m.positions[i + 1], m.positions[i + 2]]);
-    const positions = [], limb = /Muscular system of upper limb\.g|Brachial plexus\.g \/ Branches of/.test(m.path) || sum / (m.positions.length / 3) > 0.5;
-    for (let i = 0; i < m.positions.length; i += 3) positions.push(...map([m.positions[i], m.positions[i + 1], m.positions[i + 2]], limb));
-    add(r ? meshName(r.id, r.side) : layer, r?.id ?? null, { positions, indices: m.indices });
+    const positions = [], limb = /Muscular system of upper limb\.g|Brachial plexus\.g/.test(m.path) || sum / (m.positions.length / 3) > 0.5;
+    // The plexus itself (its roots, cords and short branches) and the shoulder's own muscles (the deltoid, the
+    // rotator cuff, teres major) turn whole with the arm: they lie round the armpit and the shoulder, above and
+    // beside the arm's sections, where following the arm's path draws them down the arm.
+    const rigidOnly = r?.id === 'brachial-plexus' || m.path.includes('Scapulohumeral muscles.g');
+    for (let i = 0; i < m.positions.length; i += 3) positions.push(...map([m.positions[i], m.positions[i + 1], m.positions[i + 2]], limb, rigidOnly));
+    add(r ? meshName(r.id, r.side) : layer === 'muscles' && isHeadPath(m.path) ? HEAD_MUSCLES : layer, r?.id ?? null, { positions, indices: m.indices });
   }
   // Inside the skin: the smallest move or shrink that brings a piece inside (reported).
   for (const p of pieces.values()) {
@@ -829,7 +902,7 @@ async function zaLayer(sources, layer, body, skin, report) {
     report[`${layer}/${p.name}`] = { outsideBefore: +before.toFixed(3), outsideAfter: +best.f.toFixed(3), shrink: best.k, dxMm: best.dx * 1000, dzMm: best.dz * 1000 };
   }
   // Budgets: each region its own, the rest one mesh.
-  for (const p of pieces.values()) p.budget = p.region ? (ZA_BUDGET[layer][p.region] ?? ZA_BUDGET[layer].region) : ZA_BUDGET[layer].rest;
+  for (const p of pieces.values()) p.budget = p.region ? (ZA_BUDGET[layer][p.region] ?? ZA_BUDGET[layer].region) : (ZA_BUDGET[layer][p.name] ?? ZA_BUDGET[layer].rest);
   // Last, point by point (after simplifying): a muscle or nerve point still outside the skin goes to just
   // inside it, the least depth (1 mm to 4 cm) past the nearest skin point that is inside. Muscles lie against the skin, so the outline's own shape
   // (not the source's) decides where their surface ends. Counted in the report.
@@ -851,7 +924,7 @@ async function zaLayer(sources, layer, body, skin, report) {
     return null;
   };
   for (const p of pieces.values()) {
-    p.contain = (positions) => {
+    p.contain = (positions, indices) => {
       let moved = 0;
       for (let i = 0; i < positions.length; i += 3) {
         const q = [positions[i], positions[i + 1], positions[i + 2]];
@@ -880,10 +953,64 @@ async function zaLayer(sources, layer, body, skin, report) {
           if (insideSkin(r)) { positions[i] = r[0]; positions[i + 1] = r[1]; positions[i + 2] = r[2]; moved++; break; }
         }
       }
+      // A nerve is a thin tube: its points inside are not enough where it runs just under the skin (the elbow,
+      // the face), since the edge between two points can still cut through the skin. The ends of such an edge
+      // go deeper, away from the nearest skin point, 1.5 mm at a time (at most 1.5 cm), until its middle is inside.
+      // A muscle's edges likewise, where it lies against the skin (a thin child's arm).
+      if (indices) {
+        const middleOut = ([i, j]) => !insideSkin([0, 1, 2].map((k) => (positions[i + k] + positions[j + k]) / 2));
+        let bad = [];
+        for (let t = 0; t < indices.length; t += 3) for (const [a, b] of [[0, 1], [1, 2], [2, 0]]) bad.push([indices[t + a] * 3, indices[t + b] * 3]);
+        for (let round = 0; round < 10; round++) {
+          bad = bad.filter(middleOut);
+          const ends = new Set(bad.flat());
+          if (!ends.size) break;
+          for (const i of ends) {
+            const q = [positions[i], positions[i + 1], positions[i + 2]], s = nearest(q);
+            if (!s) continue;
+            // Inside: deeper, away from the skin. Still outside (a fold the passes above could not reach): to
+            // the nearest skin point and 1.5 mm past it.
+            const r = insideSkin(q) ? (() => { const d = unit(sub(q, s)); return [0, 1, 2].map((k) => q[k] + d[k] * 0.0015); })()
+              : (() => { const d = unit(sub(s, q)); return [0, 1, 2].map((k) => s[k] + d[k] * 0.0015); })();
+            if (insideSkin(r)) { positions[i] = r[0]; positions[i + 1] = r[1]; positions[i + 2] = r[2]; moved++; }
+          }
+        }
+      }
       report[`${layer}/${p.name}/pointsMovedInside`] = moved;
+      // Last, a triangle whose middle is still outside the skin (a shard the simplifier left bridging two
+      // strands, or a sheet across a fold) is dropped. What is dropped is reported, and more than 30 % of a
+      // mesh's area stops the build: a fit gone wrong must show, not be trimmed away.
+      if (!indices) return indices;
+      const keep = [];
+      let area = 0, dropped = 0;
+      for (let t = 0; t < indices.length; t += 3) {
+        const [a, b, c] = [indices[t] * 3, indices[t + 1] * 3, indices[t + 2] * 3];
+        const u = [0, 1, 2].map((k) => positions[b + k] - positions[a + k]), v = [0, 1, 2].map((k) => positions[c + k] - positions[a + k]);
+        const s = Math.hypot(u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]) / 2;
+        area += s;
+        if (insideSkin([0, 1, 2].map((k) => (positions[a + k] + positions[b + k] + positions[c + k]) / 3))) keep.push(indices[t], indices[t + 1], indices[t + 2]);
+        else dropped += s;
+      }
+      report[`${layer}/${p.name}/areaDroppedOutside`] = +(dropped / area).toFixed(4);
+      if (dropped / area > 0.3) throw new Error(`${body} ${layer}: ${(100 * dropped / area).toFixed(1)} % of ${p.name}'s area lies outside the skin after fitting`);
+      return indices instanceof Uint32Array ? Uint32Array.from(keep) : Uint16Array.from(keep);
     };
   }
   return [...pieces.values()];
+}
+
+/** A built body's skin, read back from its file: world positions and indices, as the tests and the drawing see it. */
+async function shippedSkin(body) {
+  await MeshoptDecoder.ready;
+  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
+  const doc = await io.read(join(REPO, output(body)));
+  const node = doc.getRoot().listNodes().find((n) => n.getName() === 'skin');
+  const prim = node.getMesh().listPrimitives()[0], pos = prim.getAttribute('POSITION'), m = node.getWorldMatrix(), v = [0, 0, 0], positions = [];
+  for (let i = 0; i < pos.getCount(); i++) {
+    pos.getElement(i, v);
+    positions.push(m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12], m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13], m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14]);
+  }
+  return { positions, indices: Array.from(prim.getIndices().getArray()) };
 }
 
 async function main() {
@@ -893,17 +1020,27 @@ async function main() {
   await MeshoptSimplifier.ready;
   await MeshoptEncoder.ready;
   const manifest = {}, reports = {};
-  const adult = {}, skins = {};
-  for (const body of ['man', 'woman']) {
-    adult[body] = await atlasPieces(dir, body);
-    skins[body] = adult[body].find((p) => p.name === 'skin');
-    manifest[body] = await write(body, adult[body], 'atlas');
-  }
-  for (const body of ['boy', 'girl']) {
-    const { pieces, report } = await childPieces(dir, body, adult[REFERENCES.bodies[body].from]);
-    reports[body] = report;
-    skins[body] = pieces.find((p) => p.name === 'skin');
-    manifest[body] = await write(body, pieces, 'adapted');
+  if (process.argv.includes('--za-only')) {
+    // Only the Z-Anatomy layers, against the bodies as they are built (assets/body): the bodies' own entries
+    // and the children's report are kept from the manifest as it is.
+    const { MANIFEST, CHILD_REPORT } = await import('../../src/body/manifest.ts');
+    for (const body of BODIES) {
+      const za = new Set(Object.values(MANIFEST[body].layers ?? {}).flatMap((l) => l.meshes));
+      const { layers, ...own } = structuredClone(MANIFEST[body]);
+      manifest[body] = { ...own, meshes: own.meshes.filter((m) => !za.has(m)) };
+    }
+    for (const [k, v] of Object.entries(structuredClone(CHILD_REPORT))) if (k !== 'za') reports[k] = v;
+  } else {
+    const adult = {};
+    for (const body of ['man', 'woman']) {
+      adult[body] = await atlasPieces(dir, body);
+      manifest[body] = await write(body, adult[body], 'atlas');
+    }
+    for (const body of ['boy', 'girl']) {
+      const { pieces, report } = await childPieces(dir, body, adult[REFERENCES.bodies[body].from]);
+      reports[body] = report;
+      manifest[body] = await write(body, pieces, 'adapted');
+    }
   }
   for (const b of BODIES) if (!manifest[b]) throw new Error(`no ${b}`);
   // The Z-Anatomy layers, fitted to each body's own outline (packages/body-za).
@@ -915,8 +1052,8 @@ async function main() {
     sources.A = measure(Array.from(zw.positions), Array.from(zw.indices));
     console.log(`Z-Anatomy outline: ${JSON.stringify({ H: +sources.A.H.toFixed(3), arm: sources.A.arm })}`);
     for (const body of BODIES) {
-      // The skin as it is written (simplified the same way), so "inside" here is inside the shipped outline.
-      const s = reduce(weldPositions(skins[body]), BUDGET.skin), skin ={ positions: Array.from(s.positions), indices: Array.from(s.indices) };
+      // The skin as it is shipped (read back from the file just written), so "inside" here is inside the outline drawn.
+      const skin = await shippedSkin(body);
       manifest[body].layers = {};
       reports.za ??= {};
       reports.za[body] = {};

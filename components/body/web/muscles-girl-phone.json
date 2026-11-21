@@ -3,9 +3,9 @@
   "fixture": 2,
   "component": "body",
   "title": "A child's muscles",
-  "description": "The girl of 8 with the muscles layer fitted to her outline: the quadriceps lit.",
+  "description": "The girl of 8 from the front, with the muscles layer fitted to her outline: the quadriceps lit across the front of each thigh, the biceps related.",
   "host": "ava",
   "size": { "width": 358 },
   "scale": 2,
-  "spec": { "component": "body", "data": { "highlight": [{ "region": "quadriceps" }, { "region": "biceps", "role": "related" }] }, "options": { "body": "girl", "frame": "body", "layers": ["muscles"] } }
+  "spec": { "component": "body", "data": { "highlight": [{ "region": "quadriceps" }, { "region": "biceps", "role": "related" }] }, "options": { "body": "girl", "frame": "body", "layers": ["muscles"], "view": "front" } }
 }

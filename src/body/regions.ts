@@ -30,6 +30,8 @@ export interface RegionDef {
    */
   readonly za?: readonly string[];
   readonly paired?: boolean;
+  /** A muscle of the head: drawn only when a head muscle is lit (else the head is the skin's outline, never a flayed face). */
+  readonly head?: boolean;
   readonly en: Names;
   readonly fr: Names;
 }
@@ -72,6 +74,7 @@ export const REGIONS: Readonly<Record<RegionId, RegionDef>> = {
   "hamstrings": za("muscles", ["Long head of biceps femoris", "Short head of biceps femoris", "Semitendinosus muscle", "Semimembranosus muscle"], ["Right hamstrings", "Left hamstrings", "Both hamstrings"], ["Ischio-jambiers, côté droit", "Ischio-jambiers, côté gauche", "Ischio-jambiers des deux côtés"]),
   "gastrocnemius": za("muscles", ["Lateral head of gastrocnemius", "Medial head of gastrocnemius"], ["Right calf muscle (gastrocnemius)", "Left calf muscle (gastrocnemius)", "Both calf muscles (gastrocnemius)"], ["Gastrocnémien droit", "Gastrocnémien gauche", "Les deux gastrocnémiens"]),
   "rotator-cuff": za("muscles", ["Rotator cuff muscles.g"], ["Right rotator cuff", "Left rotator cuff", "Both rotator cuffs"], ["Coiffe des rotateurs droite", "Coiffe des rotateurs gauche", "Les deux coiffes des rotateurs"]),
+  "masseter": { ...za("muscles", ["Superficial part of masseter", "Deep part of masseter"], ["Right masseter (jaw muscle)", "Left masseter (jaw muscle)", "Both masseters (jaw muscles)"], ["Masséter droit", "Masséter gauche", "Les deux masséters"]), head: true },
   // Nerves (Z-Anatomy; the brain stays the Allen atlas's). Listed before the plexus, so a plexus's named branches are their own regions.
   "spinal-cord": za("nerves", ["Spinal cord.g"], ["Spinal cord"], ["Moelle épinière"]),
   "vagus": za("nerves", ["Vagus nerve (X)"], ["Right vagus nerve", "Left vagus nerve", "Both vagus nerves"], ["Nerf vague droit", "Nerf vague gauche", "Les deux nerfs vagues"]),
@@ -89,6 +92,11 @@ export const REGIONS: Readonly<Record<RegionId, RegionDef>> = {
  * (the skin; the knee's other bones and ligaments; the thymus, which is not a region but shows
  * how a child's differs).
  */
+/** The muscles of the head that are no region: their own mesh, drawn with the head's regions (REGIONS[id].head). */
+export const HEAD_MUSCLES = "muscles-head";
+/** Is a mesh (a region's side, or a layer's rest) part of the head's muscles? */
+export const isHeadMuscle = (name: string): boolean => name === HEAD_MUSCLES || (REGIONS[name.split("__")[0] as RegionId]?.head ?? false);
+
 export const LAYER_NODES: Readonly<Record<Layer, readonly string[]>> = {
   skin: ["VH_M_skin"],
   skeleton: ["VH_M_skeletal_system"],
