@@ -10,7 +10,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from
 import { validator } from "../registry.ts";
 import type { Theme, ViewError } from "../types.ts";
 import { PATH_ON_MAP } from "./component.ts";
-import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, UNDER_LABELS, type Insets, type PathOnMapData, type PathOptions, type Paths } from "./model.ts";
+import { allPoints, buildingsLayer, frameCamera, labelPlacement, legendOf, MEASURES, PATH_LAYERS, PATH_SOURCES, pathColours, pathFeatures, pathLayers, UNDER_LABELS, type Insets, type PathOnMapData, type PathOptionsInput, type Paths } from "./model.ts";
 
 /** Thrown by drawPaths when the input doesn't meet the contract: nothing on the map has changed. */
 export class PathInputError extends Error {
@@ -24,7 +24,7 @@ export class PathInputError extends Error {
 
 /** What drawPaths takes: the contract's data, and its options. */
 export interface PathsInput extends PathOnMapData {
-  options?: Partial<PathOptions>;
+  options?: Partial<PathOptionsInput>;
 }
 
 export interface DrawContext {
