@@ -1,7 +1,7 @@
 ---
 id: body
 status: draft
-version: 0.2.0
+version: 0.3.0
 implementation: this repository's web package, src/body/ (draw.ts with three.js; camera.ts, model.ts, regions.ts, geometry.ts, manifest.ts), and its meshes assets/body/{man,woman,boy,girl}.glb (tools/body/build.mjs, from components/body/references.json)
 ---
 
@@ -42,8 +42,14 @@ region exists in all four bodies.
 
 **Vocabulary.** Organs: brain, heart, lung\*, liver, gallbladder, pancreas,
 spleen, kidney\*, small-intestine, large-intestine, appendix, bladder.
-Bones: spine, pelvis, femur\*, patella\*, tibia\*. (\* paired: `side` is the
-person's own left or right, or both.) Each region names the source meshes it
+Bones: spine, pelvis, femur\*, patella\*, tibia\*. Muscles: deltoid\*,
+biceps\*, triceps\*, pectoralis\*, rectus-abdominis\*, obliques\*,
+latissimus\*, trapezius\*, gluteus-maximus\*, quadriceps\*, hamstrings\*,
+gastrocnemius\*, rotator-cuff\*, masseter\* (the jaw muscle). Nerves: spinal-cord, vagus\*,
+cranial-nerves, median-nerve\*, ulnar-nerve\*, radial-nerve\*,
+brachial-plexus\*, femoral-nerve\*, sciatic-nerve\*. (\* paired: `side` is the
+person's own left or right, or both.) `layers` draws chosen layers alone or
+stacked (`["skeleton", "muscles"]`: the muscles see-through over the bones). Each region names the source meshes it
 lights in [src/body/regions.ts](../../src/body/regions.ts), the one place a
 mesh id appears; its key type is the contract's enum, so the two cannot
 drift. English and French names, with the French gender of each side.
@@ -97,6 +103,61 @@ The tests hold each under 480 KB and all four under 1.8 MB. tools/body/build.mjs
 
 The child's head is the outline's own and is checked, not set. Crown to neck, it is 1.20 to 1.29 times the adults' share. Medawar 1944 gives about 1.26; that series is reproduced widely, but we have not checked it against the paper, so it is marked unconfirmed.
 
+**The muscles and nerves layers (Z-Anatomy, share-alike).** These files,
+and only these files, are CC BY-SA 4.0. They live in their own package,
+`packages/body-za` (`@zegadb/components-body-za`), with its own LICENSE, a
+NOTICE (attribution, source pin, exclusions, changes) and the licence
+expression `CC-BY-SA-4.0 AND CC-BY-SA-2.1-JP AND CC-BY-4.0`.
+- The code that loads them stays MIT. It is in this package and reads the
+  files at run time, without adapting them.
+- This package's own meshes stay CC BY 4.0 and CC0, and its `files` never
+  include the share-alike package.
+
+The source is LluisV/Z-Anatomy at `6c7f901`: `MuscularSystem100.fbx` and
+`NervousSystem100.fbx`, checked by SHA-256 and converted by Blender
+(`tools/body/za-export.py`).
+
+The attribution follows Z-Anatomy's notice, word for word:
+- "Z-Anatomy - The open source atlas of anatomy - CC-BY-SA 4.0";
+- "BodyParts3D - The Database Center for Life Science - CC-BY-SA 2.1 Japan";
+- for the cranial nerves, "Cranial Nerves and Foramina - by University of
+  Dundee, CAHID - CC-BY 4.0".
+
+The credit appears in each layer file's glTF `asset.copyright`. On screen,
+the credit adds Z-Anatomy only when one of its layers is drawn.
+
+Left out:
+- the brain (Brainder/White matter, University of Washington, no licence
+  stated); the Allen brain stays;
+- the sense organs, including the inner ear, which is CC BY-NC-SA;
+- fasciae, bursae and sheaths, and the eye's own muscles.
+
+Every layer is fitted to every body by the same map as the skeleton:
+- through the outline's sections and the leg's ankle, shin and thigh;
+- an arm mesh (by its place in the source, or with most of its points along
+  the arm) follows the arm's own axis, bend by bend: a point goes to the same
+  fraction of the way from the shoulder to the fingertips, its offset from
+  the axis turned with the axis there and scaled by the arm's thickness
+  there. A trunk mesh (the latissimus and pectoralis included) never follows
+  the arm, so it is not drawn out across the armpit when a body's arms spread
+  wider than the source's;
+- anything still poking through the skin nudged inside.
+
+Tests hold the fit: no muscle triangle lies outside the skin across the
+armpit (a "sail"), every nerve point and the middle of every nerve edge is
+inside the skin, the quadriceps is the front of the thigh across its width,
+and each region sits where it does against the bones.
+
+The head's muscles are their own mesh, drawn only when a head muscle (the
+masseter) is lit. Otherwise the skin's veil draws the head: a flayed face is
+not a picture for a chat.
+
+Each layer is loaded only when a picture shows it. The per-layer budget is
+under 300 KB for muscles (about 250 KB) and under 120 KB for nerves (about
+95 KB), per body: meshopt-compressed and quantised like the body, which
+three.js decodes with its own bundled decoder (no CDN). A muscle or nerve
+point still outside the skin after fitting is put just inside it.
+
 Known limits:
 - the atlas has no ribs, so a child's more horizontal ribs are not shown;
 - the proximal femoral growth plate is not cut;
@@ -131,7 +192,10 @@ The focus is {theme.accent}, solid; pain is {theme.down}, solid; related is
 never colour alone: a filled disc, a ring or a square beside the name, the
 role in words ("related", "pain"; French "en rapport", "douleur", which agree
 with any region), and a dashed leader for related. A child's cartilage (open growth plates, the
-pelvis's seams) is {theme.cartilage}, a pale blue-grey apart from every
+pelvis's seams) is {theme.cartilage}. Muscles shown but not lit are
+{theme.muscle}, a muted muscle red apart from the accent and from pain's
+{theme.down} (half see-through when other layers are shown with them); nerves
+are {theme.nerve}, a pale yellow. A pale blue-grey for the cartilage, apart from every
 bone and organ colour, solid whenever the skeleton is shown. Dimmed layers and the faint skeleton are
 {theme.axis}, at 30 % (22 % on a dark ground); the skin is {theme.soft} at
 10 %. Labels: {theme.ink} on {theme.panel} at 90 % with a {theme.rule}
@@ -220,6 +284,12 @@ label off the picture. It also runs the body's runtime checks:
 | [web/girl-liver.json](web/girl-liver.json), [phone](web/girl-liver-phone.json) | a child's liver (relatively larger), the bladder risen, the child's credit | default |
 | [web/girl-bones-front.json](web/girl-bones-front.json), [side](web/girl-bones-side.json) | the girl's skeleton inside her outline, front and side; cartilage at the seams and plates | default |
 | [web/twelve-phone.json](web/twelve-phone.json) | twelve highlights on a phone: the labels fall back instead of overflowing | default |
+| [web/muscles-man-front.json](web/muscles-man-front.json), [back, phone](web/muscles-man-back-phone.json) | the muscles layer over the man, front and back | default |
+| [web/nerves-woman.json](web/nerves-woman.json), [phone](web/nerves-woman-phone.json) | the nerves layer over the woman | default |
+| [web/muscles-girl-phone.json](web/muscles-girl-phone.json) | a child's muscles, fitted to her outline | default |
+| [web/rotator-cuff.json](web/rotator-cuff.json), [phone](web/rotator-cuff-phone.json) | a still on the rotator cuff | default |
+| [web/sciatic.json](web/sciatic.json) | a still on the sciatic nerve, as pain | default |
+| [web/stacked-muscles-skeleton.json](web/stacked-muscles-skeleton.json) | two layers stacked: the muscles see-through over the bones | default |
 | [web/boy-knee.json](web/boy-knee.json), [phone](web/boy-knee-phone.json) | a child's knee: open growth plates in the femur and tibia, the smaller ossified kneecap | default |
 
 ## Tokens

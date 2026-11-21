@@ -1,0 +1,12 @@
+{
+  "name": "@zegadb/components-body-za",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The body component's muscles and nerves layers, fitted to its four bodies. Share-alike (CC BY-SA 4.0), kept apart from @zegadb/components (MIT code, CC BY body meshes). Loaded by @zegadb/components/body/draw only when a muscle or nerve layer is drawn.",
+  "license": "CC-BY-SA-4.0 AND CC-BY-SA-2.1-JP AND CC-BY-4.0",
+  "exports": {
+    "./muscles/*.glb": "./assets/muscles/*.glb",
+    "./nerves/*.glb": "./assets/nerves/*.glb"
+  },
+  "files": ["assets", "LICENSE", "NOTICE"]
+}

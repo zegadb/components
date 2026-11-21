@@ -41,7 +41,9 @@ async function main() {
       root.dataset.ready = '1';
       return;
     }
-    await drawBody(box, checked.view.data, checked.view.options, { theme: t, asset: (body) => `/assets/body/${body}.glb`,locale: fixture.locale ?? 'en', reducedMotion: true });
+    // The body's own mesh from this package; a muscles or nerves layer from the share-alike one (packages/body-za).
+    const asset = (body, layer) => (layer ? `/packages/body-za/assets/${layer}/${body}.glb` : `/assets/body/${body}.glb`);
+    await drawBody(box, checked.view.data, checked.view.options, { theme: t, asset, locale: fixture.locale ?? 'en', reducedMotion: true });
     await frames(3);
   } else if ('map' in drawn) {
     const { default: maplibregl } = await import('/node_modules/maplibre-gl/dist/maplibre-gl.mjs').then((m) => ({ default: m.default ?? m }));

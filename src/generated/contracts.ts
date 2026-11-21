@@ -5,10 +5,10 @@ export const CONTRACTS = {
   "body": {
     "format": 2,
     "id": "body",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "title": "Body",
     "category": "Anatomy",
-    "description": "A 3D human body with its organs and skeleton, for showing where something is in the body while explaining it (\"where the liver is\", \"the kidneys\", \"the right thigh bone\"). Highlight regions from the fixed list; the camera frames the focus. Not for diagnosis, injuries or anything graphic.",
+    "description": "A 3D human body with its organs, skeleton, muscles and nerves, for showing where something is in the body while explaining it (\"where the liver is\", \"the rotator cuff\", \"the sciatic nerve\"). Highlight regions from the fixed list; the camera frames the focus. Not for diagnosis, injuries or anything graphic.",
     "surface": {
       "kind": "art",
       "art": "body-2",
@@ -51,7 +51,7 @@ export const CONTRACTS = {
                   "right",
                   "both"
                 ],
-                "description": "For paired regions (lung, kidney, femur, patella, tibia): the person's own left or right, or both (the default). Leave it out for every other region."
+                "description": "For paired regions (lung, kidney, femur, patella, tibia, every muscle, and the vagus, median, ulnar, radial, femoral and sciatic nerves and the brachial plexus): the person's own left or right, or both (the default). Leave it out for every other region."
               },
               "role": {
                 "enum": [
@@ -91,9 +91,32 @@ export const CONTRACTS = {
           "pelvis",
           "femur",
           "patella",
-          "tibia"
+          "tibia",
+          "deltoid",
+          "biceps",
+          "triceps",
+          "pectoralis",
+          "rectus-abdominis",
+          "obliques",
+          "latissimus",
+          "trapezius",
+          "gluteus-maximus",
+          "quadriceps",
+          "hamstrings",
+          "gastrocnemius",
+          "rotator-cuff",
+          "masseter",
+          "spinal-cord",
+          "vagus",
+          "cranial-nerves",
+          "median-nerve",
+          "ulnar-nerve",
+          "radial-nerve",
+          "brachial-plexus",
+          "femoral-nerve",
+          "sciatic-nerve"
         ],
-        "description": "A region from the fixed list: organs (brain … bladder) or bones (spine … tibia)."
+        "description": "A region from the fixed list: organs (brain … bladder), bones (spine … tibia), muscles (deltoid … rotator-cuff) or nerves (spinal-cord … sciatic-nerve)."
       }
     },
     "options": {
@@ -106,6 +129,23 @@ export const CONTRACTS = {
         ],
         "default": "man",
         "description": "Which body: an adult man or woman, or a boy or girl of 8 (a child's organs and growth plates). Use the person's own when you know it."
+      },
+      "layers": {
+        "type": [
+          "array",
+          "null"
+        ],
+        "items": {
+          "enum": [
+            "skeleton",
+            "organs",
+            "muscles",
+            "nerves"
+          ]
+        },
+        "maxItems": 4,
+        "default": null,
+        "description": "The layers drawn under the skin: null shows the layers the highlights are on; a list shows those (stacked: [\"skeleton\", \"muscles\"] is the muscles over the bones)."
       },
       "focus": {
         "type": [
@@ -251,7 +291,7 @@ export const CONTRACTS = {
           "error": {
             "code": "enum",
             "at": "data.highlight[0].region",
-            "message": "\"livers\" is not one of \"brain\", \"heart\", \"lung\", \"liver\", \"gallbladder\", \"pancreas\", \"spleen\", \"kidney\", \"small-intestine\", \"large-intestine\", \"appendix\", \"bladder\", \"spine\", \"pelvis\", \"femur\", \"patella\", \"tibia\"",
+            "message": "\"livers\" is not one of \"brain\", \"heart\", \"lung\", \"liver\", \"gallbladder\", \"pancreas\", \"spleen\", \"kidney\", \"small-intestine\", \"large-intestine\", \"appendix\", \"bladder\", \"spine\", \"pelvis\", \"femur\", \"patella\", \"tibia\", \"deltoid\", \"biceps\", \"triceps\", \"pectoralis\", \"rectus-abdominis\", \"obliques\", \"latissimus\", \"trapezius\", \"gluteus-maximus\", \"quadriceps\", \"hamstrings\", \"gastrocnemius\", \"rotator-cuff\", \"masseter\", \"spinal-cord\", \"vagus\", \"cranial-nerves\", \"median-nerve\", \"ulnar-nerve\", \"radial-nerve\", \"brachial-plexus\", \"femoral-nerve\", \"sciatic-nerve\"",
             "help": "did you mean \"liver\"?",
             "fix": {
               "kind": "safe",
@@ -282,7 +322,7 @@ export const CONTRACTS = {
             "code": "side",
             "at": "data.highlight[0].side",
             "message": "liver is not a paired region, so it takes no side",
-            "help": "remove side; only lung, kidney, femur, patella, tibia take one"
+            "help": "remove side; only lung, kidney, femur, patella, tibia, deltoid, biceps, triceps, pectoralis, rectus-abdominis, obliques, latissimus, trapezius, gluteus-maximus, quadriceps, hamstrings, gastrocnemius, rotator-cuff, masseter, vagus, median-nerve, ulnar-nerve, radial-nerve, brachial-plexus, femoral-nerve, sciatic-nerve take one"
           }
         },
         {

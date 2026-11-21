@@ -28,6 +28,8 @@ export const THEMES = {
       "down": "#BE3529",
       "buildings": "#E4E1EC",
       "cartilage": "#8FB1C7",
+      "muscle": "#B8726B",
+      "nerve": "#D8B640",
       "sequential": [
         "#B6A6F9",
         "#8D72F3",
@@ -63,6 +65,8 @@ export const THEMES = {
       "down": "#F26A5E",
       "buildings": "#252333",
       "cartilage": "#9CC3DB",
+      "muscle": "#A85F59",
+      "nerve": "#EAD27E",
       "sequential": [
         "#4F3EA8",
         "#7259DE",
@@ -105,6 +109,8 @@ export const THEMES = {
       "down": "#B8402F",
       "buildings": "#D8CDBA",
       "cartilage": "#8AACBF",
+      "muscle": "#B06B60",
+      "nerve": "#CFAE3E",
       "sequential": [
         "#B9DDC4",
         "#7CC196",
@@ -140,6 +146,8 @@ export const THEMES = {
       "down": "#EF8A78",
       "buildings": "#423326",
       "cartilage": "#98BFD3",
+      "muscle": "#A35A52",
+      "nerve": "#E5CD7A",
       "sequential": [
         "#164A2C",
         "#1E6E40",

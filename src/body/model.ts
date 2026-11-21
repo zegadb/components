@@ -15,6 +15,7 @@ export interface BodyOptions {
   focus: string | null;
   mode: "still" | "interactive";
   frame: "focus" | "body";
+  layers: ("skeleton" | "organs" | "muscles" | "nerves")[] | null;
   view: ViewName;
   labels: boolean;
   title: string | null;
@@ -30,7 +31,8 @@ export const focusOf = (data: BodyData, options: BodyOptions): Highlight =>
   data.highlight.find((h) => h.region === options.focus) ?? data.highlight.find((h) => (h.role ?? "focus") === "focus") ?? data.highlight[0]!;
 
 /** The layers drawn solid: the ones the highlights live on. The skin is always drawn, translucent over them. */
-export const layersOf = (data: BodyData): Layer[] => [...new Set(data.highlight.map((h) => REGIONS[h.region].layer))];
+export const layersOf = (data: BodyData, options?: Pick<BodyOptions, "layers">): Layer[] =>
+  [...new Set<Layer>([...data.highlight.map((h) => REGIONS[h.region].layer), ...(options?.layers ?? [])])];
 
 /** Which meshes a body has: the built meshes' manifest (src/body/manifest.ts), or, in a test, another. */
 export type Manifest = Record<Body, { readonly meshes: readonly string[] }>;
