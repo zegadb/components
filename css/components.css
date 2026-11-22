@@ -39,17 +39,28 @@
 .zc-view-toggle button:focus-visible, .zc-map-type-toggle button:focus-visible { outline: 2px solid var(--zc-accent); outline-offset: -2px; }
 .zc-view-toggle button[aria-pressed="true"]:focus-visible, .zc-map-type-toggle button[aria-pressed="true"]:focus-visible { outline-color: var(--zc-ink); }
 
-/* The imagery's credit (draw.ts), over the map's bottom-right corner while the imagery shows. */
+/* The imagery's credit (draw.ts), over the map's bottom-right corner while the imagery shows: the
+   full line on a wide map; on a narrow one (data-compact) an "ⓘ" button, as MapLibre's compact
+   attribution, that opens the line (data-open). */
 .zc-imagery-credit {
   position: absolute; z-index: 2; right: 3px; bottom: 3px; max-width: calc(100% - 10px); box-sizing: border-box;
+  display: flex; align-items: center; gap: 4px;
   padding: 2px 6px; border-radius: 4px; text-align: right;
   background: color-mix(in srgb, var(--zc-panel) 92%, transparent);
   color: var(--zc-soft); font: 10.5px/1.3 var(--zc-font-ui);
 }
 .zc-imagery-credit[hidden] { display: none; }
 .zc-imagery-credit a { color: inherit; }
-/* Beside a legend (bottom-left) the credit keeps to the right of it. */
-.zc-legend ~ .zc-imagery-credit, .zc-imagery-credit:has(~ .zc-legend) { max-width: calc(100% - 180px); }
+.zc-imagery-credit-toggle { display: none; }
+.zc-imagery-credit[data-compact="true"] { padding: 2px; border-radius: 12px; }
+.zc-imagery-credit[data-compact="true"][data-open="true"] { padding-right: 8px; }
+.zc-imagery-credit[data-compact="true"] .zc-imagery-credit-toggle {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: none;
+  color: var(--zc-ink); font: 600 14px/1 var(--zc-font-ui); cursor: pointer;
+}
+.zc-imagery-credit-toggle:focus-visible { outline: 2px solid var(--zc-accent); outline-offset: 0; }
+.zc-imagery-credit[data-compact="true"]:not([data-open="true"]) .zc-imagery-credit-text { display: none; }
 
 /* body (components/body/): the labels, title, credit and controls over the 3D body.
    Placed like the globe's: controls top-right, the credit bottom-right. */

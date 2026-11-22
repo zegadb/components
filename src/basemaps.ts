@@ -35,11 +35,6 @@ export interface Imagery {
   maxzoom: number;
   /** Where it goes deeper, to `detail.maxzoom` (its tiles outside `bounds` are not asked for). */
   detail?: { bounds: readonly [number, number, number, number]; maxzoom: number };
-  /**
-   * Past the imagery's resolution the street map comes back: the imagery fades out between these
-   * map zooms (`from` = `to` cuts over at once), and the roads and names go back to the map's colours.
-   */
-  fade: { from: number; to: number };
   credit: Record<BasemapLang, readonly CreditPart[]>;
 }
 
@@ -79,17 +74,16 @@ const OSM = "https://www.openstreetmap.org/copyright";
  * Satellite imagery on tiles.addis.gg (`/satellite/{z}/{x}/{y}.webp`): the ESA WorldCover 2021
  * Sentinel-2 composite (10 m, CC BY 4.0), 256 px WebP, Canada to z13 and the world to z10, built
  * and served by us (addiscorp/knowledgegraph tiles-worker); no reader's browser asks anyone else.
- * 10 m shows fields, forests, lakes and the shape of a city, not streets: past map zoom 13 the
- * street map comes back at map zoom 13, at once: a cut, not a fade. Both were shot on the Toronto
- * walk at z14 (22 Nov): halfway through a fade (13 to 14.5) the names and roads are halfway between
- * white-on-dark and the map's own colours, grey on grey over a faded photo, and read worst of all.
+ * 10 m shows fields, forests, lakes and the shape of a city, not streets: past z13 the imagery is
+ * overzoomed (softer the closer you go), with our roads and names over it at every zoom, as other
+ * maps' satellite views do. A cut or a fade back to the street map was tried (22 Nov) and dropped:
+ * "Satellite" stayed pressed over a street map, which reads as broken.
  */
 export const ESA_WORLDCOVER_2021: Imagery = {
   tiles: `${ADDIS_TILES}/satellite/{z}/{x}/{y}.webp`,
   tileSize: 256,
   maxzoom: 10,
   detail: { bounds: [-141.01, 41.67, -52.61, 83.12], maxzoom: 13 },
-  fade: { from: 13, to: 13 },
   credit: {
     en: [{ text: "© ESA WorldCover project 2021", href: "https://esa-worldcover.org" }, " / contains modified Copernicus Sentinel data"],
     fr: [{ text: "© Projet ESA WorldCover 2021", href: "https://esa-worldcover.org" }, " / contient des données Copernicus Sentinel modifiées"],

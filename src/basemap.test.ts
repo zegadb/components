@@ -52,8 +52,9 @@ test("the credit: Protomaps and OpenStreetMap's copyright page, no edit link", (
  * A paint property's value on the drawn map: MapLibre's own expression evaluator, at a zoom, with
  * the map type the switch set (the style's global state).
  */
-function paintAt(layerId: string, property: string, zoom: number, mapType: "map" | "satellite", mode: "light" | "dark" = "light", fade?: { from: number; to: number }): string | number {
-  const style = fade ? withImagery({ ...basemapStyle("ava", mode), layers: layers(BASEMAP_SOURCE, basemapFlavor(AVA_BASEMAP, mode), { lang: "en" }) }, { ...ESA_WORLDCOVER_2021, fade }) : basemapStyle("ava", mode);
+function paintAt(layerId: string, property: string, zoom: number, mapType: "map" | "satellite", mode: "light" | "dark" = "light", plain = false): string | number {
+  // plain: the street map alone, as it was before it had imagery.
+  const style = plain ? { ...basemapStyle("ava", mode), layers: layers(BASEMAP_SOURCE, basemapFlavor(AVA_BASEMAP, mode), { lang: "en" }) } : basemapStyle("ava", mode);
   const layer = style.layers.find((l) => l.id === layerId) as { type: string; paint?: Record<string, unknown> };
   const spec = (latest as unknown as Record<string, Record<string, unknown>>)[`paint_${layer.type}`]![property];
   const value = layer.paint?.[property] ?? (spec as { default: unknown }).default;
@@ -88,49 +89,36 @@ test("satellite: the imagery is under every road and name, over the land; hidden
     assert.ok(at > ids.indexOf("earth") && at > ids.indexOf("landcover"));
     s.layers.forEach((l, n) => { if (l.type === "line" || l.type === "symbol") assert.ok(n > at, `${l.id} over the imagery`); });
     for (const id of Object.values(IMAGERY_LAYERS)) assert.equal((s.layers.find((l) => l.id === id)!.layout as { visibility: string }).visibility, mapType === "satellite" ? "visible" : "none");
-    for (const id of Object.values(IMAGERY_LAYERS)) assert.equal(s.layers.find((l) => l.id === id)!.maxzoom, 13, "nothing fetched from the cut on");
+    for (const id of Object.values(IMAGERY_LAYERS)) {
+      const l = s.layers.find((x) => x.id === id)!;
+      assert.equal(l.maxzoom, undefined, "drawn at every zoom: overzoomed past its tiles, never cut");
+      assert.equal((l.paint as Record<string, unknown>)["raster-opacity"], undefined, "never faded out");
+    }
     assert.deepEqual(s.state, { [MAP_TYPE_STATE]: { default: mapType } });
   }
 });
 
-test("satellite: roads white and names white on dark over the imagery; water cleared; the street map again from z13", () => {
-  const { from } = ESA_WORLDCOVER_2021.fade;
-  assert.deepEqual(ESA_WORLDCOVER_2021.fade, { from: 13, to: 13 }, "a cut at 13 (the screenshots: a fade's middle muddies the names)");
+test("satellite: roads white and names white on dark over the imagery at every zoom; water cleared; the street map untouched", () => {
   for (const mode of ["light", "dark"] as const) {
-    // On the street map nothing changed, at any zoom.
-    for (const zoom of [8, 12, 16]) {
-      assert.equal(paintAt("water", "fill-opacity", zoom, "map", mode), 1);
-      assert.equal(paintAt("roads_highway", "line-color", zoom, "map", mode), paintAt("roads_highway", "line-color", 18, "satellite", mode));
+    // On the street map nothing changed, at any zoom, from the street map without imagery.
+    for (const zoom of [8, 12, 14, 16, 18]) {
+      for (const [id, prop] of [["water", "fill-opacity"], ["roads_highway", "line-color"], ["roads_minor", "line-color"], ["places_locality", "text-color"], ["background", "background-color"]] as const) {
+        assert.equal(paintAt(id, prop, zoom, "map", mode), paintAt(id, prop, zoom, "map", mode, true), `${id} ${prop} at z${zoom}`);
+      }
     }
     assert.notEqual(paintAt("roads_highway", "line-color", 12, "map", mode), rgba(OVER_IMAGERY.bigRoad));
-    // Over the imagery, below the fade.
-    assert.equal(paintAt("roads_highway", "line-color", 12, "satellite", mode), rgba(OVER_IMAGERY.bigRoad));
-    assert.equal(paintAt("places_locality", "text-color", 12, "satellite", mode), "rgba(255,255,255,1)");
-    assert.equal(paintAt("places_locality", "text-halo-color", 12, "satellite", mode), rgba(OVER_IMAGERY.halo));
-    assert.equal(paintAt("water", "fill-opacity", 12, "satellite", mode), 0);
-    assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", 12, "satellite", mode), 1);
-    // Where there is no imagery (open sea), a deep sea, not the street map's ground; the street map's own on the map.
-    assert.equal(paintAt("background", "background-color", 5, "satellite", mode), "rgba(11,22,33,1)");
+    // Over the imagery, at every zoom (it is overzoomed past z13, never swapped for the street map).
+    for (const zoom of [5, 12, 13, 14, 15, 17]) {
+      assert.equal(paintAt("roads_highway", "line-color", zoom, "satellite", mode), rgba(OVER_IMAGERY.bigRoad), `z${zoom}`);
+      assert.equal(paintAt("roads_minor", "line-color", zoom, "satellite", mode), rgba(OVER_IMAGERY.road), `roads_minor (a zoom curve) z${zoom}`);
+      assert.equal(paintAt("places_locality", "text-color", zoom, "satellite", mode), "rgba(255,255,255,1)");
+      assert.equal(paintAt("places_locality", "text-halo-color", zoom, "satellite", mode), rgba(OVER_IMAGERY.halo));
+      assert.equal(paintAt("water", "fill-opacity", zoom, "satellite", mode), 0);
+      // Where there is no imagery (open sea), a deep sea, not the street map's light ground.
+      assert.equal(paintAt("background", "background-color", zoom, "satellite", mode), "rgba(11,22,33,1)");
+    }
     assert.notEqual(paintAt("background", "background-color", 5, "map", mode), "rgba(11,22,33,1)");
-    assert.equal(paintAt("background", "background-color", 14, "satellite", mode), paintAt("background", "background-color", 14, "map", mode));
-    // Just below the cut, the imagery; from it, the street map.
-    assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", from - 0.01, "satellite", mode), 1);
-    assert.equal(paintAt("roads_highway", "line-color", from - 0.01, "satellite", mode), rgba(OVER_IMAGERY.bigRoad));
-    assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", from, "satellite", mode), 0);
-    assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", from, "satellite", mode), 0);
-    assert.equal(paintAt("water", "fill-opacity", from, "satellite", mode), 1);
-    assert.equal(paintAt("places_locality", "text-color", from, "satellite", mode), paintAt("places_locality", "text-color", from, "map", mode));
   }
-});
-
-test("satellite with a fade instead of the cut: halfway through, halfway there; past it, the street map", () => {
-  const fade = { from: 13, to: 14.5 };
-  const mid = (fade.from + fade.to) / 2;
-  assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", mid, "satellite", "light", fade), 0.5);
-  assert.equal(paintAt("water", "fill-opacity", mid, "satellite", "light", fade), 0.5);
-  assert.equal(paintAt("roads_highway", "line-color", 12, "satellite", "light", fade), rgba(OVER_IMAGERY.bigRoad));
-  assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", fade.to, "satellite", "light", fade), 0);
-  assert.equal(paintAt("places_locality", "text-color", fade.to, "satellite", "light", fade), paintAt("places_locality", "text-color", fade.to, "map", "light", fade));
 });
 
 test("satellite in a host's own style (withImagery): its layers on top stay as they are, and adding it twice adds it once", () => {

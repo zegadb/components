@@ -5,7 +5,7 @@ import { validate } from "../index.ts";
 import { theme } from "../theme.ts";
 import { creditHtml, ESA_WORLDCOVER_2021 } from "../basemaps.ts";
 import { IMAGERY_LAYERS, MAP_TYPE_STATE } from "../imagery.ts";
-import { drawPaths, MAP_TYPE_TOGGLE_WORDS, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
+import { COMPACT_CREDIT_BELOW, drawPaths, IMAGERY_CREDIT_WORDS, MAP_TYPE_TOGGLE_WORDS, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
 import { FLAT_MAX_KM, framedDiagonalKm, MEASURES, PATH_LAYERS, plainStyle, type LonLat } from "./model.ts";
 
 // A walk in downtown Toronto (Union Station to City Hall, about 1 km) and a drive to Kitchener
@@ -25,6 +25,7 @@ function resolved(s: unknown) {
 /** Just enough DOM for the switch: elements with attributes, children, click listeners. */
 class FakeElement {
   className = "";
+  id = "";
   textContent = "";
   innerHTML = "";
   hidden = false;
@@ -61,6 +62,9 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   const sources = new Map<string, unknown>(basemap ? [["basemap", {}]] : []);
   const doc = { createElement: (tag: string) => new FakeElement(tag, doc) };
   const container = Object.assign(new FakeElement("div", doc), { clientWidth: 640, clientHeight: 400 });
+  /** MapLibre's resize listeners: `resize(width)` is the map's container changing size. */
+  const resized: (() => void)[] = [];
+  const resize = (width: number) => { container.clientWidth = width; for (const fn of [...resized]) fn(); };
   const paint = new Map<string, unknown>();
   const camera = { pitch: undefined as number | undefined, eased: 0, jumped: 0, centreOrZoomMoved: false, fetched: 0 };
   const map = {
@@ -78,6 +82,8 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
     setLayoutProperty: (id: string, k: string, v: string) => { if (k === "visibility") shown.visibility.set(id, v); },
     setGlobalStateProperty: (k: string, v: unknown) => void shown.state.set(k, v),
     getContainer: () => container,
+    on: (type: string, fn: () => void) => { if (type === "resize") resized.push(fn); },
+    off: (type: string, fn: () => void) => { if (type === "resize") resized.splice(resized.indexOf(fn), 1); },
     dragPan: { isEnabled: () => interactive },
     jumpTo: (c: { pitch?: number; center?: unknown; zoom?: unknown }) => { camera.jumped++; if (c.pitch !== undefined) camera.pitch = c.pitch; if (camera.jumped > 1 && (c.center || c.zoom !== undefined)) camera.centreOrZoomMoved = true; },
     easeTo: (c: { pitch?: number; center?: unknown; zoom?: unknown; duration?: number }) => { camera.eased++; camera.pitch = c.pitch; if (c.center || c.zoom !== undefined) camera.centreOrZoomMoved = true; },
@@ -97,7 +103,9 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
     assert.ok(visible.every((v) => v === state), `layers ${visible} agree with the state ${String(shown.state.get(MAP_TYPE_STATE))}`);
     return state;
   };
-  return { map, container, paint, camera, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, satellite };
+  const creditText = () => credit()?.find("zc-imagery-credit-text")[0]?.innerHTML;
+  const creditButton = () => credit()!.find("zc-imagery-credit-toggle")[0]!;
+  return { map, container, paint, camera, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
 }
 
 /** The pitch drawPaths puts the host's map at. */
@@ -235,8 +243,9 @@ test("path-on-map: Map | Satellite beside 2D | 3D shows the imagery and its cred
   assert.deepEqual(m.typePressed(), ["Satellite"]);
   assert.equal(m.satellite(), true);
   assert.equal(m.credit()!.hidden, false, "the credit shows with the imagery");
-  assert.equal(m.credit()!.innerHTML, creditHtml(ESA_WORLDCOVER_2021.credit.en));
-  assert.match(m.credit()!.innerHTML, /© ESA WorldCover project 2021<\/a> \/ contains modified Copernicus Sentinel data/);
+  assert.equal(m.creditText(), creditHtml(ESA_WORLDCOVER_2021.credit.en));
+  assert.equal(m.credit()!.dataset.compact, "false", "a 640-px map: the full line");
+  assert.match(m.creditText()!, /© ESA WorldCover project 2021<\/a> \/ contains modified Copernicus Sentinel data/);
   assert.equal(drawn.mapType, "satellite");
   assert.deepEqual(m.pressed(), ["3D"], "the view is not touched");
 
@@ -286,5 +295,37 @@ test("path-on-map: mapType satellite opens on the imagery; a redraw keeps the ty
   fr.draw(walk, {}, { locale: "fr" });
   assert.equal(fr.typeToggle()!.getAttribute("aria-label"), "Type de carte");
   assert.deepEqual(fr.typeToggle()!.children.map((b) => [b.textContent, b.title]), [["Carte", MAP_TYPE_TOGGLE_WORDS.fr.hint.map], ["Satellite", MAP_TYPE_TOGGLE_WORDS.fr.hint.satellite]]);
-  assert.equal(fr.credit()!.innerHTML, creditHtml(ESA_WORLDCOVER_2021.credit.fr));
+  assert.equal(fr.creditText(), creditHtml(ESA_WORLDCOVER_2021.credit.fr));
+  assert.equal(fr.creditButton().getAttribute("aria-label"), IMAGERY_CREDIT_WORDS.fr.button);
+});
+
+test("path-on-map: on a narrow map the imagery credit is an ⓘ button that opens the full line; wide, the full line", () => {
+  const m = fakeMap({ imagery: true });
+  m.resize(358);
+  m.draw(walk, { mapType: "satellite" });
+  const box = m.credit()!;
+  assert.equal(box.hidden, false);
+  assert.equal(box.dataset.compact, "true", `under ${COMPACT_CREDIT_BELOW} px: compact`);
+  assert.equal(box.dataset.open, "false", "closed: only the button (the line is hidden by components.css)");
+  const b = m.creditButton();
+  assert.deepEqual([b.tagName, b.type, b.textContent], ["button", "button", "ⓘ"], "a native button: focusable, Enter and Space press it");
+  assert.equal(b.getAttribute("aria-label"), IMAGERY_CREDIT_WORDS.en.button);
+  assert.equal(b.getAttribute("aria-controls"), box.find("zc-imagery-credit-text")[0]!.id);
+  assert.equal(b.getAttribute("aria-expanded"), "false");
+  assert.equal(m.creditText(), creditHtml(ESA_WORLDCOVER_2021.credit.en), "the full credit is there to open");
+  b.click();
+  assert.equal(box.dataset.open, "true");
+  assert.equal(b.getAttribute("aria-expanded"), "true");
+  b.click();
+  assert.equal(box.dataset.open, "false");
+  // A phone turned (the map resized): the full line; and back.
+  m.resize(800);
+  assert.equal(box.dataset.compact, "false");
+  m.resize(390);
+  assert.equal(box.dataset.compact, "true");
+  // Drawn again: one listener, not one per draw; taken off with the drawing.
+  m.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(m.resized.length, 1);
+  m.draw(walk).remove();
+  assert.equal(m.resized.length, 0);
 });

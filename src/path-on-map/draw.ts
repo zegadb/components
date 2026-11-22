@@ -193,12 +193,58 @@ function segmented<T extends string>(doc: Document, cls: string, name: string, i
 }
 
 const CREDIT_CLASS = "zc-imagery-credit";
-/** The imagery's credit over the map's bottom-right corner, in the page's language: drawn while the imagery shows. */
-function imageryCredit(doc: Document, imagery: Imagery, locale: Locale): HTMLElement {
+/** The compact credit's button's name, per language. */
+export const IMAGERY_CREDIT_WORDS: Record<Locale, { button: string }> = {
+  en: { button: "Imagery credit" },
+  fr: { button: "Crédit de l’imagerie" },
+};
+/**
+ * A map narrower than this (px) says the imagery's credit compactly, as MapLibre's compact
+ * attribution does: an "ⓘ" button that opens the full line. Wider, the full line fits on one line.
+ */
+export const COMPACT_CREDIT_BELOW = 560;
+let creditIds = 0;
+
+interface ImageryCredit {
+  readonly element: HTMLElement;
+  /** Compact (the ⓘ button) or the full line, for a map `width` px wide. */
+  fit(width: number): void;
+}
+
+/**
+ * The imagery's credit over the map's bottom-right corner, in the page's language: drawn while the
+ * imagery shows. On a narrow map it is an "ⓘ" button (a native button: focusable, Enter and Space
+ * press it, `aria-expanded`) that opens and closes the full line; on a wide map, the full line.
+ */
+function imageryCredit(doc: Document, imagery: Imagery, locale: Locale): ImageryCredit {
   const box = doc.createElement("div");
   box.className = CREDIT_CLASS;
-  box.innerHTML = creditHtml(imagery.credit[locale]);
-  return box;
+  const id = `zc-imagery-credit-${++creditIds}`;
+  const button = doc.createElement("button");
+  button.type = "button";
+  button.className = `${CREDIT_CLASS}-toggle`;
+  button.textContent = "ⓘ";
+  button.setAttribute("aria-label", IMAGERY_CREDIT_WORDS[locale].button);
+  button.setAttribute("aria-controls", id);
+  button.setAttribute("aria-expanded", "false");
+  const text = doc.createElement("span");
+  text.className = `${CREDIT_CLASS}-text`;
+  text.id = id;
+  text.innerHTML = creditHtml(imagery.credit[locale]);
+  box.append(button, text);
+  let open = false;
+  button.addEventListener("click", () => {
+    open = !open;
+    box.dataset.open = String(open);
+    button.setAttribute("aria-expanded", String(open));
+  });
+  box.dataset.open = "false";
+  return {
+    element: box,
+    fit(width) {
+      box.dataset.compact = String(width < COMPACT_CREDIT_BELOW);
+    },
+  };
 }
 
 /** Whether the reader can move the map: the switch is a control, and a still has none. */
@@ -246,7 +292,7 @@ function legend(map: MapLibreMap, p: Paths, theme: Theme, cls: string) {
   map.getContainer().appendChild(box);
 }
 
-const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null }>();
+const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null; refit: (() => void) | null }>();
 /** The view each map shows now: kept across a redraw that keeps the camera (`frame: false`), so a new style keeps the reader's choice. */
 const shown = new WeakMap<MapLibreMap, View>();
 /** The map type each map shows now, kept the same way (a theme change's new style keeps the imagery). */
@@ -336,7 +382,7 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     mapType = next;
     shownType.set(map, next);
     setMapType(map, next);
-    if (credit) credit.hidden = next !== "satellite";
+    if (credit) credit.element.hidden = next !== "satellite";
   };
   const typeToggle = own && imagery ? mapTypeToggle(doc, { mapType, locale, onChange: showType }) : null;
   let controls: HTMLElement | null = null;
@@ -347,11 +393,16 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     controls.appendChild(toggle.element);
     map.getContainer().appendChild(controls);
   }
+  let refit: (() => void) | null = null;
   if (credit) {
-    credit.hidden = mapType !== "satellite";
-    map.getContainer().appendChild(credit);
+    credit.element.hidden = mapType !== "satellite";
+    // Compact or the full line by the map's width, again when the map is resized (a phone turned).
+    refit = () => credit.fit(map.getContainer().clientWidth);
+    refit();
+    map.on?.("resize", refit);
+    map.getContainer().appendChild(credit.element);
   }
-  drawn.set(map, { markers, cls, controls, credit });
+  drawn.set(map, { markers, cls, controls, credit: credit?.element ?? null, refit });
   legend(map, p, theme, cls);
   if (context.frame !== false) {
     const el = map.getContainer();
@@ -393,6 +444,7 @@ function clear(map: MapLibreMap) {
     map.getContainer().querySelector(`:scope > .${was.cls}`)?.remove();
     was.controls?.remove();
     was.credit?.remove();
+    if (was.refit) map.off?.("resize", was.refit);
     drawn.delete(map);
   }
 }

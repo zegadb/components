@@ -59,10 +59,11 @@ fills above the land are cleared, and where there is no imagery (open sea) the
 ground is a deep sea (the imagery's own, `OVER_IMAGERY.ground` in
 src/basemap.ts, not a theme colour: the photograph is the same in both themes),
 not the street map's light ground. 10 m shows fields, forests, lakes and the
-shape of a town, not streets: from map zoom 13 the imagery is cut away and
-the roads and names are the street map's again, so a close view is the
-street map. (A fade from 13 to 14.5 was shot beside the cut on 22 Nov; in
-its middle the names are grey on grey over a faded photo.) On a basemap without imagery `satellite` draws the
+shape of a town, not streets: past its deepest tiles (z13 in Canada) the
+imagery is overzoomed, softer the closer you go, with the roads and names
+over it at every zoom, as other maps' satellite views do. (A cut or a fade
+back to the street map was tried on 22 Nov and dropped: "Satellite" stayed
+pressed over a street map, which read as broken.) On a basemap without imagery `satellite` draws the
 street map, and there is no switch.
 
 `view` is how the map opens. `3d` (the default; Sami, 21 Nov) tilts the
@@ -89,7 +90,7 @@ Back to front.
 | # | part | what it is | drawn with |
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
-| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles, cut away from map zoom 13 |
+| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles, overzoomed past their deepest zoom |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
@@ -139,7 +140,7 @@ Reference size: 640 × 400 pt at scale 2 (1280 × 800 pixels).
 | map controls | placement | top-right, {space.xl} inset | fixed |
 | 2D \| 3D switch | box | {space.xl} from the top and right edges; two buttons side by side, each 29 pt high and at least 34 pt wide, {space.lg} either side of its word; corner {radius.md}, border {stroke.hairline}, a {stroke.hairline} rule between the two | fixed |
 | Map \| Satellite switch | box | the 2D \| 3D switch's box and buttons, {space.md} to its left | fixed |
-| imagery credit | box | {space.xs} from the bottom and right edges; padding {space.xxs} × {space.md}; corner {radius.sm}; at most the map's width less {space.xl} (beside a legend, less 180 pt), wrapping | fixed |
+| imagery credit | box | {space.xs} from the bottom and right edges; padding {space.xxs} × {space.md}; corner {radius.sm}; at most the map's width less {space.xl}; on a map narrower than 560 pt, compact: an "ⓘ" button 20 pt round in a box with a 12 pt corner, opening the full line beside it | fixed |
 
 Scaling rules: the legend, gear and map controls keep their size in points at
 every canvas size and stay in their corners. The path, marker and label keep
@@ -162,7 +163,7 @@ canvas.
 | path label | {color.ink}, halo {color.ground}, {type.family.map} |
 | legend | background {color.panel} at {opacity.legend}; border {color.rule}; title {color.ink} {type.size.label} {type.weight.semibold}; ends {color.soft} {type.size.label} with tabular numerals; line height {type.lineHeight.tight}; family {type.family.ui} |
 | imagery credit | {color.panel} at {opacity.legend}; {color.soft} {type.size.caption} {type.family.ui}; links {color.soft}, underlined |
-| roads and names over imagery | the same in both themes (it is a photograph): highways and major roads white at 78%, other roads white at 45%, casings black at 28%, rail white at 35%, borders white at 60%; names white on a halo of near-black at 78%; from zoom 13 each takes the street map's colour again |
+| roads and names over imagery | the same in both themes (it is a photograph): highways and major roads white at 78%, other roads white at 45%, casings black at 28%, rail white at 35%, borders white at 60%; names white on a halo of near-black at 78%; at every zoom |
 | 2D \| 3D switch and Map \| Satellite switch | {color.panel} fill, {color.rule} border and rule; words {color.soft} {type.size.label} {type.weight.semibold} {type.family.ui}; the view shown: {color.accent} fill, {color.panel} word; hover: {color.rule} fill, {color.ink} word; focus ring {color.accent} (on the view shown, {color.ink}) |
 | gear | button: {color.panel} fill, {color.rule} border, {color.ink} glyph. Panel: {color.panel} at {opacity.gearPanel}, {color.rule} border, text {color.ink} {type.size.label}. Section titles: {color.soft}, {type.size.caption}, upper case, tracking {type.tracking.caption}. Values: {color.soft} {type.weight.medium}, right-aligned, tabular. Inputs: {color.ground} fill, {color.rule} border, {radius.sm}; slider and checkbox tint {color.accent}. Error: {color.accent} {type.family.mono} {type.size.gearError}, line height {type.lineHeight.code} |
 
@@ -193,6 +194,7 @@ numbers when the range is 10 or more, else 3 significant digits.
 | tilt | two-finger vertical drag | right-drag or ctrl-drag vertically | changes pitch, up to 70° |
 | zoom buttons, compass | tap | click | zoom by one level; compass resets bearing and pitch to north-up |
 | 2D \| 3D switch | tap the other half | click it, or Enter/Space when focused | `2d`: pitch 0, buildings laid flat; `3d`: pitch 60°, buildings standing. Centre, zoom and bearing stay; nothing is fetched again; no history entry (like moving the camera). A redraw that keeps the camera (a theme change, the plain fallback) keeps the view switched to |
+| imagery credit, compact | tap ⓘ | click it, or Enter/Space when focused | opens the full credit line beside the button; again closes it |
 | Map \| Satellite switch | tap the other half | click it, or Enter/Space when focused | `satellite`: the imagery under the roads and names, its credit shown; `map`: the street map, the credit gone. At once, no easing; the camera stays; the street map's tiles are not fetched again (only the imagery's, the first time). No history entry. A redraw that keeps the camera keeps the map type switched to |
 | open or close the gear | tap the gear | click the gear, or Enter/Space when focused | shows or hides the panel |
 | change a parameter | the control | the control | creates a new history entry with that value; the canvas redraws; invalid input shows the gear error and changes nothing |
@@ -230,8 +232,12 @@ ease), the buildings fading with it. With reduced motion it jumps.
   hints ("Map: streets and places", "Satellite: imagery, with the streets
   and names over it"; "Carte : rues et lieux", "Satellite : imagerie, avec
   les rues et les noms par-dessus"); the type shown is `aria-pressed="true"`.
+- The compact imagery credit (a map narrower than 560 pt) is a native
+  button "ⓘ" named "Imagery credit" ("Crédit de l’imagerie"), with
+  `aria-expanded` and `aria-controls` naming the credit's line; Enter or
+  Space opens and closes it. On a wider map the line is always shown.
 - Focus order: gear button, gear controls (when open), map controls (Map,
-  Satellite, then 2D, 3D).
+  Satellite, then 2D, 3D), then the compact credit's button.
 - Contrast: text on the legend and gear passes 4.5:1 in both themes
   ({color.ink} on {color.panel} 14:1; {color.soft} on {color.panel} 4.7:1
   light, 7.2:1 dark). The solid path, {color.accent} on {color.ground}, is

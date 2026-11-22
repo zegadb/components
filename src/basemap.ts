@@ -101,34 +101,42 @@ function lineOverImagery(id: string): string {
   return OVER_IMAGERY.road;
 }
 
+const SATELLITE: ExpressionSpecification = ["==", ["global-state", MAP_TYPE_STATE], "satellite"];
+const isZoomCurve = (v: unknown): v is unknown[] => Array.isArray(v) && (v[0] === "interpolate" || v[0] === "step") && JSON.stringify(v[v[0] === "step" ? 1 : 2]) === '["zoom"]';
 const mentionsZoom = (v: unknown): boolean => Array.isArray(v) ? (v[0] === "zoom" && v.length === 1) || v.some(mentionsZoom) : false;
 
 /**
- * One paint value that is `over` while the imagery shows (map type "satellite", below the fade) and
- * the street map's own value otherwise, eased across the fade with the imagery. A value that
- * already depends on zoom can only be the street map's (MapLibre takes zoom in one place only).
+ * One paint value that is `over` while the imagery shows (map type "satellite") and the street
+ * map's own value otherwise, at every zoom. A street value that is a curve over zoom (MapLibre takes
+ * zoom only as a top-level curve's input) keeps its curve, each stop choosing between the two.
  */
-function overImagery(street: unknown, over: unknown, fade: Imagery["fade"]): unknown {
-  if (street === undefined || mentionsZoom(street)) return street;
-  const satellite: ExpressionSpecification = ["case", ["==", ["global-state", MAP_TYPE_STATE], "satellite"], over as never, street as never];
-  return fade.to > fade.from ? ["interpolate", ["linear"], ["zoom"], fade.from, satellite, fade.to, street] : ["step", ["zoom"], satellite, fade.from, street];
+function overImagery(street: unknown, over: unknown): unknown {
+  if (street === undefined) return street;
+  const choose = (v: unknown) => ["case", SATELLITE, over, v];
+  if (isZoomCurve(street)) {
+    // step: [step, input, out, z, out, …]; interpolate: [interpolate, type, input, z, out, …].
+    const outputs = street[0] === "step" ? 2 : 4;
+    if (street.some((v, k) => k >= outputs && (k - outputs) % 2 === 0 && mentionsZoom(v))) return street;
+    return street.map((v, k) => (k >= outputs && (k - outputs) % 2 === 0 ? choose(v) : v));
+  }
+  if (mentionsZoom(street)) return street;
+  return choose(street);
 }
 
 /**
  * The street map with imagery under its roads and names, over a deep-sea ground (the imagery has
- * nothing over open water; the street map's light ground there read as land). The imagery goes in under the first line
- * (the land, landcover and parks are under it); the fills the street map draws above that (water,
- * buildings, runways, piers) are cleared while it shows; lines turn to white over a dark casing,
- * names to white on a dark halo; past the fade all of it is the street map again. Two imagery
- * layers: the base everywhere (overzoomed past its maxzoom) and the detail over it where it has
- * deeper tiles; a detail tile with nothing in it lets the base show through.
+ * nothing over open water; the street map's light ground there read as land). The imagery goes in
+ * under the first line (the land, landcover and parks are under it); the fills the street map draws
+ * above that (water, buildings, runways, piers) are cleared while it shows; lines turn to white over
+ * a dark casing, names to white on a dark halo. At every zoom: past its deepest tiles the imagery is
+ * overzoomed, never swapped for the street map. Two imagery layers: the base everywhere (overzoomed
+ * past its maxzoom) and the detail over it where it has deeper tiles; a detail tile with nothing in
+ * it lets the base show through.
  */
 export function satelliteLayers(street: readonly LayerSpecification[], i: Imagery, mapType: MapType): LayerSpecification[] {
   if (street.some((l) => l.id === IMAGERY_LAYERS.base)) return [...street];
   const visibility = mapType === "satellite" ? "visible" : "none";
-  const opacity = i.fade.to > i.fade.from ? ["interpolate", ["linear"], ["zoom"], i.fade.from, 1, i.fade.to, 0] : ["step", ["zoom"], 1, i.fade.from, 0];
-  // maxzoom: past the cut (or the end of the fade) the layer is gone, so no imagery tile is fetched there.
-  const raster = (id: string, source: string): LayerSpecification => ({ id, type: "raster", source, maxzoom: i.fade.to, layout: { visibility }, paint: { "raster-opacity": opacity as ExpressionSpecification, "raster-fade-duration": 0 } });
+  const raster = (id: string, source: string): LayerSpecification => ({ id, type: "raster", source, layout: { visibility }, paint: { "raster-fade-duration": 0 } });
   const imagery = [raster(IMAGERY_LAYERS.base, IMAGERY_SOURCES.base), ...(i.detail ? [raster(IMAGERY_LAYERS.detail, IMAGERY_SOURCES.detail)] : [])];
   const at = street.findIndex((l) => l.type === "line");
   const out: LayerSpecification[] = [];
@@ -137,16 +145,16 @@ export function satelliteLayers(street: readonly LayerSpecification[], i: Imager
     // Below the imagery, the background, and a host's own layers (its markers, not the street map's): as they are.
     if (l.type === "background") {
       const paint = { ...(l.paint as Record<string, unknown>) };
-      paint["background-color"] = overImagery(paint["background-color"], OVER_IMAGERY.ground, i.fade);
+      paint["background-color"] = overImagery(paint["background-color"], OVER_IMAGERY.ground);
       return void out.push({ ...l, paint } as LayerSpecification);
     }
     if (n < at || (l as { source?: string }).source !== BASEMAP_SOURCE) return void out.push(l);
     const paint: Record<string, unknown> = { ...(l as { paint?: Record<string, unknown> }).paint };
-    if (l.type === "fill") paint["fill-opacity"] = overImagery(paint["fill-opacity"] ?? 1, 0, i.fade);
-    else if (l.type === "line") paint["line-color"] = overImagery(paint["line-color"], lineOverImagery(l.id), i.fade);
+    if (l.type === "fill") paint["fill-opacity"] = overImagery(paint["fill-opacity"] ?? 1, 0);
+    else if (l.type === "line") paint["line-color"] = overImagery(paint["line-color"], lineOverImagery(l.id));
     else if (l.type === "symbol" && paint["text-halo-color"] !== undefined) {
-      paint["text-color"] = overImagery(paint["text-color"], OVER_IMAGERY.label, i.fade);
-      paint["text-halo-color"] = overImagery(paint["text-halo-color"], OVER_IMAGERY.halo, i.fade);
+      paint["text-color"] = overImagery(paint["text-color"], OVER_IMAGERY.label);
+      paint["text-halo-color"] = overImagery(paint["text-halo-color"], OVER_IMAGERY.halo);
     }
     out.push({ ...l, paint } as LayerSpecification);
   });
