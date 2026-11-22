@@ -80,14 +80,16 @@ const OSM = "https://www.openstreetmap.org/copyright";
  * Sentinel-2 composite (10 m, CC BY 4.0), 256 px WebP, Canada to z13 and the world to z10, built
  * and served by us (addiscorp/knowledgegraph tiles-worker); no reader's browser asks anyone else.
  * 10 m shows fields, forests, lakes and the shape of a city, not streets: past map zoom 13 the
- * street map fades back in (13 to 14.5; a cut at 13 is `fade: { from: 13, to: 13 }`).
+ * street map comes back at map zoom 13, at once: a cut, not a fade. Both were shot on the Toronto
+ * walk at z14 (22 Nov): halfway through a fade (13 to 14.5) the names and roads are halfway between
+ * white-on-dark and the map's own colours, grey on grey over a faded photo, and read worst of all.
  */
 export const ESA_WORLDCOVER_2021: Imagery = {
   tiles: `${ADDIS_TILES}/satellite/{z}/{x}/{y}.webp`,
   tileSize: 256,
   maxzoom: 10,
   detail: { bounds: [-141.01, 41.67, -52.61, 83.12], maxzoom: 13 },
-  fade: { from: 13, to: 14.5 },
+  fade: { from: 13, to: 13 },
   credit: {
     en: [{ text: "© ESA WorldCover project 2021", href: "https://esa-worldcover.org" }, " / contains modified Copernicus Sentinel data"],
     fr: [{ text: "© Projet ESA WorldCover 2021", href: "https://esa-worldcover.org" }, " / contient des données Copernicus Sentinel modifiées"],

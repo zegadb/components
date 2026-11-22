@@ -53,8 +53,9 @@ test("the credit: Protomaps and OpenStreetMap's copyright page, no edit link", (
  * A paint property's value on the drawn map: MapLibre's own expression evaluator, at a zoom, with
  * the map type the switch set (the style's global state).
  */
-function paintAt(layerId: string, property: string, zoom: number, mapType: "map" | "satellite", mode: "light" | "dark" = "light"): string | number {
-  const layer = basemapStyle("ava", mode).layers.find((l) => l.id === layerId) as { type: string; paint?: Record<string, unknown> };
+function paintAt(layerId: string, property: string, zoom: number, mapType: "map" | "satellite", mode: "light" | "dark" = "light", fade?: { from: number; to: number }): string | number {
+  const style = fade ? withImagery({ ...basemapStyle("ava", mode), layers: layers(BASEMAP_SOURCE, basemapFlavor(AVA_BASEMAP, mode), { lang: "en" }) }, { ...ESA_WORLDCOVER_2021, fade }) : basemapStyle("ava", mode);
+  const layer = style.layers.find((l) => l.id === layerId) as { type: string; paint?: Record<string, unknown> };
   const spec = (latest as unknown as Record<string, Record<string, unknown>>)[`paint_${layer.type}`]![property];
   const value = layer.paint?.[property] ?? (spec as { default: unknown }).default;
   const e = normalizePropertyExpression(value as never, "paint", spec as never, { [MAP_TYPE_STATE]: mapType });
@@ -90,8 +91,9 @@ test("satellite: the imagery is under every road and name, over the land; hidden
   }
 });
 
-test("satellite: roads white and names white on dark over the imagery; water cleared; the street map again past the fade", () => {
-  const { from, to } = ESA_WORLDCOVER_2021.fade;
+test("satellite: roads white and names white on dark over the imagery; water cleared; the street map again from z13", () => {
+  const { from } = ESA_WORLDCOVER_2021.fade;
+  assert.deepEqual(ESA_WORLDCOVER_2021.fade, { from: 13, to: 13 }, "a cut at 13 (the screenshots: a fade's middle muddies the names)");
   for (const mode of ["light", "dark"] as const) {
     // On the street map nothing changed, at any zoom.
     for (const zoom of [8, 12, 16]) {
@@ -105,13 +107,24 @@ test("satellite: roads white and names white on dark over the imagery; water cle
     assert.equal(paintAt("places_locality", "text-halo-color", 12, "satellite", mode), rgba(OVER_IMAGERY.halo));
     assert.equal(paintAt("water", "fill-opacity", 12, "satellite", mode), 0);
     assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", 12, "satellite", mode), 1);
-    // Halfway through the fade, halfway there; past it, the street map.
-    assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", (from + to) / 2, "satellite", mode), 0.5);
-    assert.equal(paintAt("water", "fill-opacity", (from + to) / 2, "satellite", mode), 0.5);
-    assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", to, "satellite", mode), 0);
-    assert.equal(paintAt("water", "fill-opacity", to, "satellite", mode), 1);
-    assert.equal(paintAt("places_locality", "text-color", to + 1, "satellite", mode), paintAt("places_locality", "text-color", to + 1, "map", mode));
+    // Just below the cut, the imagery; from it, the street map.
+    assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", from - 0.01, "satellite", mode), 1);
+    assert.equal(paintAt("roads_highway", "line-color", from - 0.01, "satellite", mode), rgba(OVER_IMAGERY.bigRoad));
+    assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", from, "satellite", mode), 0);
+    assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", from, "satellite", mode), 0);
+    assert.equal(paintAt("water", "fill-opacity", from, "satellite", mode), 1);
+    assert.equal(paintAt("places_locality", "text-color", from, "satellite", mode), paintAt("places_locality", "text-color", from, "map", mode));
   }
+});
+
+test("satellite with a fade instead of the cut: halfway through, halfway there; past it, the street map", () => {
+  const fade = { from: 13, to: 14.5 };
+  const mid = (fade.from + fade.to) / 2;
+  assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", mid, "satellite", "light", fade), 0.5);
+  assert.equal(paintAt("water", "fill-opacity", mid, "satellite", "light", fade), 0.5);
+  assert.equal(paintAt("roads_highway", "line-color", 12, "satellite", "light", fade), rgba(OVER_IMAGERY.bigRoad));
+  assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", fade.to, "satellite", "light", fade), 0);
+  assert.equal(paintAt("places_locality", "text-color", fade.to, "satellite", "light", fade), paintAt("places_locality", "text-color", fade.to, "map", "light", fade));
 });
 
 test("satellite in a host's own style (withImagery): its layers on top stay as they are, and adding it twice adds it once", () => {

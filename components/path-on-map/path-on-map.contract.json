@@ -139,7 +139,7 @@
         "satellite"
       ],
       "default": "map",
-      "description": "What is under the paths, roads and names: map, the street map (the default); satellite, imagery where the basemap has some (10 m, so the street map fades back in past zoom 13). On a map the reader can move whose basemap has imagery, the Map | Satellite switch in its controls changes it."
+      "description": "What is under the paths, roads and names: map, the street map (the default); satellite, imagery where the basemap has some (10 m, so from zoom 13 it is the street map again). On a map the reader can move whose basemap has imagery, the Map | Satellite switch in its controls changes it."
     },
     "bearing": {
       "type": "number",

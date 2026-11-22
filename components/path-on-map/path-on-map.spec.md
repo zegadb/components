@@ -56,9 +56,10 @@ basemap has imagery, the **Map | Satellite switch** beside the 2D | 3D one
 changes it. Over the imagery the roads are drawn white over a dark casing and
 the names white on a dark halo; the street map's water, buildings and other
 fills above the land are cleared. 10 m shows fields, forests, lakes and the
-shape of a town, not streets: from map zoom 13 to 14.5 the imagery fades out
-and the roads and names go back to the street map's colours, so a close
-view is the street map. On a basemap without imagery `satellite` draws the
+shape of a town, not streets: from map zoom 13 the imagery is cut away and
+the roads and names are the street map's again, so a close view is the
+street map. (A fade from 13 to 14.5 was shot beside the cut on 22 Nov; in
+its middle the names are grey on grey over a faded photo.) On a basemap without imagery `satellite` draws the
 street map, and there is no switch.
 
 `view` is how the map opens. `3d` (the default; Sami, 21 Nov) tilts the
@@ -85,7 +86,7 @@ Back to front.
 | # | part | what it is | drawn with |
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
-| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles, faded out from map zoom 13 to 14.5 |
+| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles, cut away from map zoom 13 |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
@@ -158,7 +159,7 @@ canvas.
 | path label | {color.ink}, halo {color.ground}, {type.family.map} |
 | legend | background {color.panel} at {opacity.legend}; border {color.rule}; title {color.ink} {type.size.label} {type.weight.semibold}; ends {color.soft} {type.size.label} with tabular numerals; line height {type.lineHeight.tight}; family {type.family.ui} |
 | imagery credit | {color.panel} at {opacity.legend}; {color.soft} {type.size.caption} {type.family.ui}; links {color.soft}, underlined |
-| roads and names over imagery | the same in both themes (it is a photograph): highways and major roads white at 78%, other roads white at 45%, casings black at 28%, rail white at 35%, borders white at 60%; names white on a halo of near-black at 78%; past the fade each takes the street map's colour again |
+| roads and names over imagery | the same in both themes (it is a photograph): highways and major roads white at 78%, other roads white at 45%, casings black at 28%, rail white at 35%, borders white at 60%; names white on a halo of near-black at 78%; from zoom 13 each takes the street map's colour again |
 | 2D \| 3D switch and Map \| Satellite switch | {color.panel} fill, {color.rule} border and rule; words {color.soft} {type.size.label} {type.weight.semibold} {type.family.ui}; the view shown: {color.accent} fill, {color.panel} word; hover: {color.rule} fill, {color.ink} word; focus ring {color.accent} (on the view shown, {color.ink}) |
 | gear | button: {color.panel} fill, {color.rule} border, {color.ink} glyph. Panel: {color.panel} at {opacity.gearPanel}, {color.rule} border, text {color.ink} {type.size.label}. Section titles: {color.soft}, {type.size.caption}, upper case, tracking {type.tracking.caption}. Values: {color.soft} {type.weight.medium}, right-aligned, tabular. Inputs: {color.ground} fill, {color.rule} border, {radius.sm}; slider and checkbox tint {color.accent}. Error: {color.accent} {type.family.mono} {type.size.gearError}, line height {type.lineHeight.code} |
 
