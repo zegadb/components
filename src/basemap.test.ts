@@ -33,8 +33,7 @@ test("the street map is drawn: land, water, roads and labels, all from the basem
 test("in the Quiet palette, light and dark: the ground is ava's theme's, the water its own blue", () => {
   for (const mode of ["light", "dark"] as const) {
     const s = basemapStyle("ava", mode);
-    const bg = s.layers.find((l) => l.type === "background");
-    assert.equal((bg?.paint as Record<string, unknown>)["background-color"], theme("ava", mode).ground);
+    assert.equal(paintAt("background", "background-color", 10, "map", mode), rgbaOf(theme("ava", mode).ground));
     const water = s.layers.find((l) => l.id === "water");
     assert.equal((water?.paint as Record<string, unknown>)["fill-color"], AVA_BASEMAP.palette[mode].water);
   }
@@ -63,6 +62,8 @@ function paintAt(layerId: string, property: string, zoom: number, mapType: "map"
   return typeof out === "number" ? out : String(out).replace(/\s/g, "");
 }
 const rgba = (s: string) => s.replace(/\s/g, "");
+/** "#RRGGBB" as MapLibre's evaluator prints it. */
+const rgbaOf = (hex: string) => `rgba(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(",")},1)`;
 
 test("satellite: the imagery is ava's tiles host's, the base everywhere to z10 and the detail over Canada to z13", () => {
   const s = basemapStyle("ava", "light", "en", "satellite");
@@ -107,6 +108,10 @@ test("satellite: roads white and names white on dark over the imagery; water cle
     assert.equal(paintAt("places_locality", "text-halo-color", 12, "satellite", mode), rgba(OVER_IMAGERY.halo));
     assert.equal(paintAt("water", "fill-opacity", 12, "satellite", mode), 0);
     assert.equal(paintAt(IMAGERY_LAYERS.base, "raster-opacity", 12, "satellite", mode), 1);
+    // Where there is no imagery (open sea), a deep sea, not the street map's ground; the street map's own on the map.
+    assert.equal(paintAt("background", "background-color", 5, "satellite", mode), "rgba(11,22,33,1)");
+    assert.notEqual(paintAt("background", "background-color", 5, "map", mode), "rgba(11,22,33,1)");
+    assert.equal(paintAt("background", "background-color", 14, "satellite", mode), paintAt("background", "background-color", 14, "map", mode));
     // Just below the cut, the imagery; from it, the street map.
     assert.equal(paintAt(IMAGERY_LAYERS.detail, "raster-opacity", from - 0.01, "satellite", mode), 1);
     assert.equal(paintAt("roads_highway", "line-color", from - 0.01, "satellite", mode), rgba(OVER_IMAGERY.bigRoad));

@@ -86,6 +86,8 @@ export const OVER_IMAGERY = {
   casing: "rgba(0, 0, 0, 0.28)",
   rail: "rgba(255, 255, 255, 0.35)",
   boundary: "rgba(255, 255, 255, 0.6)",
+  /** The ground where there is no imagery (open sea, a gap in the Arctic composite): a deep sea, as the photographs' own. */
+  ground: "#0B1621",
   hidden: "rgba(0, 0, 0, 0)",
 } as const;
 
@@ -113,7 +115,8 @@ function overImagery(street: unknown, over: unknown, fade: Imagery["fade"]): unk
 }
 
 /**
- * The street map with imagery under its roads and names. The imagery goes in under the first line
+ * The street map with imagery under its roads and names, over a deep-sea ground (the imagery has
+ * nothing over open water; the street map's light ground there read as land). The imagery goes in under the first line
  * (the land, landcover and parks are under it); the fills the street map draws above that (water,
  * buildings, runways, piers) are cleared while it shows; lines turn to white over a dark casing,
  * names to white on a dark halo; past the fade all of it is the street map again. Two imagery
@@ -131,7 +134,12 @@ export function satelliteLayers(street: readonly LayerSpecification[], i: Imager
   street.forEach((l, n) => {
     if (n === at) out.push(...imagery);
     // Below the imagery, the background, and a host's own layers (its markers, not the street map's): as they are.
-    if (n < at || l.type === "background" || (l as { source?: string }).source !== BASEMAP_SOURCE) return void out.push(l);
+    if (l.type === "background") {
+      const paint = { ...(l.paint as Record<string, unknown>) };
+      paint["background-color"] = overImagery(paint["background-color"], OVER_IMAGERY.ground, i.fade);
+      return void out.push({ ...l, paint } as LayerSpecification);
+    }
+    if (n < at || (l as { source?: string }).source !== BASEMAP_SOURCE) return void out.push(l);
     const paint: Record<string, unknown> = { ...(l as { paint?: Record<string, unknown> }).paint };
     if (l.type === "fill") paint["fill-opacity"] = overImagery(paint["fill-opacity"] ?? 1, 0, i.fade);
     else if (l.type === "line") paint["line-color"] = overImagery(paint["line-color"], lineOverImagery(l.id), i.fade);

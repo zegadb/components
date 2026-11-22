@@ -55,7 +55,10 @@ and the world to 10, from tiles.addis.gg). On a map the reader can move whose
 basemap has imagery, the **Map | Satellite switch** beside the 2D | 3D one
 changes it. Over the imagery the roads are drawn white over a dark casing and
 the names white on a dark halo; the street map's water, buildings and other
-fills above the land are cleared. 10 m shows fields, forests, lakes and the
+fills above the land are cleared, and where there is no imagery (open sea) the
+ground is a deep sea (the imagery's own, `OVER_IMAGERY.ground` in
+src/basemap.ts, not a theme colour: the photograph is the same in both themes),
+not the street map's light ground. 10 m shows fields, forests, lakes and the
 shape of a town, not streets: from map zoom 13 the imagery is cut away and
 the roads and names are the street map's again, so a close view is the
 street map. (A fade from 13 to 14.5 was shot beside the cut on 22 Nov; in
