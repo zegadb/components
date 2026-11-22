@@ -3,7 +3,7 @@
   "fixture": 2,
   "component": "weather",
   "title": "Montréal, full, in French",
-  "description": "Every word of the card in French (Maint., Auj., the days, Ressenti, Vent, Lever and Coucher du soleil, 17 h), around ECCC's own French.",
+  "description": "Every word of the card in French (Cette nuit min., PROCHAINES 24 HEURES, 16 h 19, the days, Vent, rafales, Lever, Coucher, Durée du jour), around ECCC's own French.",
   "host": "ava",
   "size": {
     "width": 640

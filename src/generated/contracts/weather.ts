@@ -7,14 +7,18 @@ export const CONTRACT = {
   "version": "1.0.0",
   "title": "Weather",
   "category": "Weather",
-  "description": "One place's weather as a card: the temperature now, the sky, and the days ahead (compact); or with the next hours and the details too (full). Temperatures in °C. A host draws it from a forecast it read itself (Ava: Environment and Climate Change Canada), and shows the source's credit once, under it.",
+  "description": "One place's weather as a card: the temperature now (or what it feels like), the sky, a chart of the next hours and the days ahead (compact: the next 12 hours and a few days as tiles; full: the next 24 hours, the week on one scale, wind, sunrise and sunset). Temperatures in °C. A host draws it from a forecast it read itself (Ava: Environment and Climate Change Canada), and shows the source's credit once, under it.",
   "surface": {
     "kind": "card",
-    "description": "A rounded card whose sky follows the condition and day or night, white text on it; its height follows what it holds."
+    "description": "A panel card in the theme's own colours, with a chart of the next hours (night shaded) in the chart family's style; its height follows what it holds."
   },
   "marks": [
     "glyph",
-    "label"
+    "label",
+    "line",
+    "area",
+    "bar",
+    "point"
   ],
   "size": {
     "aspect": 0.4,
@@ -59,7 +63,13 @@ export const CONTRACT = {
     },
     "night": {
       "type": "boolean",
-      "description": "Night: the moon instead of the sun, and a night sky."
+      "description": "Night: the moon instead of the sun in the glyph."
+    },
+    "feels": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 60,
+      "description": "What it feels like in °C: the source's wind chill or humidex, only when it gives one (never worked out by the card)."
     },
     "pop": {
       "type": "number",
@@ -111,13 +121,35 @@ export const CONTRACT = {
             "$ref": "#/$defs/night"
           },
           "feels_c": {
-            "$ref": "#/$defs/temp"
+            "$ref": "#/$defs/feels"
           },
           "wind": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40,
-            "description": "As the source words it: \"SSE 10 km/h, gusts 27 km/h\"."
+            "type": "object",
+            "required": [
+              "speed_kmh"
+            ],
+            "additionalProperties": false,
+            "description": "The wind now, as the source gives it.",
+            "properties": {
+              "speed_kmh": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400,
+                "description": "km/h; 0 is calm."
+              },
+              "gust_kmh": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400,
+                "description": "Gusts in km/h, only when the source gives them."
+              },
+              "dir": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4,
+                "description": "Where it blows from, in the source's own letters for the card's language (\"NW\", \"NO\")."
+              }
+            }
           },
           "observed": {
             "$ref": "#/$defs/time"
@@ -126,8 +158,8 @@ export const CONTRACT = {
       },
       "hours": {
         "type": "array",
-        "maxItems": 48,
-        "description": "The next hours, in order.",
+        "maxItems": 24,
+        "description": "The next hours, in order, one each: up to 24 (the full card's chart; compact shows the first 12).",
         "items": {
           "type": "object",
           "required": [
@@ -140,6 +172,9 @@ export const CONTRACT = {
             },
             "temp_c": {
               "$ref": "#/$defs/temp"
+            },
+            "feels_c": {
+              "$ref": "#/$defs/feels"
             },
             "icon": {
               "$ref": "#/$defs/icon"
@@ -191,11 +226,15 @@ export const CONTRACT = {
       "sun": {
         "type": "object",
         "additionalProperties": false,
+        "description": "Today's sunrise and sunset, and tomorrow's sunrise when the source gives it. The chart shades night from them; without next_rise, the night after today ends at today's sunrise a day later.",
         "properties": {
           "rise": {
             "$ref": "#/$defs/time"
           },
           "set": {
+            "$ref": "#/$defs/time"
+          },
+          "next_rise": {
             "$ref": "#/$defs/time"
           }
         }
@@ -234,7 +273,7 @@ export const CONTRACT = {
         "full"
       ],
       "default": "compact",
-      "description": "compact: now and the days ahead. full: now, the next hours, the days and the details (feels like, wind, precipitation, sunrise and sunset)."
+      "description": "compact: now, the next 12 hours as a small chart, and up to four days as tiles. full: now, the next 24 hours as a chart, every day on one scale, and wind, sunrise, sunset and daylight."
     },
     "lang": {
       "enum": [
@@ -296,8 +335,10 @@ export const CONTRACT = {
               "temp_c": 4,
               "condition": "Généralement ensoleillé",
               "icon": "mainly-clear",
-              "feels_c": 1,
-              "wind": "O 15 km/h"
+              "wind": {
+                "speed_kmh": 15,
+                "dir": "O"
+              }
             },
             "hours": [
               {

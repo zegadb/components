@@ -3,7 +3,13 @@
 // and condition text to them. A host that reads ECCC (Ava's Rust core) reads ECCC_ICONS and
 // ECCC_TEXT as data rather than copying them (avacanada/ava scripts/views.ts writes them out for it).
 import { el, type SvgNode } from "../svg.ts";
-import type { WeatherColours } from "../types.ts";
+
+/**
+ * A glyph's colours: line drawings in our stroke (1.6 on a 24 grid, round caps). Shapes are `ink`,
+ * what falls (rain, snow, ice, a bolt) is `accent`, the sun is `sun` (a shape colour, never text), and
+ * a cloud is filled with `fill`, the surface it sits on, so it hides the sun behind it.
+ */
+export interface GlyphColours { ink: string; accent: string; sun: string; fill: string }
 
 /** Every kind of sky the card draws. Sun or moon is the `night` flag's, not the kind's. */
 export const ICONS = ["clear", "mainly-clear", "partly-cloudy", "cloudy", "showers", "rain", "freezing-rain", "mix", "flurries", "snow", "thunderstorm", "fog", "wind", "blowing-snow"] as const;
@@ -75,67 +81,72 @@ export function ecccGlyph(code: number | null | undefined, text?: string | null)
 /** Which kinds show the sun (or the moon) behind them. */
 const WITH_SKY: ReadonlySet<Icon> = new Set(["clear", "mainly-clear", "partly-cloudy", "showers", "flurries"]);
 
-/** A cloud: a flat base from x 3.5 to 20.5 at y = 15, three lobes. */
-const CLOUD = "M7 15.5h10.4a3.6 3.6 0 0 0 .5-7.15 5.6 5.6 0 0 0-10.7.9 3.15 3.15 0 0 0-.2 6.25z";
+/** A cloud: a flat base from x 6.6 to 17.2 at y 18.6, two lobes. */
+const CLOUD = "M6.6 18.6h10.6a3.7 3.7 0 0 0 .5-7.36 5.3 5.3 0 0 0-10.2 1.06A3.2 3.2 0 0 0 6.6 18.6z";
 
-function sun(c: WeatherColours, cx: number, cy: number, r: number, rays: boolean): SvgNode {
+/** The stroke in the 24 grid: 1.6, a little heavier when the glyph is drawn small, so it stays near 1.3 to 1.6 pt on screen. */
+const strokeAt = (size: number) => 1.6 * (24 / size) ** 0.35;
+
+type Pen = GlyphColours & { w: number };
+
+const round = { "stroke-linecap": "round", "stroke-linejoin": "round" } as const;
+
+/** The sun: a ring and eight short rays, in the sun's colour. */
+function sun(p: Pen, cx: number, cy: number, r: number, rays = true): SvgNode {
   const lines: SvgNode[] = [];
   if (rays) {
     for (let i = 0; i < 8; i++) {
       const a = (i * Math.PI) / 4;
-      lines.push(el("line", { x1: cx + Math.cos(a) * (r + 2.1), y1: cy + Math.sin(a) * (r + 2.1), x2: cx + Math.cos(a) * (r + 4), y2: cy + Math.sin(a) * (r + 4), stroke: c.sun, "stroke-width": 1.7, "stroke-linecap": "round" }));
+      lines.push(el("line", { x1: cx + Math.cos(a) * (r + 2.2), y1: cy + Math.sin(a) * (r + 2.2), x2: cx + Math.cos(a) * (r + 3.8), y2: cy + Math.sin(a) * (r + 3.8), stroke: p.sun, "stroke-width": p.w, ...round }));
     }
   }
-  return el("g", { "data-glyph": "sun" }, el("circle", { cx, cy, r, fill: c.sun }), lines);
+  return el("g", { "data-glyph": "sun" }, el("circle", { cx, cy, r, fill: "none", stroke: p.sun, "stroke-width": p.w }), lines);
 }
 
-/** A crescent: a disc with a bite out of its upper right. */
-function moon(c: WeatherColours, cx: number, cy: number, r: number): SvgNode {
-  const k = r * 0.78;
-  return el("path", { "data-glyph": "moon", d: `M${cx + k * 0.55} ${cy - r * 0.92}A${r} ${r} 0 1 0 ${cx + r * 0.98} ${cy + k * 0.32}A${k} ${k} 0 0 1 ${cx + k * 0.55} ${cy - r * 0.92}z`, fill: c.moon });
+/** A crescent, outlined in ink. */
+function moon(p: Pen, cx: number, cy: number, r: number): SvgNode {
+  return el("path", { "data-glyph": "moon", d: `M${cx + r * 0.35} ${cy - r * 1.05}a${r * 1.1} ${r * 1.1} 0 1 0 ${r * 0.95} ${r * 1.55}a${r * 0.95} ${r * 0.95} 0 0 1 ${-r * 0.95} ${-r * 1.55}z`, fill: p.fill, stroke: p.ink, "stroke-width": p.w, ...round });
 }
 
-const cloud = (c: WeatherColours, transform?: string, back = false) => el("path", { "data-glyph": "cloud", d: CLOUD, fill: back ? c.cloudBack : c.cloud, transform });
+/** A cloud outlined in ink and filled with the surface, so whatever is behind it is hidden. */
+const cloud = (p: Pen, transform?: string) => el("path", { "data-glyph": "cloud", d: CLOUD, transform, fill: p.fill, stroke: p.ink, "stroke-width": p.w, ...round });
 
-const drops = (c: WeatherColours, xs: number[], y = 18, len = 3.6) =>
-  xs.map((x) => el("line", { x1: x, y1: y, x2: x - 1.2, y2: y + len, stroke: c.drop, "stroke-width": 1.8, "stroke-linecap": "round" }));
+const drops = (p: Pen, xs: number[], y = 19.6) => xs.map((x) => el("line", { "data-glyph": "drop", x1: x, y1: y, x2: x - 1.4, y2: y + 3, stroke: p.accent, "stroke-width": p.w, ...round }));
 
-function flake(c: WeatherColours, cx: number, cy: number, r = 1.9): SvgNode {
-  const arms: SvgNode[] = [];
-  for (let i = 0; i < 3; i++) {
-    const a = (i * Math.PI) / 3 + Math.PI / 2;
-    arms.push(el("line", { x1: cx - Math.cos(a) * r, y1: cy - Math.sin(a) * r, x2: cx + Math.cos(a) * r, y2: cy + Math.sin(a) * r, stroke: c.cloud, "stroke-width": 1.3, "stroke-linecap": "round" }));
-  }
-  return el("g", { "data-glyph": "flake" }, arms);
+function flake(p: Pen, x: number, y: number): SvgNode {
+  const w = p.w * 0.85;
+  return el("g", { "data-glyph": "flake", stroke: p.accent, "stroke-width": w, "stroke-linecap": "round" },
+    el("line", { x1: x - 1.5, y1: y, x2: x + 1.5, y2: y }),
+    el("line", { x1: x - 0.75, y1: y - 1.3, x2: x + 0.75, y2: y + 1.3 }),
+    el("line", { x1: x + 0.75, y1: y - 1.3, x2: x - 0.75, y2: y + 1.3 }));
 }
 
-const bolt = (c: WeatherColours) => el("path", { "data-glyph": "bolt", d: "M12.6 15.2 9.6 19.6h2.6l-1 3.6 3.9-5h-2.6l1.3-3z", fill: c.bolt });
-
-const windLines = (c: WeatherColours, y0: number) => [
-  el("path", { d: `M3.5 ${y0}h11.2a2.6 2.6 0 1 0-2.6-2.6`, fill: "none", stroke: c.cloud, "stroke-width": 1.7, "stroke-linecap": "round" }),
-  el("path", { d: `M3.5 ${y0 + 4}h14.6a2.6 2.6 0 1 1-2.6 2.6`, fill: "none", stroke: c.cloud, "stroke-width": 1.7, "stroke-linecap": "round" }),
-  el("path", { d: `M3.5 ${y0 + 8}h7`, fill: "none", stroke: c.cloud, "stroke-width": 1.7, "stroke-linecap": "round" }),
-];
+const windLines = (p: Pen, y0: number) =>
+  el("g", { "data-glyph": "wind", fill: "none", stroke: p.ink, "stroke-width": p.w, "stroke-linecap": "round" },
+    el("path", { d: `M3 ${y0}h11a2.6 2.6 0 1 0-2.6-2.6` }),
+    el("path", { d: `M3 ${y0 + 4}h15a2.6 2.6 0 1 1-2.6 2.6` }),
+    el("path", { d: `M3 ${y0 + 8}h7` }));
 
 /** One kind's drawing on the 24-unit square. */
-function drawing(icon: Icon, night: boolean, c: WeatherColours): SvgNode[] {
-  // The sun or moon: whole for a clear sky, peeking from behind the cloud otherwise.
-  const body = (cx: number, cy: number, r: number) => (night ? moon(c, cx, cy, r * 1.15) : sun(c, cx, cy, r, true));
+function drawing(icon: Icon, night: boolean, p: Pen): SvgNode[] {
+  // The sun or moon: whole for a clear sky, behind the cloud otherwise.
+  const body = (cx: number, cy: number, r: number) => (night ? moon(p, cx, cy, r) : sun(p, cx, cy, r));
+  const up = "translate(0 -2.6)";
   switch (icon) {
-    case "clear": return [night ? moon(c, 12, 12, 7.2) : sun(c, 12, 12, 4.6, true)];
-    case "mainly-clear": return [body(10.5, 10, 4.2), cloud(c, "translate(9.2 10.4) scale(0.58)")];
-    case "partly-cloudy": return [body(8.4, 8.2, 3.6), cloud(c, "translate(1.6 4.2) scale(0.92)")];
-    case "cloudy": return [cloud(c, "translate(4.6 -1.4) scale(0.8)", true), cloud(c, "translate(0 3)")];
-    case "showers": return [body(7.6, 6.4, 3.1), cloud(c, "translate(1.4 0.6) scale(0.92)"), ...drops(c, [9.6, 14.6])];
-    case "rain": return [cloud(c), ...drops(c, [8.2, 12.2, 16.2])];
-    case "freezing-rain": return [cloud(c), ...drops(c, [8.2, 16.2]), el("path", { "data-glyph": "ice", d: "M12.2 17.6l1.9 2.3-1.9 2.3-1.9-2.3z", fill: c.drop })];
-    case "mix": return [cloud(c), ...drops(c, [8.6]), flake(c, 12.6, 20), ...drops(c, [17])];
-    case "flurries": return [body(7.6, 6.4, 3.1), cloud(c, "translate(1.4 0.6) scale(0.92)"), flake(c, 10, 19.6), flake(c, 15.2, 19.6)];
-    case "snow": return [cloud(c), flake(c, 7.8, 19.4), flake(c, 12.2, 21), flake(c, 16.6, 19.4)];
-    case "thunderstorm": return [cloud(c), bolt(c), ...drops(c, [7.4, 17.6])];
-    case "fog": return [cloud(c, "translate(0 -2.4)"), ...[15.6, 18.6, 21.6].map((y, i) => el("line", { x1: 3.5 + (i % 2) * 2, y1: y, x2: 20.5 - ((i + 1) % 2) * 2, y2: y, stroke: c.cloud, "stroke-width": 1.7, "stroke-linecap": "round", "stroke-opacity": 0.85 }))];
-    case "wind": return windLines(c, 8);
-    case "blowing-snow": return [...windLines(c, 5).slice(0, 2), flake(c, 7.2, 18.4), flake(c, 12.6, 20.4), flake(c, 18, 18.4)];
+    case "clear": return [night ? moon(p, 11, 12.5, 6.2) : sun(p, 12, 12, 4.2)];
+    case "mainly-clear": return [body(9.5, 9, 3.4), cloud(p, "translate(4.2 3.6) scale(0.72)")];
+    case "partly-cloudy": return [body(8.4, 8.2, 3.2), cloud(p, "translate(1 1.2)")];
+    case "cloudy": return [cloud(p, "translate(3.6 -3) scale(0.78)"), cloud(p, "translate(-1 1)")];
+    case "showers": return [body(8, 6.6, 2.8), cloud(p, up), ...drops(p, [10, 15])];
+    case "rain": return [cloud(p, up), ...drops(p, [8.6, 12.6, 16.6])];
+    case "freezing-rain": return [cloud(p, up), ...drops(p, [8.6, 16.6]), el("path", { "data-glyph": "ice", d: "M12.6 19.4l1.6 1.9-1.6 1.9-1.6-1.9z", fill: "none", stroke: p.accent, "stroke-width": p.w * 0.85, ...round })];
+    case "mix": return [cloud(p, up), ...drops(p, [8.6, 16.6]), flake(p, 12.6, 21)];
+    case "flurries": return [body(8, 6.6, 2.8), cloud(p, up), flake(p, 10, 20.8), flake(p, 15.2, 20.8)];
+    case "snow": return [cloud(p, up), flake(p, 8, 20.2), flake(p, 12.4, 21.8), flake(p, 16.8, 20.2)];
+    case "thunderstorm": return [cloud(p, up), el("path", { "data-glyph": "bolt", d: "M12.8 15.6 10.4 19.4h2.6l-1.2 3.4", fill: "none", stroke: p.accent, "stroke-width": p.w, ...round })];
+    case "fog": return [cloud(p, "translate(0 -3.4)"), el("g", { stroke: p.ink, "stroke-width": p.w, "stroke-linecap": "round" }, el("line", { x1: 4, y1: 18.6, x2: 20, y2: 18.6 }), el("line", { x1: 6.5, y1: 21.8, x2: 17.5, y2: 21.8 }))];
+    case "wind": return [windLines(p, 8)];
+    case "blowing-snow": return [windLines(p, 5), flake(p, 6.4, 19.4), flake(p, 12, 21.2), flake(p, 17.6, 19.4)];
   }
 }
 
@@ -143,6 +154,6 @@ function drawing(icon: Icon, night: boolean, c: WeatherColours): SvgNode[] {
 export const showsSky = (icon: Icon) => WITH_SKY.has(icon);
 
 /** A glyph, `size` points square, its top-left at (x, y). */
-export function glyph(icon: Icon, night: boolean, x: number, y: number, size: number, c: WeatherColours): SvgNode {
-  return el("g", { transform: `translate(${x} ${y}) scale(${size / 24})`, "data-icon": icon, "data-night": showsSky(icon) && night ? "1" : undefined, "aria-hidden": "true" }, drawing(icon, night, c));
+export function glyph(icon: Icon, night: boolean, x: number, y: number, size: number, c: GlyphColours): SvgNode {
+  return el("g", { transform: `translate(${x} ${y}) scale(${size / 24})`, "data-icon": icon, "data-night": showsSky(icon) && night ? "1" : undefined, "aria-hidden": "true" }, drawing(icon, night, { ...c, w: strokeAt(size) }));
 }

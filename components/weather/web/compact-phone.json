@@ -3,7 +3,7 @@
   "fixture": 2,
   "component": "weather",
   "title": "Toronto, compact, at a phone's chat width",
-  "description": "The compact card in the 358-point column: two columns still, the days' names short.",
+  "description": "The compact card in the 358-point column: three day tiles, hours every 6.",
   "host": "ava",
   "size": {
     "width": 358

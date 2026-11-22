@@ -57,22 +57,15 @@ export interface ThemeColours {
   readonly weather: WeatherColours;
 }
 
-/** The weather card's skies, by condition and day or night (src/weather). */
-export type SkyName = "clear-day" | "partly-day" | "overcast-day" | "rain-day" | "snow-day" | "storm" | "clear-night" | "cloudy-night";
-
-/** The weather card's own colours: its skies (top, bottom), the white text on them, and the glyphs'. */
+/** The weather card's own colours (src/weather); the rest of the card is the panel, ink, soft, rule, axis and accent. */
 export interface WeatherColours {
-  readonly skies: { readonly [S in SkyName]: readonly string[] };
-  readonly ink: string;
-  readonly pop: string;
+  /** The sun in a glyph: a shape colour, never text. */
   readonly sun: string;
-  readonly moon: string;
-  readonly cloud: string;
-  readonly cloudBack: string;
-  readonly range: readonly string[];
-  readonly drop: string;
-  readonly bolt: string;
-  readonly edge: string;
+  /** The band behind the hours from sunset to sunrise, and its edge. */
+  readonly night: string;
+  readonly nightEdge: string;
+  /** The chance of precipitation's words: the accent as text. */
+  readonly pop: string;
 }
 
 export interface HostTheme {

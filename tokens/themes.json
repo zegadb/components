@@ -19,7 +19,7 @@
     "nerve": "The body's nerves layer when it is shown but not lit: a pale yellow, readable over the muscles and on the ground.",
     "sequential": "One hue, low to high value.",
     "diverging": "Two poles around a neutral middle.",
-    "weather": "The weather card: its sky (a gradient, top to bottom, chosen by the condition and day or night), the text on it (ink, always white on every sky, in both chat modes), and the glyphs' own colours. The skies ease from a lighter top to a deeper bottom, toward slate; every piece of text holds 4.5:1 (3:1 for large text) against the sky right behind it, wherever it sits on the card (src/weather/weather.test.ts checks each, for every sky, size and width)."
+    "weather": "The weather card's own colours; the card itself is the panel, its text ink and soft, its marks the accent. `sun`: the sun in a glyph (a shape colour only, never text). `night`: the band behind the hours from sunset to sunrise, and `nightEdge` its edge. `pop`: the chance of precipitation's words, an accent dark (light mode) or light (dark mode) enough for text. Every text on the card holds 4.5:1 (3:1 for large text) against both the panel and the night band (src/weather/weather.test.ts checks each, for every host, mode, size and width)."
   },
   "hosts": {
     "ava": {
@@ -31,13 +31,7 @@
         "up": "#13824F", "down": "#BE3529", "buildings": "#E4E1EC", "cartilage": "#8FB1C7", "muscle": "#B8726B", "nerve": "#D8B640",
         "sequential": ["#B6A6F9", "#8D72F3", "#6646EE", "#4527C4", "#24106E"],
         "diverging": ["#A6560B", "#E39A4B", "#DCD8E6", "#8D72F3", "#4527C4"],
-        "weather": {
-          "skies": {
-            "clear-day": ["#4577B4", "#2C5A94"], "partly-day": ["#5577A5", "#34527A"], "overcast-day": ["#6A7685", "#454F5C"], "rain-day": ["#5A6A7C", "#364456"],
-            "snow-day": ["#67778A", "#434F60"], "storm": ["#4B4A63", "#26263A"], "clear-night": ["#22325A", "#0A1024"], "cloudy-night": ["#343B4C", "#15191F"]
-          },
-          "ink": "#FFFFFF", "pop": "#D6EEFF", "sun": "#FFCB3D", "moon": "#F2EAD0", "cloud": "#FFFFFF", "cloudBack": "#C9D3DF", "drop": "#5FB8FF", "bolt": "#FFD23F", "range": ["#7FD0FF", "#9FE09A", "#FFC24B"], "edge": "#FFFFFF"
-        }
+        "weather": { "sun": "#D98E00", "night": "#EEEAF6", "nightEdge": "#D9D2EA", "pop": "#5434D6" }
       },
       "dark": {
         "ground": "#1C1A29", "panel": "#211C38", "ink": "#E9E6F2", "soft": "#B4ACCB", "rule": "#2C283F", "axis": "#4A4466",
@@ -45,13 +39,7 @@
         "up": "#3FBF7F", "down": "#F26A5E", "buildings": "#252333", "cartilage": "#9CC3DB", "muscle": "#A85F59", "nerve": "#EAD27E",
         "sequential": ["#4F3EA8", "#7259DE", "#A88FFF", "#CDBFFF", "#EEE9FF"],
         "diverging": ["#F2A65A", "#A8641F", "#4B4663", "#7259DE", "#CDBFFF"],
-        "weather": {
-          "skies": {
-            "clear-day": ["#3F72B0", "#264F84"], "partly-day": ["#4D6D9A", "#2E496C"], "overcast-day": ["#5F6B79", "#3D4652"], "rain-day": ["#505F70", "#303D4D"],
-            "snow-day": ["#5E6D80", "#3B4656"], "storm": ["#424159", "#212133"], "clear-night": ["#1D2B4E", "#080D1D"], "cloudy-night": ["#2E3544", "#121519"]
-          },
-          "ink": "#FFFFFF", "pop": "#D6EEFF", "sun": "#F7C23A", "moon": "#EDE6CC", "cloud": "#F4F6FA", "cloudBack": "#BFC9D6", "drop": "#58AEF2", "bolt": "#F7CB3A", "range": ["#74C6F5", "#93D48E", "#F5B941"], "edge": "#FFFFFF"
-        }
+        "weather": { "sun": "#FFC94D", "night": "#18142B", "nightEdge": "#2C2648", "pop": "#B9A6FF" }
       }
     },
     "zega": {
@@ -63,13 +51,7 @@
         "up": "#0C8B43", "down": "#B8402F", "buildings": "#D8CDBA", "cartilage": "#8AACBF", "muscle": "#B06B60", "nerve": "#CFAE3E",
         "sequential": ["#B9DDC4", "#7CC196", "#3E9E66", "#0C7A3E", "#064522"],
         "diverging": ["#1F6E78", "#7FA8AB", "#C9C0B2", "#D98A5C", "#9C4220"],
-        "weather": {
-          "skies": {
-            "clear-day": ["#4577B4", "#2C5A94"], "partly-day": ["#5577A5", "#34527A"], "overcast-day": ["#6A7685", "#454F5C"], "rain-day": ["#5A6A7C", "#364456"],
-            "snow-day": ["#67778A", "#434F60"], "storm": ["#4B4A63", "#26263A"], "clear-night": ["#22325A", "#0A1024"], "cloudy-night": ["#343B4C", "#15191F"]
-          },
-          "ink": "#FFFFFF", "pop": "#D6EEFF", "sun": "#FFCB3D", "moon": "#F2EAD0", "cloud": "#FFFFFF", "cloudBack": "#C9D3DF", "drop": "#5FB8FF", "bolt": "#FFD23F", "range": ["#7FD0FF", "#9FE09A", "#FFC24B"], "edge": "#FFFFFF"
-        }
+        "weather": { "sun": "#B87A00", "night": "#F7F3E8", "nightEdge": "#E2D9C8", "pop": "#0A7039" }
       },
       "dark": {
         "ground": "#1E1610", "panel": "#281E16", "ink": "#F3EFE3", "soft": "#BDAA90", "rule": "#33281E", "axis": "#6D5540",
@@ -77,13 +59,7 @@
         "up": "#3CCB77", "down": "#EF8A78", "buildings": "#423326", "cartilage": "#98BFD3", "muscle": "#A35A52", "nerve": "#E5CD7A",
         "sequential": ["#164A2C", "#1E6E40", "#2E9A5B", "#62C78B", "#B4EBC8"],
         "diverging": ["#4FA3AC", "#3F6A6D", "#6B6259", "#B8683D", "#F0A878"],
-        "weather": {
-          "skies": {
-            "clear-day": ["#3F72B0", "#264F84"], "partly-day": ["#4D6D9A", "#2E496C"], "overcast-day": ["#5F6B79", "#3D4652"], "rain-day": ["#505F70", "#303D4D"],
-            "snow-day": ["#5E6D80", "#3B4656"], "storm": ["#424159", "#212133"], "clear-night": ["#1D2B4E", "#080D1D"], "cloudy-night": ["#2E3544", "#121519"]
-          },
-          "ink": "#FFFFFF", "pop": "#D6EEFF", "sun": "#F7C23A", "moon": "#EDE6CC", "cloud": "#F4F6FA", "cloudBack": "#BFC9D6", "drop": "#58AEF2", "bolt": "#F7CB3A", "range": ["#74C6F5", "#93D48E", "#F5B941"], "edge": "#FFFFFF"
-        }
+        "weather": { "sun": "#E8B84A", "night": "#1E1610", "nightEdge": "#3A2D22", "pop": "#5AD88C" }
       }
     }
   }

@@ -63,7 +63,7 @@ test("path-on-map/draw.ts bundles only path-on-map: no other component's contrac
 const MAIN_STRINGS = new Set(["function-plot", "path-on-map", "price-chart"].flatMap((id) => strings(contractOf(id))));
 const WEATHER_STRINGS = [...new Set(strings(contractOf("weather")))].filter((s) => s.length >= 12 && !MAIN_STRINGS.has(s) && !s.includes('"'));
 // From its renderer, its words and its table.
-const WEATHER_CODE = ["a weather card needs now, hours or days", "Warmer tomorrow", "Plus froid demain", "verglacant", "blowing-snow", "data-sky"];
+const WEATHER_CODE = ["a weather card needs now, hours or days", "Tonight low", "Durée du jour", "verglacant", "blowing-snow", "feels-line"];
 
 test("the weather's strings are distinctive enough to find, and its entry carries them", async () => {
   assert.ok(WEATHER_STRINGS.length > 15, `${WEATHER_STRINGS.length} strings`);

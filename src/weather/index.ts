@@ -37,5 +37,5 @@ export const COMPONENT_IDS: ComponentId[] = WITH_WEATHER.ids;
 export const CONTRACTS: ContractsOf<typeof COMPONENTS> = WITH_WEATHER.contracts;
 export const { validate, render, toolDefinitions, componentOfTool, contractText } = WITH_WEATHER;
 
-export { ICONS as WEATHER_ICONS, ECCC_ICONS, ECCC_TEXT, ecccGlyph, glyph as weatherGlyph, type Icon as WeatherIcon, type Glyph as WeatherGlyph } from "./icons.ts";
-export { skyOf, summaryLine, SOFT as WEATHER_SOFT, MAX_WIDTH as WEATHER_MAX_WIDTH, type WeatherData, type WeatherDay, type WeatherHour, type WeatherNow, type WeatherOptions } from "./card.ts";
+export { ICONS as WEATHER_ICONS, ECCC_ICONS, ECCC_TEXT, ecccGlyph, glyph as weatherGlyph, type Icon as WeatherIcon, type Glyph as WeatherGlyph, type GlyphColours as WeatherGlyphColours } from "./icons.ts";
+export { nightBands, MAX_WIDTH as WEATHER_MAX_WIDTH, type WeatherData, type WeatherDay, type WeatherHour, type WeatherNow, type WeatherOptions, type WeatherSun, type WeatherWind } from "./card.ts";

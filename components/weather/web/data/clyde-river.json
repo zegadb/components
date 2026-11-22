@@ -1,237 +1,264 @@
 {
- "place": "Clyde River",
- "today": "2026-11-21",
- "now": {
-  "temp_c": -9.1,
-  "condition": "Snow",
-  "icon": "snow",
-  "night": true,
-  "feels_c": -21,
-  "wind": "NW 59 km/h, gusts 72 km/h",
-  "observed": "2026-11-21T15:25-05:00"
- },
+ "days": [
+  {
+   "condition": "Blizzard",
+   "date": "2026-11-21",
+   "icon": "blowing-snow",
+   "low_c": -14,
+   "night": true
+  },
+  {
+   "condition": "Partly cloudy",
+   "date": "2026-11-22",
+   "high_c": -15,
+   "icon": "partly-cloudy",
+   "low_c": -20,
+   "night": true
+  },
+  {
+   "condition": "Clear",
+   "date": "2026-11-23",
+   "high_c": -17,
+   "icon": "clear",
+   "low_c": -18,
+   "night": true
+  },
+  {
+   "condition": "Cloudy periods",
+   "date": "2026-11-24",
+   "high_c": -17,
+   "icon": "partly-cloudy",
+   "low_c": -18,
+   "night": true
+  },
+  {
+   "condition": "Cloudy periods",
+   "date": "2026-11-25",
+   "high_c": -16,
+   "icon": "partly-cloudy",
+   "low_c": -22,
+   "night": true
+  },
+  {
+   "condition": "Cloudy periods",
+   "date": "2026-11-26",
+   "high_c": -18,
+   "icon": "partly-cloudy",
+   "low_c": -22,
+   "night": true
+  }
+ ],
  "hours": [
   {
    "at": "2026-11-21T16:00-05:00",
-   "temp_c": -9,
+   "feels_c": -21,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -9
   },
   {
    "at": "2026-11-21T17:00-05:00",
-   "temp_c": -9,
+   "feels_c": -22,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -9
   },
   {
    "at": "2026-11-21T18:00-05:00",
-   "temp_c": -10,
+   "feels_c": -22,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -10
   },
   {
    "at": "2026-11-21T19:00-05:00",
-   "temp_c": -10,
+   "feels_c": -23,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -10
   },
   {
    "at": "2026-11-21T20:00-05:00",
-   "temp_c": -10,
+   "feels_c": -23,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -10
   },
   {
    "at": "2026-11-21T21:00-05:00",
-   "temp_c": -10,
+   "feels_c": -23,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -10
   },
   {
    "at": "2026-11-21T22:00-05:00",
-   "temp_c": -10,
+   "feels_c": -23,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -10
   },
   {
    "at": "2026-11-21T23:00-05:00",
-   "temp_c": -10,
+   "feels_c": -23,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -10
   },
   {
    "at": "2026-11-22T00:00-05:00",
-   "temp_c": -11,
+   "feels_c": -24,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -11
   },
   {
    "at": "2026-11-22T01:00-05:00",
-   "temp_c": -11,
+   "feels_c": -24,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -11
   },
   {
    "at": "2026-11-22T02:00-05:00",
-   "temp_c": -12,
+   "feels_c": -25,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -12
   },
   {
    "at": "2026-11-22T03:00-05:00",
-   "temp_c": -12,
+   "feels_c": -25,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -12
   },
   {
    "at": "2026-11-22T04:00-05:00",
-   "temp_c": -13,
+   "feels_c": -26,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -13
   },
   {
    "at": "2026-11-22T05:00-05:00",
-   "temp_c": -13,
+   "feels_c": -26,
    "icon": "blowing-snow",
    "night": true,
-   "pop": 80
+   "pop": 80,
+   "temp_c": -13
   },
   {
    "at": "2026-11-22T06:00-05:00",
-   "temp_c": -14,
+   "feels_c": -24,
    "icon": "cloudy",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -14
   },
   {
    "at": "2026-11-22T07:00-05:00",
-   "temp_c": -14,
+   "feels_c": -25,
    "icon": "partly-cloudy",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -14
   },
   {
    "at": "2026-11-22T08:00-05:00",
-   "temp_c": -14,
+   "feels_c": -25,
    "icon": "partly-cloudy",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -14
   },
   {
    "at": "2026-11-22T09:00-05:00",
-   "temp_c": -15,
+   "feels_c": -23,
    "icon": "partly-cloudy",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -15
   },
   {
    "at": "2026-11-22T10:00-05:00",
-   "temp_c": -15,
+   "feels_c": -23,
    "icon": "partly-cloudy",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -15
   },
   {
    "at": "2026-11-22T11:00-05:00",
-   "temp_c": -15,
+   "feels_c": -23,
    "icon": "mainly-clear",
    "night": false,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -15
   },
   {
    "at": "2026-11-22T12:00-05:00",
-   "temp_c": -16,
+   "feels_c": -24,
    "icon": "mainly-clear",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -16
   },
   {
    "at": "2026-11-22T13:00-05:00",
-   "temp_c": -16,
+   "feels_c": -24,
    "icon": "mainly-clear",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -16
   },
   {
    "at": "2026-11-22T14:00-05:00",
-   "temp_c": -16,
+   "feels_c": -25,
    "icon": "mainly-clear",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -16
   },
   {
    "at": "2026-11-22T15:00-05:00",
-   "temp_c": -17,
+   "feels_c": -25,
    "icon": "mainly-clear",
    "night": true,
-   "pop": 0
+   "pop": 0,
+   "temp_c": -17
   }
  ],
- "days": [
-  {
-   "date": "2026-11-21",
-   "low_c": -14,
-   "icon": "blowing-snow",
-   "night": true,
-   "condition": "Blizzard"
-  },
-  {
-   "date": "2026-11-22",
-   "high_c": -15,
-   "low_c": -20,
-   "icon": "partly-cloudy",
-   "condition": "Partly cloudy"
-  },
-  {
-   "date": "2026-11-23",
-   "high_c": -17,
-   "low_c": -18,
-   "icon": "clear",
-   "condition": "Clear"
-  },
-  {
-   "date": "2026-11-24",
-   "high_c": -17,
-   "low_c": -18,
-   "icon": "partly-cloudy",
-   "condition": "Cloudy periods"
-  },
-  {
-   "date": "2026-11-25",
-   "high_c": -16,
-   "low_c": -22,
-   "icon": "partly-cloudy",
-   "condition": "Cloudy periods"
-  },
-  {
-   "date": "2026-11-26",
-   "high_c": -18,
-   "low_c": -22,
-   "icon": "partly-cloudy",
-   "condition": "Cloudy periods"
-  },
-  {
-   "date": "2026-11-27",
-   "high_c": -18,
-   "icon": "partly-cloudy",
-   "condition": "Cloudy periods"
+ "now": {
+  "condition": "Snow",
+  "feels_c": -21,
+  "icon": "snow",
+  "night": true,
+  "observed": "2026-11-21T15:25-05:00",
+  "temp_c": -9.1,
+  "wind": {
+   "dir": "NW",
+   "gust_kmh": 72,
+   "speed_kmh": 59
   }
- ],
+ },
+ "place": "Clyde River",
  "sun": {
   "rise": "2026-11-21T10:28-05:00",
   "set": "2026-11-21T12:06-05:00"
- }
+ },
+ "today": "2026-11-21"
 }

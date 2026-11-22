@@ -45,54 +45,10 @@ export const THEMES = {
         "#4527C4"
       ],
       "weather": {
-        "skies": {
-          "clear-day": [
-            "#4577B4",
-            "#2C5A94"
-          ],
-          "partly-day": [
-            "#5577A5",
-            "#34527A"
-          ],
-          "overcast-day": [
-            "#6A7685",
-            "#454F5C"
-          ],
-          "rain-day": [
-            "#5A6A7C",
-            "#364456"
-          ],
-          "snow-day": [
-            "#67778A",
-            "#434F60"
-          ],
-          "storm": [
-            "#4B4A63",
-            "#26263A"
-          ],
-          "clear-night": [
-            "#22325A",
-            "#0A1024"
-          ],
-          "cloudy-night": [
-            "#343B4C",
-            "#15191F"
-          ]
-        },
-        "ink": "#FFFFFF",
-        "pop": "#D6EEFF",
-        "sun": "#FFCB3D",
-        "moon": "#F2EAD0",
-        "cloud": "#FFFFFF",
-        "cloudBack": "#C9D3DF",
-        "drop": "#5FB8FF",
-        "bolt": "#FFD23F",
-        "range": [
-          "#7FD0FF",
-          "#9FE09A",
-          "#FFC24B"
-        ],
-        "edge": "#FFFFFF"
+        "sun": "#D98E00",
+        "night": "#EEEAF6",
+        "nightEdge": "#D9D2EA",
+        "pop": "#5434D6"
       }
     },
     "dark": {
@@ -132,54 +88,10 @@ export const THEMES = {
         "#CDBFFF"
       ],
       "weather": {
-        "skies": {
-          "clear-day": [
-            "#3F72B0",
-            "#264F84"
-          ],
-          "partly-day": [
-            "#4D6D9A",
-            "#2E496C"
-          ],
-          "overcast-day": [
-            "#5F6B79",
-            "#3D4652"
-          ],
-          "rain-day": [
-            "#505F70",
-            "#303D4D"
-          ],
-          "snow-day": [
-            "#5E6D80",
-            "#3B4656"
-          ],
-          "storm": [
-            "#424159",
-            "#212133"
-          ],
-          "clear-night": [
-            "#1D2B4E",
-            "#080D1D"
-          ],
-          "cloudy-night": [
-            "#2E3544",
-            "#121519"
-          ]
-        },
-        "ink": "#FFFFFF",
-        "pop": "#D6EEFF",
-        "sun": "#F7C23A",
-        "moon": "#EDE6CC",
-        "cloud": "#F4F6FA",
-        "cloudBack": "#BFC9D6",
-        "drop": "#58AEF2",
-        "bolt": "#F7CB3A",
-        "range": [
-          "#74C6F5",
-          "#93D48E",
-          "#F5B941"
-        ],
-        "edge": "#FFFFFF"
+        "sun": "#FFC94D",
+        "night": "#18142B",
+        "nightEdge": "#2C2648",
+        "pop": "#B9A6FF"
       }
     }
   },
@@ -226,54 +138,10 @@ export const THEMES = {
         "#9C4220"
       ],
       "weather": {
-        "skies": {
-          "clear-day": [
-            "#4577B4",
-            "#2C5A94"
-          ],
-          "partly-day": [
-            "#5577A5",
-            "#34527A"
-          ],
-          "overcast-day": [
-            "#6A7685",
-            "#454F5C"
-          ],
-          "rain-day": [
-            "#5A6A7C",
-            "#364456"
-          ],
-          "snow-day": [
-            "#67778A",
-            "#434F60"
-          ],
-          "storm": [
-            "#4B4A63",
-            "#26263A"
-          ],
-          "clear-night": [
-            "#22325A",
-            "#0A1024"
-          ],
-          "cloudy-night": [
-            "#343B4C",
-            "#15191F"
-          ]
-        },
-        "ink": "#FFFFFF",
-        "pop": "#D6EEFF",
-        "sun": "#FFCB3D",
-        "moon": "#F2EAD0",
-        "cloud": "#FFFFFF",
-        "cloudBack": "#C9D3DF",
-        "drop": "#5FB8FF",
-        "bolt": "#FFD23F",
-        "range": [
-          "#7FD0FF",
-          "#9FE09A",
-          "#FFC24B"
-        ],
-        "edge": "#FFFFFF"
+        "sun": "#B87A00",
+        "night": "#F7F3E8",
+        "nightEdge": "#E2D9C8",
+        "pop": "#0A7039"
       }
     },
     "dark": {
@@ -313,54 +181,10 @@ export const THEMES = {
         "#F0A878"
       ],
       "weather": {
-        "skies": {
-          "clear-day": [
-            "#3F72B0",
-            "#264F84"
-          ],
-          "partly-day": [
-            "#4D6D9A",
-            "#2E496C"
-          ],
-          "overcast-day": [
-            "#5F6B79",
-            "#3D4652"
-          ],
-          "rain-day": [
-            "#505F70",
-            "#303D4D"
-          ],
-          "snow-day": [
-            "#5E6D80",
-            "#3B4656"
-          ],
-          "storm": [
-            "#424159",
-            "#212133"
-          ],
-          "clear-night": [
-            "#1D2B4E",
-            "#080D1D"
-          ],
-          "cloudy-night": [
-            "#2E3544",
-            "#121519"
-          ]
-        },
-        "ink": "#FFFFFF",
-        "pop": "#D6EEFF",
-        "sun": "#F7C23A",
-        "moon": "#EDE6CC",
-        "cloud": "#F4F6FA",
-        "cloudBack": "#BFC9D6",
-        "drop": "#58AEF2",
-        "bolt": "#F7CB3A",
-        "range": [
-          "#74C6F5",
-          "#93D48E",
-          "#F5B941"
-        ],
-        "edge": "#FFFFFF"
+        "sun": "#E8B84A",
+        "night": "#1E1610",
+        "nightEdge": "#3A2D22",
+        "pop": "#5AD88C"
       }
     }
   }
