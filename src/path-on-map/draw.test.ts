@@ -30,6 +30,8 @@ function fakeMap(style: StyleSpecification) {
     },
     removeLayer: (id: string) => void layers.splice(layers.findIndex((l) => l.id === id), 1),
     setPaintProperty: () => {},
+    setLayoutProperty: () => {},
+    setGlobalStateProperty: () => {},
     getContainer: () => container,
     jumpTo: () => {},
   };

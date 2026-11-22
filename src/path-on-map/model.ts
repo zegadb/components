@@ -9,6 +9,7 @@
 // the host's theme (tokens/themes.json) rather than one site's palette.
 import type { Feature, FeatureCollection, LineString, Point } from "geojson";
 import type { LayerSpecification } from "maplibre-gl";
+import type { MapType } from "../basemaps.ts";
 import type { Theme } from "../types.ts";
 
 export type LonLat = readonly [number, number];
@@ -29,6 +30,8 @@ export interface PathOptions {
   /** The line's width in CSS px, 1–16. */
   lineWidth: number;
   view: View;
+  /** What is under the paths, roads and names: the street map, or imagery where the basemap has some. */
+  mapType: MapType;
   /** Degrees clockwise from north, −180–180. */
   bearing: number;
   showBuildings: boolean;

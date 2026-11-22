@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { validate } from "../index.ts";
 import { theme } from "../theme.ts";
-import { drawPaths, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
+import { creditHtml, ESA_WORLDCOVER_2021 } from "../basemaps.ts";
+import { IMAGERY_LAYERS, MAP_TYPE_STATE } from "../imagery.ts";
+import { drawPaths, MAP_TYPE_TOGGLE_WORDS, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
 import { FLAT_MAX_KM, framedDiagonalKm, MEASURES, PATH_LAYERS, plainStyle, type LonLat } from "./model.ts";
 
 // A walk in downtown Toronto (Union Station to City Hall, about 1 km) and a drive to Kitchener
@@ -24,6 +26,8 @@ function resolved(s: unknown) {
 class FakeElement {
   className = "";
   textContent = "";
+  innerHTML = "";
+  hidden = false;
   title = "";
   type = "";
   readonly dataset: Record<string, string> = {};
@@ -48,10 +52,12 @@ class FakeElement {
 }
 
 /** A MapLibre map's part drawPaths touches, recording the camera and the buildings' opacity. */
-function fakeMap({ interactive = true, basemap = true } = {}) {
+function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   const t = theme("ava", "light");
   const style = plainStyle(t);
-  const layers = [...style.layers];
+  const layers = [...style.layers, ...(imagery ? Object.values(IMAGERY_LAYERS).map((id) => ({ id, type: "raster" as const, source: id, layout: { visibility: "none" } })) : [])] as (typeof style.layers)[number][];
+  /** What the map shows: each imagery layer's visibility, and the style's global state. */
+  const shown = { visibility: new Map<string, string>(), state: new Map<string, unknown>() };
   const sources = new Map<string, unknown>(basemap ? [["basemap", {}]] : []);
   const doc = { createElement: (tag: string) => new FakeElement(tag, doc) };
   const container = Object.assign(new FakeElement("div", doc), { clientWidth: 640, clientHeight: 400 });
@@ -69,6 +75,8 @@ function fakeMap({ interactive = true, basemap = true } = {}) {
     },
     removeLayer: (id: string) => void layers.splice(layers.findIndex((l) => l.id === id), 1),
     setPaintProperty: (id: string, k: string, v: unknown) => { if (id === PATH_LAYERS.buildings && k === "fill-extrusion-opacity") paint.set("buildings", v); },
+    setLayoutProperty: (id: string, k: string, v: string) => { if (k === "visibility") shown.visibility.set(id, v); },
+    setGlobalStateProperty: (k: string, v: unknown) => void shown.state.set(k, v),
     getContainer: () => container,
     dragPan: { isEnabled: () => interactive },
     jumpTo: (c: { pitch?: number; center?: unknown; zoom?: unknown }) => { camera.jumped++; if (c.pitch !== undefined) camera.pitch = c.pitch; if (camera.jumped > 1 && (c.center || c.zoom !== undefined)) camera.centreOrZoomMoved = true; },
@@ -78,7 +86,18 @@ function fakeMap({ interactive = true, basemap = true } = {}) {
   const toggle = () => container.find("zc-view-toggle")[0];
   const pressed = () => toggle()?.children.filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.textContent);
   const button = (word: "2D" | "3D") => toggle()!.children.find((b) => b.textContent === word)!;
-  return { map, container, paint, camera, draw, toggle, pressed, button };
+  const typeToggle = () => container.find("zc-map-type-toggle")[0];
+  const typeButton = (word: string) => typeToggle()!.children.find((b) => b.textContent === word)!;
+  const typePressed = () => typeToggle()?.children.filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.textContent);
+  const credit = () => container.find("zc-imagery-credit")[0];
+  /** Whether the imagery is on the map: every imagery layer visible and the state saying so (both or neither). */
+  const satellite = () => {
+    const visible = Object.values(IMAGERY_LAYERS).map((id) => shown.visibility.get(id) === "visible");
+    const state = shown.state.get(MAP_TYPE_STATE) === "satellite";
+    assert.ok(visible.every((v) => v === state), `layers ${visible} agree with the state ${String(shown.state.get(MAP_TYPE_STATE))}`);
+    return state;
+  };
+  return { map, container, paint, camera, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, satellite };
 }
 
 /** The pitch drawPaths puts the host's map at. */
@@ -194,4 +213,78 @@ test("path-on-map: a still map has no switch, and a host can place its own", () 
   assert.equal(fr.toggle()!.getAttribute("aria-label"), "Vue de la carte");
   assert.deepEqual(fr.toggle()!.children.map((b) => b.textContent), ["2D", "3D"]);
   assert.equal(fr.button("2D").title, VIEW_TOGGLE_WORDS.fr["2d"]);
+});
+
+test("path-on-map: Map | Satellite beside 2D | 3D shows the imagery and its credit, and takes both away", () => {
+  const m = fakeMap({ imagery: true });
+  const drawn = m.draw(walk, {}, { reducedMotion: false });
+  const controls = m.container.find("zc-map-controls")[0]!;
+  assert.deepEqual(controls.children.map((c) => c.className), ["zc-map-type-toggle", "zc-view-toggle"], "one box of controls: Map | Satellite, then 2D | 3D");
+  assert.equal(m.typeToggle()!.getAttribute("role"), "group");
+  assert.equal(m.typeToggle()!.getAttribute("aria-label"), MAP_TYPE_TOGGLE_WORDS.en.group);
+  assert.deepEqual(m.typeToggle()!.children.map((b) => [b.tagName, b.type, b.textContent]), [["button", "button", "Map"], ["button", "button", "Satellite"]]);
+  // Opens on the street map: no imagery, no credit.
+  assert.deepEqual(m.typePressed(), ["Map"]);
+  assert.equal(m.satellite(), false);
+  assert.equal(m.credit()!.hidden, true);
+  assert.equal(drawn.mapType, "map");
+  const fetched = m.camera.fetched;
+  const jumped = m.camera.jumped;
+
+  m.typeButton("Satellite").click();
+  assert.deepEqual(m.typePressed(), ["Satellite"]);
+  assert.equal(m.satellite(), true);
+  assert.equal(m.credit()!.hidden, false, "the credit shows with the imagery");
+  assert.equal(m.credit()!.innerHTML, creditHtml(ESA_WORLDCOVER_2021.credit.en));
+  assert.match(m.credit()!.innerHTML, /© ESA WorldCover project 2021<\/a> \/ contains modified Copernicus Sentinel data/);
+  assert.equal(drawn.mapType, "satellite");
+  assert.deepEqual(m.pressed(), ["3D"], "the view is not touched");
+
+  m.typeButton("Map").click();
+  assert.equal(m.satellite(), false);
+  assert.equal(m.credit()!.hidden, true, "and goes with it");
+  assert.equal(m.camera.fetched, fetched, "no source is added again");
+  assert.equal(m.camera.jumped + m.camera.eased, jumped, "the camera stays");
+
+  // The host switches it too (drawn.setMapType), the buttons following.
+  drawn.setMapType("satellite");
+  assert.deepEqual(m.typePressed(), ["Satellite"]);
+  assert.equal(m.satellite(), true);
+  assert.equal(m.credit()!.hidden, false);
+});
+
+test("path-on-map: mapType satellite opens on the imagery; a redraw keeps the type switched to; no imagery, no switch", () => {
+  assert.equal((validate(spec(walk)) as { view: { paths: { options: { mapType: string } } } }).view.paths.options.mapType, "map", "the default");
+  const m = fakeMap({ imagery: true });
+  m.draw(walk, { mapType: "satellite" });
+  assert.equal(m.satellite(), true);
+  assert.deepEqual(m.typePressed(), ["Satellite"]);
+  assert.equal(m.credit()!.hidden, false);
+  m.typeButton("Map").click();
+  const again = m.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(again.mapType, "map", "a theme change keeps the reader's choice");
+  assert.equal(m.satellite(), false);
+  assert.equal(m.container.find("zc-map-type-toggle").length, 1, "one switch, not one per draw");
+  assert.equal(m.container.find("zc-imagery-credit").length, 1);
+
+  // A basemap without imagery: no switch, no credit, and mapType satellite draws the street map.
+  const plain = fakeMap();
+  const d = plain.draw(walk, { mapType: "satellite" });
+  assert.equal(plain.typeToggle(), undefined);
+  assert.equal(plain.credit(), undefined);
+  assert.equal(d.mapType, "map");
+  assert.ok(plain.toggle(), "the 2D | 3D switch is still there");
+
+  // A still has neither; a host with its own controls places mapTypeToggle and says the credit.
+  const still = fakeMap({ imagery: true, interactive: false });
+  still.draw(walk, { mapType: "satellite" });
+  assert.equal(still.typeToggle(), undefined);
+  assert.equal(still.credit(), undefined);
+  assert.equal(still.satellite(), true, "but shows the imagery it was asked for");
+
+  const fr = fakeMap({ imagery: true });
+  fr.draw(walk, {}, { locale: "fr" });
+  assert.equal(fr.typeToggle()!.getAttribute("aria-label"), "Type de carte");
+  assert.deepEqual(fr.typeToggle()!.children.map((b) => [b.textContent, b.title]), [["Carte", MAP_TYPE_TOGGLE_WORDS.fr.hint.map], ["Satellite", MAP_TYPE_TOGGLE_WORDS.fr.hint.satellite]]);
+  assert.equal(fr.credit()!.innerHTML, creditHtml(ESA_WORLDCOVER_2021.credit.fr));
 });

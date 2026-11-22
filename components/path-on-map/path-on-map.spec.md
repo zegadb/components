@@ -1,7 +1,7 @@
 ---
 id: path-on-map
 status: review
-version: 2.0.0
+version: 2.1.0
 implementation: this repository's web package, src/path-on-map/ (moved from avacanada/ava-web lib/path-on-map.ts); zega's explorer (zegadb/zega browser/components/path-on-map/ at 11cff10) renders the format-1 fixtures through the `zql` adapter
 ---
 
@@ -45,7 +45,21 @@ is one path. At least 2 rows per path.
 Surface parameters: `bounds` (`[w, s, e, n]` or null: frame the paths),
 `basemap` (`auto`, `cities`, `monaco`). Display options: `colorScale`,
 `valueUnit`, `lineWidth` (1–16 pt, default 6), `view` (`3d`, `2d`, `auto`;
-default `3d`), `bearing` (−180–180°), `showBuildings`.
+default `3d`), `mapType` (`map`, `satellite`; default `map`; since 2.1.0),
+`bearing` (−180–180°), `showBuildings`.
+
+`mapType` is what is under the paths, the roads and the names: `map`, the
+street map, or `satellite`, imagery where the host's basemap has some (Ava's:
+the ESA WorldCover 2021 Sentinel-2 composite, 10 m, Canada to tile zoom 13
+and the world to 10, from tiles.addis.gg). On a map the reader can move whose
+basemap has imagery, the **Map | Satellite switch** beside the 2D | 3D one
+changes it. Over the imagery the roads are drawn white over a dark casing and
+the names white on a dark halo; the street map's water, buildings and other
+fills above the land are cleared. 10 m shows fields, forests, lakes and the
+shape of a town, not streets: from map zoom 13 to 14.5 the imagery fades out
+and the roads and names go back to the street map's colours, so a close
+view is the street map. On a basemap without imagery `satellite` draws the
+street map, and there is no switch.
 
 `view` is how the map opens. `3d` (the default; Sami, 21 Nov) tilts the
 camera so the buildings stand up; `2d` looks straight down with the buildings
@@ -71,6 +85,7 @@ Back to front.
 | # | part | what it is | drawn with |
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
+| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles, faded out from map zoom 13 to 14.5 |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
@@ -79,8 +94,8 @@ Back to front.
 | 7 | **path label** | the group's `label`, right of the start marker | map text |
 | 8 | **legend** | the value's name and unit, the colour ramp, its low and high ends | canvas overlay, bottom-left |
 | 9 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
-| 10 | **map controls** | zoom in, zoom out, compass (the host's); the 2D \| 3D switch (the component's, on a map the reader can move; none on a still) | map SDK, top-right (masked); the switch DOM over the map's top-right corner |
-| 11 | **attribution** | the basemap's required credit | map SDK, bottom-right (masked) |
+| 10 | **map controls** | zoom in, zoom out, compass (the host's); the Map \| Satellite switch (when the basemap has imagery) and the 2D \| 3D switch (the component's, on a map the reader can move; none on a still) | map SDK, top-right (masked); the switches DOM over the map's top-right corner, side by side, Map \| Satellite first |
+| 11 | **attribution** | the basemap's required credit; while the imagery shows, the imagery's credit ("© ESA WorldCover project 2021 / contains modified Copernicus Sentinel data") | map SDK, bottom-right (masked); the imagery's credit DOM over the map's bottom-right corner, drawn with the switch (a host that places the switch says it) |
 
 The path and its casing go under the basemap's labels, so the names of the
 streets the path follows and crosses stay readable (each label keeps its own
@@ -119,6 +134,8 @@ Reference size: 640 × 400 pt at scale 2 (1280 × 800 pixels).
 | camera | framing | every point of every path (or `bounds`) fitted in the view as rotated by `bearing`, with padding the smallest of {space.frame}, a sixth of the width and a sixth of the height; `3d` then zooms out by 0.3 levels; never past zoom 17 | canvas |
 | map controls | placement | top-right, {space.xl} inset | fixed |
 | 2D \| 3D switch | box | {space.xl} from the top and right edges; two buttons side by side, each 29 pt high and at least 34 pt wide, {space.lg} either side of its word; corner {radius.md}, border {stroke.hairline}, a {stroke.hairline} rule between the two | fixed |
+| Map \| Satellite switch | box | the 2D \| 3D switch's box and buttons, {space.md} to its left | fixed |
+| imagery credit | box | {space.xs} from the bottom and right edges; padding {space.xxs} × {space.md}; corner {radius.sm}; at most the map's width less {space.xl} (beside a legend, less 180 pt), wrapping | fixed |
 
 Scaling rules: the legend, gear and map controls keep their size in points at
 every canvas size and stay in their corners. The path, marker and label keep
@@ -140,7 +157,9 @@ canvas.
 | start marker | fill {color.panel}, outline {color.ink} |
 | path label | {color.ink}, halo {color.ground}, {type.family.map} |
 | legend | background {color.panel} at {opacity.legend}; border {color.rule}; title {color.ink} {type.size.label} {type.weight.semibold}; ends {color.soft} {type.size.label} with tabular numerals; line height {type.lineHeight.tight}; family {type.family.ui} |
-| 2D \| 3D switch | {color.panel} fill, {color.rule} border and rule; words {color.soft} {type.size.label} {type.weight.semibold} {type.family.ui}; the view shown: {color.accent} fill, {color.panel} word; hover: {color.rule} fill, {color.ink} word; focus ring {color.accent} (on the view shown, {color.ink}) |
+| imagery credit | {color.panel} at {opacity.legend}; {color.soft} {type.size.caption} {type.family.ui}; links {color.soft}, underlined |
+| roads and names over imagery | the same in both themes (it is a photograph): highways and major roads white at 78%, other roads white at 45%, casings black at 28%, rail white at 35%, borders white at 60%; names white on a halo of near-black at 78%; past the fade each takes the street map's colour again |
+| 2D \| 3D switch and Map \| Satellite switch | {color.panel} fill, {color.rule} border and rule; words {color.soft} {type.size.label} {type.weight.semibold} {type.family.ui}; the view shown: {color.accent} fill, {color.panel} word; hover: {color.rule} fill, {color.ink} word; focus ring {color.accent} (on the view shown, {color.ink}) |
 | gear | button: {color.panel} fill, {color.rule} border, {color.ink} glyph. Panel: {color.panel} at {opacity.gearPanel}, {color.rule} border, text {color.ink} {type.size.label}. Section titles: {color.soft}, {type.size.caption}, upper case, tracking {type.tracking.caption}. Values: {color.soft} {type.weight.medium}, right-aligned, tabular. Inputs: {color.ground} fill, {color.rule} border, {radius.sm}; slider and checkbox tint {color.accent}. Error: {color.accent} {type.family.mono} {type.size.gearError}, line height {type.lineHeight.code} |
 
 Legend text: the title is the last segment of the `value` binding's field path
@@ -170,6 +189,7 @@ numbers when the range is 10 or more, else 3 significant digits.
 | tilt | two-finger vertical drag | right-drag or ctrl-drag vertically | changes pitch, up to 70° |
 | zoom buttons, compass | tap | click | zoom by one level; compass resets bearing and pitch to north-up |
 | 2D \| 3D switch | tap the other half | click it, or Enter/Space when focused | `2d`: pitch 0, buildings laid flat; `3d`: pitch 60°, buildings standing. Centre, zoom and bearing stay; nothing is fetched again; no history entry (like moving the camera). A redraw that keeps the camera (a theme change, the plain fallback) keeps the view switched to |
+| Map \| Satellite switch | tap the other half | click it, or Enter/Space when focused | `satellite`: the imagery under the roads and names, its credit shown; `map`: the street map, the credit gone. At once, no easing; the camera stays; the street map's tiles are not fetched again (only the imagery's, the first time). No history entry. A redraw that keeps the camera keeps the map type switched to |
 | open or close the gear | tap the gear | click the gear, or Enter/Space when focused | shows or hides the panel |
 | change a parameter | the control | the control | creates a new history entry with that value; the canvas redraws; invalid input shows the gear error and changes nothing |
 
@@ -201,8 +221,13 @@ ease), the buildings fading with it. With reduced motion it jumps.
   French "2D : à plat, vue du dessus", "3D : inclinée, bâtiments en
   relief"); the view shown is `aria-pressed="true"`, the other `false`.
   Both are in the tab order; Enter or Space presses one.
-- Focus order: gear button, gear controls (when open), map controls (the
-  switch's 2D, then 3D).
+- The Map | Satellite switch is a group named "Map type" ("Type de carte")
+  of two native buttons, "Map" and "Satellite" ("Carte", "Satellite"), with
+  hints ("Map: streets and places", "Satellite: imagery, with the streets
+  and names over it"; "Carte : rues et lieux", "Satellite : imagerie, avec
+  les rues et les noms par-dessus"); the type shown is `aria-pressed="true"`.
+- Focus order: gear button, gear controls (when open), map controls (Map,
+  Satellite, then 2D, 3D).
 - Contrast: text on the legend and gear passes 4.5:1 in both themes
   ({color.ink} on {color.panel} 14:1; {color.soft} on {color.panel} 4.7:1
   light, 7.2:1 dark). The solid path, {color.accent} on {color.ground}, is
@@ -229,6 +254,7 @@ else a JSON text field checked on commit.
 | options | `valueUnit` | menu | ft, m, deg, pct, fraction, km/h, yd, s, null | null |
 | options | `lineWidth` | slider, step 0.1 | 1–16 | 6 |
 | options | `view` | menu | 3d, 2d, auto | 3d |
+| options | `mapType` | menu | map, satellite | map |
 | options | `bearing` | slider, step 1 | −180–180 | 0 |
 | options | `showBuildings` | checkbox | — | true |
 

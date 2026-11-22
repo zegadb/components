@@ -4,7 +4,7 @@ import type { Contract } from "../../types.ts";
 export const CONTRACT = {
   "format": 2,
   "id": "path-on-map",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "title": "Path on map",
   "category": "Geo",
   "description": "Ordered paths (a race lap, a route, a run, a trip) on the street map, coloured by an optional value per point (speed, distance, elevation), each with a start marker and label; tilted so buildings stand up (3D) unless the view says otherwise, and the reader can switch 2D | 3D. Points are [longitude, latitude], in path order.",
@@ -134,6 +134,14 @@ export const CONTRACT = {
       ],
       "default": "3d",
       "description": "How the map opens: 3d (the default) tilts the camera (pitch 60°) so buildings stand up; 2d looks straight down, the buildings flat; auto is 2d when what is framed (the paths, or bounds) spans 5 km or less corner to corner, else 3d. On a map the reader can move, the 2D | 3D switch in its controls changes it."
+    },
+    "mapType": {
+      "enum": [
+        "map",
+        "satellite"
+      ],
+      "default": "map",
+      "description": "What is under the paths, roads and names: map, the street map (the default); satellite, imagery where the basemap has some (10 m, so the street map fades back in past zoom 13). On a map the reader can move whose basemap has imagery, the Map | Satellite switch in its controls changes it."
     },
     "bearing": {
       "type": "number",

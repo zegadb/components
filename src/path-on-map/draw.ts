@@ -1,7 +1,8 @@
 // Draws path-on-map on a MapLibre map in the browser (model.ts says what is
 // drawn). The host owns the map, its style and its controls (but the 2D | 3D
-// switch, which drawPaths puts on a map the reader can move unless the host
-// places viewToggle() among its own); drawPaths adds
+// switch and, on a basemap with imagery, the Map | Satellite switch, which
+// drawPaths puts on a map the reader can move unless the host places
+// viewToggle() and mapTypeToggle() among its own); drawPaths adds
 // the buildings (when the map has the basemap source), each path's casing,
 // coloured segments, start ring and label, the legend over the map's
 // bottom-left corner, and frames the camera. One implementation for every
@@ -9,6 +10,8 @@
 //
 // MapLibre is the host's (a peer dependency): this module only takes a map.
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
+import { creditHtml, ESA_WORLDCOVER_2021, type Imagery, type MapType } from "../basemaps.ts";
+import { hasImagery, setMapType } from "../imagery.ts";
 import { validator } from "../registry.ts";
 import type { Locale } from "../scale.ts";
 import type { Theme, ViewError } from "../types.ts";
@@ -41,11 +44,15 @@ export interface DrawContext {
   /** maplibregl.Marker, for labels as HTML on a map without glyphs. */
   Marker?: typeof MapLibreMarker;
   /**
-   * Draw the 2D | 3D switch over the map's top-right corner (the spec's map controls). Default: when
-   * the map is interactive (its drag-to-pan is on); a still (`interactive: false`) has none. A host
-   * with its own controls passes false and puts viewToggle() among them.
+   * Draw the map's controls over its top-right corner (the spec's map controls): the 2D | 3D switch,
+   * and the Map | Satellite switch when the map's style has imagery, with the imagery's credit
+   * while it shows. Default: when the map is interactive (its drag-to-pan is on); a still
+   * (`interactive: false`) has none. A host with its own controls passes false and puts
+   * viewToggle() and mapTypeToggle() among them (and says the imagery's credit while it shows).
    */
   controls?: boolean;
+  /** The imagery the map's style shows (its credit while it shows); default ESA_WORLDCOVER_2021, the one basemapStyle has. */
+  imagery?: Imagery;
   /** The switch's words (default en). */
   locale?: Locale;
   /** No easing when the view switches (default: the reader's prefers-reduced-motion). */
@@ -58,6 +65,10 @@ export interface DrawnPaths {
   readonly view: View;
   /** Switches to `view` as the 2D | 3D switch does (setMapView), and the switch with it. */
   setView(view: View): void;
+  /** The map type shown now: the paths' own, or what the reader switched to since ("map" on a map without imagery). */
+  readonly mapType: MapType;
+  /** Switches to `mapType` as the Map | Satellite switch does (setMapType), and the switch with it. */
+  setMapType(mapType: MapType): void;
   /** Shows or hides the extruded buildings, without re-tiling them. */
   showBuildings(visible: boolean): void;
   /** Takes every layer, source, label, the legend and the switch off the map. */
@@ -68,6 +79,12 @@ export interface DrawnPaths {
 export const VIEW_TOGGLE_WORDS: Record<Locale, { group: string; "2d": string; "3d": string }> = {
   en: { group: "Map view", "2d": "2D: flat, from above", "3d": "3D: tilted, buildings standing" },
   fr: { group: "Vue de la carte", "2d": "2D : à plat, vue du dessus", "3d": "3D : inclinée, bâtiments en relief" },
+};
+
+/** The Map | Satellite switch's words: its group's name, each button's word and hint. */
+export const MAP_TYPE_TOGGLE_WORDS: Record<Locale, { group: string; map: string; satellite: string; hint: Record<MapType, string> }> = {
+  en: { group: "Map type", map: "Map", satellite: "Satellite", hint: { map: "Map: streets and places", satellite: "Satellite: imagery, with the streets and names over it" } },
+  fr: { group: "Type de carte", map: "Carte", satellite: "Satellite", hint: { map: "Carte : rues et lieux", satellite: "Satellite : imagerie, avec les rues et les noms par-dessus" } },
 };
 
 /**
@@ -108,37 +125,80 @@ export interface ViewToggle {
  */
 export function viewToggle(doc: Document, options: ViewToggleOptions): ViewToggle {
   const words = VIEW_TOGGLE_WORDS[options.locale ?? "en"];
-  const cls = options.className ?? "zc-view-toggle";
-  let current = options.view;
+  const s = segmented(doc, options.className ?? "zc-view-toggle", words.group, (["2d", "3d"] as const).map((v) => ({ value: v, text: v.toUpperCase(), hint: words[v] })), options.view, options.onChange);
+  return { element: s.element, get view() { return s.value; }, set: s.set };
+}
+
+export interface MapTypeToggleOptions {
+  /** The map type it starts on. */
+  mapType: MapType;
+  locale?: Locale;
+  /** The group's class (default `zc-map-type-toggle`, styled by components.css); a host's own controls give theirs. */
+  className?: string;
+  /** Called with the map type the reader picked; the caller switches the map (setMapType). */
+  onChange(mapType: MapType): void;
+}
+
+export interface MapTypeToggle {
+  /** The group: two buttons, "Map" and "Satellite", the current one aria-pressed. Not yet on the page: the caller places it. */
+  readonly element: HTMLElement;
+  readonly mapType: MapType;
+  /** Marks `mapType` as the current one, without calling onChange. */
+  set(mapType: MapType): void;
+}
+
+/**
+ * The Map | Satellite switch, built as the 2D | 3D one: a labelled group of two native buttons, the
+ * current one `aria-pressed="true"`. Pressing the other calls onChange; the caller switches the
+ * map (setMapType). Only for a map whose style has imagery (hasImagery).
+ */
+export function mapTypeToggle(doc: Document, options: MapTypeToggleOptions): MapTypeToggle {
+  const words = MAP_TYPE_TOGGLE_WORDS[options.locale ?? "en"];
+  const s = segmented(doc, options.className ?? "zc-map-type-toggle", words.group, (["map", "satellite"] as const).map((v) => ({ value: v, text: words[v], hint: words.hint[v] })), options.mapType, options.onChange);
+  return { element: s.element, get mapType() { return s.value; }, set: s.set };
+}
+
+/** A labelled group of native buttons, one pressed: the map's switches. */
+function segmented<T extends string>(doc: Document, cls: string, name: string, items: { value: T; text: string; hint: string }[], start: T, onChange: (value: T) => void) {
+  let current = start;
   const group = doc.createElement("div");
   group.className = cls;
   group.setAttribute("role", "group");
-  group.setAttribute("aria-label", words.group);
-  const buttons = (["2d", "3d"] as const).map((view) => {
+  group.setAttribute("aria-label", name);
+  const buttons = items.map((item) => {
     const b = doc.createElement("button");
     b.type = "button";
-    b.className = `${cls}-${view}`;
-    b.textContent = view.toUpperCase();
-    b.title = words[view];
-    b.dataset.view = view;
+    b.className = `${cls}-${item.value}`;
+    b.textContent = item.text;
+    b.title = item.hint;
+    b.dataset.value = item.value;
     b.addEventListener("click", () => {
-      if (view === current) return;
-      toggle.set(view);
-      options.onChange(view);
+      if (item.value === current) return;
+      s.set(item.value);
+      onChange(item.value);
     });
     group.appendChild(b);
     return b;
   });
-  const toggle: ViewToggle = {
+  const s = {
     element: group,
-    get view() { return current; },
-    set(view) {
-      current = view;
-      for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.view === view));
+    get value() { return current; },
+    set(value: T) {
+      current = value;
+      for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.value === value));
     },
   };
-  toggle.set(current);
-  return toggle;
+  s.set(current);
+  return s;
+}
+
+const CREDIT_CLASS = "zc-imagery-credit";
+/** The imagery's credit over the map's bottom-right corner, in the page's language: drawn while the imagery shows. */
+function imageryCredit(doc: Document, imagery: Imagery, locale: Locale): HTMLElement {
+  const box = doc.createElement("div");
+  box.className = CREDIT_CLASS;
+  box.innerHTML = creditHtml(imagery.credit[locale]);
+  return box;
 }
 
 /** Whether the reader can move the map: the switch is a control, and a still has none. */
@@ -186,9 +246,11 @@ function legend(map: MapLibreMap, p: Paths, theme: Theme, cls: string) {
   map.getContainer().appendChild(box);
 }
 
-const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; toggle: HTMLElement | null }>();
+const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null }>();
 /** The view each map shows now: kept across a redraw that keeps the camera (`frame: false`), so a new style keeps the reader's choice. */
 const shown = new WeakMap<MapLibreMap, View>();
+/** The map type each map shows now, kept the same way (a theme change's new style keeps the imagery). */
+const shownType = new WeakMap<MapLibreMap, MapType>();
 
 /**
  * Draws `input` on `map` (its style loaded). Throws PathInputError, changing nothing, when the
@@ -208,6 +270,10 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   // A first frame shows the paths' own view; a redraw that keeps the camera keeps the one shown.
   let view: View = context.frame === false ? (shown.get(map) ?? p.options.view) : p.options.view;
   shown.set(map, view);
+  const imagery = hasImagery(map);
+  let mapType: MapType = imagery ? (context.frame === false ? (shownType.get(map) ?? p.options.mapType) : p.options.mapType) : "map";
+  shownType.set(map, mapType);
+  setMapType(map, mapType);
   const features = pathFeatures(p, theme);
   map.addSource(PATH_SOURCES.segments, { type: "geojson", data: features.segments });
   map.addSource(PATH_SOURCES.starts, { type: "geojson", data: features.starts });
@@ -260,9 +326,32 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     shown.set(map, next);
     setMapView(map, next, buildings, animate());
   };
-  const toggle = (context.controls ?? interactive(map)) ? viewToggle(map.getContainer().ownerDocument, { view, ...(context.locale ? { locale: context.locale } : {}), onChange: switchTo }) : null;
-  if (toggle) map.getContainer().appendChild(toggle.element);
-  drawn.set(map, { markers, cls, toggle: toggle?.element ?? null });
+  const doc = map.getContainer().ownerDocument;
+  const locale = context.locale ?? "en";
+  const own = context.controls ?? interactive(map);
+  const toggle = own ? viewToggle(doc, { view, locale, onChange: switchTo }) : null;
+  // The imagery's credit, said only while it shows, beside the controls that switch it.
+  const credit = own && imagery ? imageryCredit(doc, context.imagery ?? ESA_WORLDCOVER_2021, locale) : null;
+  const showType = (next: MapType) => {
+    mapType = next;
+    shownType.set(map, next);
+    setMapType(map, next);
+    if (credit) credit.hidden = next !== "satellite";
+  };
+  const typeToggle = own && imagery ? mapTypeToggle(doc, { mapType, locale, onChange: showType }) : null;
+  let controls: HTMLElement | null = null;
+  if (toggle) {
+    controls = doc.createElement("div");
+    controls.className = "zc-map-controls";
+    if (typeToggle) controls.appendChild(typeToggle.element);
+    controls.appendChild(toggle.element);
+    map.getContainer().appendChild(controls);
+  }
+  if (credit) {
+    credit.hidden = mapType !== "satellite";
+    map.getContainer().appendChild(credit);
+  }
+  drawn.set(map, { markers, cls, controls, credit });
   legend(map, p, theme, cls);
   if (context.frame !== false) {
     const el = map.getContainer();
@@ -281,6 +370,12 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
       toggle?.set(next);
       switchTo(next);
     },
+    get mapType() { return mapType; },
+    setMapType: (next) => {
+      if (!imagery) return;
+      typeToggle?.set(next);
+      showType(next);
+    },
     showBuildings: (visible) => {
       buildings = visible;
       if (map.getLayer(PATH_LAYERS.buildings)) map.setPaintProperty(PATH_LAYERS.buildings, "fill-extrusion-opacity", viewLook(view, visible).buildingsOpacity);
@@ -296,9 +391,11 @@ function clear(map: MapLibreMap) {
   if (was) {
     for (const m of was.markers) m.remove();
     map.getContainer().querySelector(`:scope > .${was.cls}`)?.remove();
-    was.toggle?.remove();
+    was.controls?.remove();
+    was.credit?.remove();
     drawn.delete(map);
   }
 }
 
 export type { GeoJSONSource };
+export { hasImagery, setMapType } from "../imagery.ts";
