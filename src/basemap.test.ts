@@ -88,6 +88,7 @@ test("satellite: the imagery is under every road and name, over the land; hidden
     assert.ok(at > ids.indexOf("earth") && at > ids.indexOf("landcover"));
     s.layers.forEach((l, n) => { if (l.type === "line" || l.type === "symbol") assert.ok(n > at, `${l.id} over the imagery`); });
     for (const id of Object.values(IMAGERY_LAYERS)) assert.equal((s.layers.find((l) => l.id === id)!.layout as { visibility: string }).visibility, mapType === "satellite" ? "visible" : "none");
+    for (const id of Object.values(IMAGERY_LAYERS)) assert.equal(s.layers.find((l) => l.id === id)!.maxzoom, 13, "nothing fetched from the cut on");
     assert.deepEqual(s.state, { [MAP_TYPE_STATE]: { default: mapType } });
   }
 });

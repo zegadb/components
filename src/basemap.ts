@@ -127,7 +127,8 @@ export function satelliteLayers(street: readonly LayerSpecification[], i: Imager
   if (street.some((l) => l.id === IMAGERY_LAYERS.base)) return [...street];
   const visibility = mapType === "satellite" ? "visible" : "none";
   const opacity = i.fade.to > i.fade.from ? ["interpolate", ["linear"], ["zoom"], i.fade.from, 1, i.fade.to, 0] : ["step", ["zoom"], 1, i.fade.from, 0];
-  const raster = (id: string, source: string): LayerSpecification => ({ id, type: "raster", source, layout: { visibility }, paint: { "raster-opacity": opacity as ExpressionSpecification, "raster-fade-duration": 0 } });
+  // maxzoom: past the cut (or the end of the fade) the layer is gone, so no imagery tile is fetched there.
+  const raster = (id: string, source: string): LayerSpecification => ({ id, type: "raster", source, maxzoom: i.fade.to, layout: { visibility }, paint: { "raster-opacity": opacity as ExpressionSpecification, "raster-fade-duration": 0 } });
   const imagery = [raster(IMAGERY_LAYERS.base, IMAGERY_SOURCES.base), ...(i.detail ? [raster(IMAGERY_LAYERS.detail, IMAGERY_SOURCES.detail)] : [])];
   const at = street.findIndex((l) => l.type === "line");
   const out: LayerSpecification[] = [];
