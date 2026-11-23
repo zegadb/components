@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { latest, normalizePropertyExpression } from "@maplibre/maplibre-gl-style-spec";
+import { latest, normalizePropertyExpression, validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { layers } from "@protomaps/basemaps";
-import { AVA_BASEMAP, BASEMAP_SOURCE, basemapFlavor, basemapStyle, creditHtml, ESA_WORLDCOVER_2021, IMAGERY_LAYERS, IMAGERY_SOURCES, MAP_TYPE_STATE, OVER_IMAGERY, withImagery } from "./basemap.ts";
+import { AVA_BASEMAP, BASEMAP_SOURCE, basemapFlavor, basemapStyle, creditHtml, ESA_WORLDCOVER_2021, IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_SOURCES, MAP_TYPE_STATE, OVER_IMAGERY, withImagery } from "./basemap.ts";
 import { theme } from "./theme.ts";
 
 test("ava's basemap reads ava's tiles host, and only it", () => {
@@ -91,9 +91,12 @@ test("satellite: the imagery is under every road and name, over the land; hidden
     for (const id of Object.values(IMAGERY_LAYERS)) assert.equal((s.layers.find((l) => l.id === id)!.layout as { visibility: string }).visibility, mapType === "satellite" ? "visible" : "none");
     for (const id of Object.values(IMAGERY_LAYERS)) {
       const l = s.layers.find((x) => x.id === id)!;
-      assert.equal(l.maxzoom, undefined, "drawn at every zoom: overzoomed past its tiles, never cut");
+      assert.equal(l.maxzoom, undefined, "never cut by zoom: the map's own zoom is capped instead (setMapType)");
       assert.equal((l.paint as Record<string, unknown>)["raster-opacity"], undefined, "never faded out");
     }
+    assert.equal((s.metadata as Record<string, unknown>)[IMAGERY_MAX_ZOOM], 13, "how close the map may go while it shows: its crisp limit");
+    assert.equal(ESA_WORLDCOVER_2021.maxViewZoom, 13);
+    assert.deepEqual(validateStyleMin(s as never), [], "valid MapLibre");
     assert.deepEqual(s.state, { [MAP_TYPE_STATE]: { default: mapType } });
   }
 });

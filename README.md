@@ -64,7 +64,8 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 // on a map the reader can move it adds the 2D | 3D switch top-right, and on a basemap with
 // imagery the Map | Satellite switch beside it and the imagery's credit while it shows
 // (controls: false to place viewToggle() / mapTypeToggle() among the host's own controls,
-// setMapView() / setMapType() to switch, and say ESA_WORLDCOVER_2021.credit while satellite shows)
+// setMapView() / setMapType() to switch (satellite caps the zoom at the imagery's crisp limit),
+// imageryCapNote() for the note past it, and say ESA_WORLDCOVER_2021.credit while satellite shows)
 // the host's basemap: basemapStyle("ava", mode, lang, mapType) from "@zegadb/components/basemap"
 // (needs @protomaps/basemaps); AVA_BASEMAP (main entry, no map code) is its origin, credit,
 // palette and imagery (tiles.addis.gg/satellite, the ESA WorldCover 2021 composite)
@@ -77,7 +78,7 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 | `@zegadb/components` | `validate`, `render`, `toolDefinitions`, themes, SVG helpers, `pathOnMap`; function-plot, path-on-map and price-chart. No body, no map or three.js code |
 | `@zegadb/components/body` | the same `validate`, `render`, `toolDefinitions`, `COMPONENT_IDS`, `CONTRACTS` with the body added; `BODY_REGIONS`, `bodyRegionName`, the `body` model, `BODY` |
 | `@zegadb/components/body/draw` | `drawBody()` (three.js) |
-| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()`, `checkPaths()`, the 2D \| 3D switch `viewToggle()` and `setMapView()`, the Map \| Satellite switch `mapTypeToggle()` and `setMapType()` (MapLibre); checks paths against path-on-map's contract alone, so no other component's code |
+| `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()`, `checkPaths()`, the 2D \| 3D switch `viewToggle()` and `setMapView()`, the Map \| Satellite switch `mapTypeToggle()` and `setMapType()`, the satellite cap's note `imageryCapNote()` (MapLibre); checks paths against path-on-map's contract alone, so no other component's code |
 | `@zegadb/components/basemap` | `basemapStyle()` (@protomaps/basemaps), `setMapType()`, `hasImagery()` |
 
 The body's contract, region table and mesh manifest are large, so they are

@@ -59,11 +59,16 @@ fills above the land are cleared, and where there is no imagery (open sea) the
 ground is a deep sea (the imagery's own, `OVER_IMAGERY.ground` in
 src/basemap.ts, not a theme colour: the photograph is the same in both themes),
 not the street map's light ground. 10 m shows fields, forests, lakes and the
-shape of a town, not streets: past its deepest tiles (z13 in Canada) the
-imagery is overzoomed, softer the closer you go, with the roads and names
-over it at every zoom, as other maps' satellite views do. (A cut or a fade
-back to the street map was tried on 22 Nov and dropped: "Satellite" stayed
-pressed over a street map, which read as broken.) On a basemap without imagery `satellite` draws the
+shape of a town, not streets: while satellite shows, the map goes no closer
+than the imagery's crisp limit, map zoom 13 (`maxViewZoom`; Sami, 23 Nov:
+overzoomed at 14–15 it was "very blurry and distorted"). Switching to
+Satellite closer than that eases out to it; switching back to Map gives the
+map its own max zoom again. Trying to go closer (wheel or trackpad, pinch,
+double click, + or = on the keyboard; a host's + button is disabled at the
+cap) shows a note over the map, "Satellite detail ends here" (« Le détail
+satellite s’arrête ici »), with a one-tap **Map** that switches to the street
+map; it fades after 4 s. (A cut or fade back to the street map, and
+overzooming, were tried on 22 Nov and dropped.) On a basemap without imagery `satellite` draws the
 street map, and there is no switch.
 
 `view` is how the map opens. `3d` (the default; Sami, 21 Nov) tilts the
@@ -90,7 +95,7 @@ Back to front.
 | # | part | what it is | drawn with |
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
-| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles, overzoomed past their deepest zoom |
+| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles; the map's zoom capped at 13 while they show |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
@@ -100,6 +105,7 @@ Back to front.
 | 8 | **legend** | the value's name and unit, the colour ramp, its low and high ends | canvas overlay, bottom-left |
 | 9 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
 | 10 | **map controls** | zoom in, zoom out, compass (the host's); the Map \| Satellite switch (when the basemap has imagery) and the 2D \| 3D switch (the component's, on a map the reader can move; none on a still) | map SDK, top-right (masked); the switches DOM over the map's top-right corner, side by side, Map \| Satellite first |
+| 10a | **satellite cap note** | "Satellite detail ends here" and a **Map** button, after a try to zoom past the cap | DOM, top centre under the map controls; fades after 4 s |
 | 11 | **attribution** | the basemap's required credit; while the imagery shows, the imagery's credit ("© ESA WorldCover project 2021 / contains modified Copernicus Sentinel data") | map SDK, bottom-right (masked); the imagery's credit DOM over the map's bottom-right corner, drawn with the switch (a host that places the switch says it) |
 
 The path and its casing go under the basemap's labels, so the names of the
@@ -195,6 +201,7 @@ numbers when the range is 10 or more, else 3 significant digits.
 | zoom buttons, compass | tap | click | zoom by one level; compass resets bearing and pitch to north-up |
 | 2D \| 3D switch | tap the other half | click it, or Enter/Space when focused | `2d`: pitch 0, buildings laid flat; `3d`: pitch 60°, buildings standing. Centre, zoom and bearing stay; nothing is fetched again; no history entry (like moving the camera). A redraw that keeps the camera (a theme change, the plain fallback) keeps the view switched to |
 | imagery credit, compact | tap ⓘ | click it, or Enter/Space when focused | opens the full credit line beside the button; again closes it |
+| zoom past the satellite cap | pinch out | wheel or trackpad in, double click, + or = | nothing moves; the cap note shows with its **Map** action, then fades after 4 s |
 | Map \| Satellite switch | tap the other half | click it, or Enter/Space when focused | `satellite`: the imagery under the roads and names, its credit shown; `map`: the street map, the credit gone. At once, no easing; the camera stays; the street map's tiles are not fetched again (only the imagery's, the first time). No history entry. A redraw that keeps the camera keeps the map type switched to |
 | open or close the gear | tap the gear | click the gear, or Enter/Space when focused | shows or hides the panel |
 | change a parameter | the control | the control | creates a new history entry with that value; the canvas redraws; invalid input shows the gear error and changes nothing |
@@ -209,7 +216,9 @@ the new frame ({motion.duration.instant}): the camera does not fly and paths
 do not draw on. Map gestures follow the platform map's own inertia. The one
 animation is the 2D | 3D switch: the pitch eases over
 {motion.duration.viewSwitch} ({motion.easing.standard} or the map's own
-ease), the buildings fading with it. With reduced motion it jumps.
+ease), the buildings fading with it. With reduced motion it jumps. Switching
+to Satellite closer than its cap eases out to the cap (400 ms); the cap note
+fades in and out (300 ms; none with reduced motion).
 
 ## Accessibility
 
@@ -232,6 +241,11 @@ ease), the buildings fading with it. With reduced motion it jumps.
   hints ("Map: streets and places", "Satellite: imagery, with the streets
   and names over it"; "Carte : rues et lieux", "Satellite : imagerie, avec
   les rues et les noms par-dessus"); the type shown is `aria-pressed="true"`.
+- The satellite cap note is a polite live region (`role=status`,
+  `aria-live=polite`): its words are set each time it shows, so a screen
+  reader hears it once per try; its **Map** / **Carte** action is a native
+  button. The Map | Satellite switch stays in the tab order, so the street
+  map is always one key away.
 - The compact imagery credit (a map narrower than 560 pt) is a native
   button "ⓘ" named "Imagery credit" ("Crédit de l’imagerie"), with
   `aria-expanded` and `aria-controls` naming the credit's line; Enter or

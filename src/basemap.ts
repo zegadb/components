@@ -11,7 +11,7 @@
 import { layers, namedFlavor, type Flavor } from "@protomaps/basemaps";
 import type { ExpressionSpecification, LayerSpecification, StyleSpecification } from "maplibre-gl";
 import { BASEMAPS, type Basemap, type BasemapHost, type BasemapLang, type Imagery, type MapType } from "./basemaps.ts";
-import { IMAGERY_LAYERS, IMAGERY_SOURCES, MAP_TYPE_STATE } from "./imagery.ts";
+import { IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_SOURCES, MAP_TYPE_STATE } from "./imagery.ts";
 import type { Mode } from "./types.ts";
 
 export * from "./basemaps.ts";
@@ -68,6 +68,8 @@ export function withImagery(style: StyleSpecification, i: Imagery, mapType: MapT
   return {
     ...style,
     state: { ...style.state, [MAP_TYPE_STATE]: { default: mapType } },
+    // How close the map may go while the imagery shows: setMapType reads it from the style.
+    metadata: { ...(style.metadata as object | undefined), [IMAGERY_MAX_ZOOM]: i.maxViewZoom },
     sources: {
       ...style.sources,
       [IMAGERY_SOURCES.base]: { type: "raster", tiles: [i.tiles], tileSize: i.tileSize, maxzoom: i.maxzoom },
@@ -128,8 +130,8 @@ function overImagery(street: unknown, over: unknown): unknown {
  * nothing over open water; the street map's light ground there read as land). The imagery goes in
  * under the first line (the land, landcover and parks are under it); the fills the street map draws
  * above that (water, buildings, runways, piers) are cleared while it shows; lines turn to white over
- * a dark casing, names to white on a dark halo. At every zoom: past its deepest tiles the imagery is
- * overzoomed, never swapped for the street map. Two imagery layers: the base everywhere (overzoomed
+ * a dark casing, names to white on a dark halo. While it shows, the map goes no closer than the
+ * imagery's maxViewZoom (setMapType), so it is never blown up into blur. Two imagery layers: the base everywhere (overzoomed
  * past its maxzoom) and the detail over it where it has deeper tiles; a detail tile with nothing in
  * it lets the base show through.
  */

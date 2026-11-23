@@ -139,7 +139,7 @@
         "satellite"
       ],
       "default": "map",
-      "description": "What is under the paths, roads and names: map, the street map (the default); satellite, imagery where the basemap has some (10 m, overzoomed past its deepest tiles). On a map the reader can move whose basemap has imagery, the Map | Satellite switch in its controls changes it."
+      "description": "What is under the paths, roads and names: map, the street map (the default); satellite, imagery where the basemap has some (10 m; while it shows the map goes no closer than zoom 13). On a map the reader can move whose basemap has imagery, the Map | Satellite switch in its controls changes it."
     },
     "bearing": {
       "type": "number",

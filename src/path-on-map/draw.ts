@@ -11,7 +11,7 @@
 // MapLibre is the host's (a peer dependency): this module only takes a map.
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import { creditHtml, ESA_WORLDCOVER_2021, type Imagery, type MapType } from "../basemaps.ts";
-import { hasImagery, setMapType } from "../imagery.ts";
+import { hasImagery, imageryMaxZoom, mapTypeOf, setMapType } from "../imagery.ts";
 import { validator } from "../registry.ts";
 import type { Locale } from "../scale.ts";
 import type { Theme, ViewError } from "../types.ts";
@@ -192,6 +192,105 @@ function segmented<T extends string>(doc: Document, cls: string, name: string, i
   return s;
 }
 
+/** The note over a satellite map that is as close as the imagery goes, and its one action. */
+export const IMAGERY_CAP_WORDS: Record<Locale, { note: string; map: string }> = {
+  en: { note: "Satellite detail ends here", map: "Map" },
+  fr: { note: "Le détail satellite s’arrête ici", map: "Carte" },
+};
+/** How long the note stays before it fades (ms). */
+export const CAP_NOTE_MS = 4000;
+const NOTE_CLASS = "zc-imagery-cap-note";
+
+export interface ImageryCapNoteOptions {
+  locale?: Locale;
+  /** The note's "Map" action: the host switches to the street map (its switch with it). */
+  onMap(): void;
+  /** The note's class (default `zc-imagery-cap-note`, styled by components.css). */
+  className?: string;
+}
+
+export interface ImageryCapNote {
+  /** The live region; the caller places it over the map (drawPaths puts it in the map's container). */
+  readonly element: HTMLElement;
+  /** Shows the note now (as a zoom past the cap does). */
+  show(): void;
+  /** Takes the listeners off and the note away. */
+  remove(): void;
+}
+
+/**
+ * The note a satellite map shows when the reader tries to go closer than the imagery's crisp limit
+ * (setMapType caps the map there): "Satellite detail ends here", with a one-tap "Map" that switches
+ * to the street map, fading after CAP_NOTE_MS. A try is a wheel or trackpad zoom in, a pinch out, a
+ * double click, or + / = on the keyboard, while the map is at its cap. The note is a polite live
+ * region (`role=status`), so a screen reader hears it once; the action is a native button.
+ */
+export function imageryCapNote(map: MapLibreMap, options: ImageryCapNoteOptions): ImageryCapNote {
+  const el = map.getContainer();
+  const doc = el.ownerDocument;
+  const words = IMAGERY_CAP_WORDS[options.locale ?? "en"];
+  const cls = options.className ?? NOTE_CLASS;
+  const box = doc.createElement("div");
+  box.className = cls;
+  box.setAttribute("role", "status");
+  box.setAttribute("aria-live", "polite");
+  box.dataset.shown = "false";
+  const text = doc.createElement("span");
+  text.className = `${cls}-text`;
+  const action = doc.createElement("button");
+  action.type = "button";
+  action.className = `${cls}-map`;
+  action.textContent = words.map;
+  action.hidden = true;
+  action.addEventListener("click", () => { hide(); options.onMap(); });
+  box.append(text, action);
+  const view = doc.defaultView;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const hide = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    box.dataset.shown = "false";
+    text.textContent = "";
+    action.hidden = true;
+  };
+  const show = () => {
+    // The text is set when shown (not toggled), so the live region announces it.
+    text.textContent = words.note;
+    action.hidden = false;
+    box.dataset.shown = "true";
+    if (timer !== undefined) clearTimeout(timer);
+    timer = (view?.setTimeout ?? setTimeout)(hide, CAP_NOTE_MS);
+  };
+  const atCap = () => {
+    const cap = imageryMaxZoom(map);
+    return cap !== undefined && mapTypeOf(map) === "satellite" && map.getZoom() >= cap - 0.01;
+  };
+  const tried = () => { if (atCap()) show(); };
+  // Only the gestures the map itself zooms with (Ava's chat has no scroll zoom: a wheel there scrolls the page).
+  const on = (handler: { isEnabled(): boolean } | undefined) => handler?.isEnabled() ?? true;
+  const onWheel = (e: Event) => { if ((e as WheelEvent).deltaY < 0 && on(map.scrollZoom)) tried(); };
+  const onKey = (e: Event) => { const k = (e as KeyboardEvent).key; if ((k === "+" || k === "=") && on(map.keyboard)) tried(); };
+  const onDouble = () => { if (on(map.doubleClickZoom)) tried(); };
+  let pinch = 0;
+  const spread = (e: Event) => {
+    const t = (e as TouchEvent).touches;
+    return t && t.length === 2 ? Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY) : 0;
+  };
+  const onTouchStart = (e: Event) => { pinch = spread(e); };
+  const onTouchMove = (e: Event) => { const d = spread(e); if (pinch > 0 && d > pinch * 1.1 && on(map.touchZoomRotate)) { pinch = 0; tried(); } };
+  const listeners: [string, (e: Event) => void][] = [["wheel", onWheel], ["keydown", onKey], ["dblclick", onDouble], ["touchstart", onTouchStart], ["touchmove", onTouchMove]];
+  for (const [type, fn] of listeners) el.addEventListener(type, fn, { passive: true } as AddEventListenerOptions);
+  return {
+    element: box,
+    show,
+    remove() {
+      hide();
+      for (const [type, fn] of listeners) el.removeEventListener(type, fn);
+      box.remove();
+    },
+  };
+}
+
 const CREDIT_CLASS = "zc-imagery-credit";
 /** The compact credit's button's name, per language. */
 export const IMAGERY_CREDIT_WORDS: Record<Locale, { button: string }> = {
@@ -292,7 +391,7 @@ function legend(map: MapLibreMap, p: Paths, theme: Theme, cls: string) {
   map.getContainer().appendChild(box);
 }
 
-const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null; refit: (() => void) | null }>();
+const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null; refit: (() => void) | null; note: ImageryCapNote | null }>();
 /** The view each map shows now: kept across a redraw that keeps the camera (`frame: false`), so a new style keeps the reader's choice. */
 const shown = new WeakMap<MapLibreMap, View>();
 /** The map type each map shows now, kept the same way (a theme change's new style keeps the imagery). */
@@ -319,7 +418,7 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   const imagery = hasImagery(map);
   let mapType: MapType = imagery ? (context.frame === false ? (shownType.get(map) ?? p.options.mapType) : p.options.mapType) : "map";
   shownType.set(map, mapType);
-  setMapType(map, mapType);
+  setMapType(map, mapType, false);
   const features = pathFeatures(p, theme);
   map.addSource(PATH_SOURCES.segments, { type: "geojson", data: features.segments });
   map.addSource(PATH_SOURCES.starts, { type: "geojson", data: features.starts });
@@ -402,7 +501,10 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     map.on?.("resize", refit);
     map.getContainer().appendChild(credit.element);
   }
-  drawn.set(map, { markers, cls, controls, credit: credit?.element ?? null, refit });
+  // Past the imagery's crisp limit: the note, whose "Map" switches as the switch does.
+  const note = own && imagery ? imageryCapNote(map, { locale, onMap: () => { typeToggle?.set("map"); showType("map"); } }) : null;
+  if (note) map.getContainer().appendChild(note.element);
+  drawn.set(map, { markers, cls, controls, credit: credit?.element ?? null, refit, note });
   legend(map, p, theme, cls);
   if (context.frame !== false) {
     const el = map.getContainer();
@@ -445,6 +547,7 @@ function clear(map: MapLibreMap) {
     was.controls?.remove();
     was.credit?.remove();
     if (was.refit) map.off?.("resize", was.refit);
+    was.note?.remove();
     drawn.delete(map);
   }
 }

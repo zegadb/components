@@ -4,8 +4,8 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import { validate } from "../index.ts";
 import { theme } from "../theme.ts";
 import { creditHtml, ESA_WORLDCOVER_2021 } from "../basemaps.ts";
-import { IMAGERY_LAYERS, MAP_TYPE_STATE } from "../imagery.ts";
-import { COMPACT_CREDIT_BELOW, drawPaths, IMAGERY_CREDIT_WORDS, MAP_TYPE_TOGGLE_WORDS, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
+import { IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, MAP_TYPE_STATE } from "../imagery.ts";
+import { CAP_NOTE_MS, COMPACT_CREDIT_BELOW, drawPaths, IMAGERY_CAP_WORDS, IMAGERY_CREDIT_WORDS, MAP_TYPE_TOGGLE_WORDS, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
 import { FLAT_MAX_KM, framedDiagonalKm, MEASURES, PATH_LAYERS, plainStyle, type LonLat } from "./model.ts";
 
 // A walk in downtown Toronto (Union Station to City Hall, about 1 km) and a drive to Kitchener
@@ -35,7 +35,7 @@ class FakeElement {
   readonly children: FakeElement[] = [];
   parent: FakeElement | null = null;
   private readonly attrs = new Map<string, string>();
-  private readonly clicks: (() => void)[] = [];
+  private readonly listeners = new Map<string, ((e?: unknown) => void)[]>();
   readonly tagName: string;
   readonly ownerDocument: unknown;
   constructor(tagName: string, ownerDocument: unknown) { this.tagName = tagName; this.ownerDocument = ownerDocument; }
@@ -44,8 +44,12 @@ class FakeElement {
   appendChild(c: FakeElement) { c.parent = this; this.children.push(c); return c; }
   append(...cs: FakeElement[]) { for (const c of cs) this.appendChild(c); }
   remove() { if (this.parent) this.parent.children.splice(this.parent.children.indexOf(this), 1); this.parent = null; }
-  addEventListener(type: string, fn: () => void) { if (type === "click") this.clicks.push(fn); }
-  click() { for (const fn of this.clicks) fn(); }
+  addEventListener(type: string, fn: (e?: unknown) => void) { this.listeners.set(type, [...(this.listeners.get(type) ?? []), fn]); }
+  removeEventListener(type: string, fn: (e?: unknown) => void) { this.listeners.set(type, (this.listeners.get(type) ?? []).filter((f) => f !== fn)); }
+  /** Fires `type` at this element's listeners, as the browser would. */
+  dispatch(type: string, e: unknown = {}) { for (const fn of this.listeners.get(type) ?? []) fn(e); }
+  listening(type: string) { return (this.listeners.get(type) ?? []).length; }
+  click() { this.dispatch("click"); }
   querySelector() { return null; }
   get style() { return { setProperty() {} }; }
   /** Every element under this one with the class `cls`. */
@@ -66,9 +70,16 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   const resized: (() => void)[] = [];
   const resize = (width: number) => { container.clientWidth = width; for (const fn of [...resized]) fn(); };
   const paint = new Map<string, unknown>();
-  const camera = { pitch: undefined as number | undefined, eased: 0, jumped: 0, centreOrZoomMoved: false, fetched: 0 };
+  const camera = { pitch: undefined as number | undefined, eased: 0, jumped: 0, centreOrZoomMoved: false, fetched: 0, zoom: 10, maxZoom: 17 };
+  const once = new Map<string, (() => void)[]>();
+  /** The end of an eased move: MapLibre's moveend. */
+  const settle = () => { const fns = once.get("moveend") ?? []; once.delete("moveend"); for (const fn of fns) fn(); };
   const map = {
-    getStyle: () => ({ ...style, layers: [...layers] }),
+    getStyle: () => ({ ...style, layers: [...layers], ...(imagery ? { metadata: { [IMAGERY_MAX_ZOOM]: ESA_WORLDCOVER_2021.maxViewZoom } } : {}) }),
+    getZoom: () => camera.zoom,
+    getMaxZoom: () => camera.maxZoom,
+    setMaxZoom: (z: number) => { camera.maxZoom = z; camera.zoom = Math.min(camera.zoom, z); },
+    once: (type: string, fn: () => void) => void once.set(type, [...(once.get(type) ?? []), fn]),
     getSource: (id: string) => sources.get(id),
     addSource: (id: string, s: unknown) => { camera.fetched++; sources.set(id, s); },
     removeSource: (id: string) => void sources.delete(id),
@@ -86,7 +97,7 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
     off: (type: string, fn: () => void) => { if (type === "resize") resized.splice(resized.indexOf(fn), 1); },
     dragPan: { isEnabled: () => interactive },
     jumpTo: (c: { pitch?: number; center?: unknown; zoom?: unknown }) => { camera.jumped++; if (c.pitch !== undefined) camera.pitch = c.pitch; if (camera.jumped > 1 && (c.center || c.zoom !== undefined)) camera.centreOrZoomMoved = true; },
-    easeTo: (c: { pitch?: number; center?: unknown; zoom?: unknown; duration?: number }) => { camera.eased++; camera.pitch = c.pitch; if (c.center || c.zoom !== undefined) camera.centreOrZoomMoved = true; },
+    easeTo: (c: { pitch?: number; center?: unknown; zoom?: number; duration?: number }) => { camera.eased++; if (c.pitch !== undefined) camera.pitch = c.pitch; if (c.zoom !== undefined) camera.zoom = c.zoom; if (c.center || c.zoom !== undefined) camera.centreOrZoomMoved = true; },
   } as unknown as MapLibreMap;
   const draw = (points: LonLat[], options: Record<string, unknown> = {}, context: Partial<DrawContext> = {}) => drawPaths(map, { paths: [{ label: "route", points }], options }, { theme: t, ...context });
   const toggle = () => container.find("zc-view-toggle")[0];
@@ -105,7 +116,8 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   };
   const creditText = () => credit()?.find("zc-imagery-credit-text")[0]?.innerHTML;
   const creditButton = () => credit()!.find("zc-imagery-credit-toggle")[0]!;
-  return { map, container, paint, camera, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
+  const note = () => container.find("zc-imagery-cap-note")[0];
+  return { map, container, paint, camera, settle, note, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
 }
 
 /** The pitch drawPaths puts the host's map at. */
@@ -328,4 +340,99 @@ test("path-on-map: on a narrow map the imagery credit is an ⓘ button that open
   assert.equal(m.resized.length, 1);
   m.draw(walk).remove();
   assert.equal(m.resized.length, 0);
+});
+
+test("path-on-map: satellite caps the map's zoom at the imagery's crisp limit; the map gives the old max back", () => {
+  const cap = ESA_WORLDCOVER_2021.maxViewZoom;
+  const m = fakeMap({ imagery: true });
+  m.camera.zoom = 15.2;
+  m.draw(walk, {}, { frame: false });
+  assert.equal(m.camera.maxZoom, 17, "the street map: the map's own max zoom");
+  m.typeButton("Satellite").click();
+  assert.equal(m.camera.zoom, cap, "closer than the cap: eased out to it");
+  assert.equal(m.camera.maxZoom, 17, "capped once the ease ends");
+  m.settle();
+  assert.equal(m.camera.maxZoom, cap);
+  m.typeButton("Map").click();
+  assert.equal(m.camera.maxZoom, 17, "back to the street map: the old max zoom");
+  assert.equal(m.camera.zoom, cap, "and the camera where it was");
+  // Already within the cap: capped at once, no move.
+  const n = fakeMap({ imagery: true });
+  n.camera.zoom = 11;
+  n.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(n.camera.maxZoom, cap);
+  assert.equal(n.camera.eased, 0);
+  // Switched back to Map mid-ease: the cap never lands.
+  const o = fakeMap({ imagery: true });
+  o.camera.zoom = 16;
+  o.draw(walk, {}, { frame: false });
+  o.typeButton("Satellite").click();
+  o.typeButton("Map").click();
+  o.settle();
+  assert.equal(o.camera.maxZoom, 17);
+  // No imagery: the max zoom is never touched.
+  const plain = fakeMap();
+  plain.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(plain.camera.maxZoom, 17);
+});
+
+test("path-on-map: zooming past the satellite cap says so, politely, with a one-tap Map; then it fades", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const cap = ESA_WORLDCOVER_2021.maxViewZoom;
+  const m = fakeMap({ imagery: true });
+  m.camera.zoom = 12;
+  m.draw(walk, { mapType: "satellite" }, { frame: false });
+  const note = m.note()!;
+  assert.equal(note.getAttribute("role"), "status");
+  assert.equal(note.getAttribute("aria-live"), "polite");
+  assert.equal(note.dataset.shown, "false");
+  const text = () => note.find("zc-imagery-cap-note-text")[0]!.textContent;
+  const action = () => note.find("zc-imagery-cap-note-map")[0]!;
+  // Below the cap a zoom in is a zoom in: no note.
+  m.container.dispatch("wheel", { deltaY: -100 });
+  assert.equal(note.dataset.shown, "false");
+  m.camera.zoom = cap;
+  m.container.dispatch("wheel", { deltaY: 100 });
+  assert.equal(note.dataset.shown, "false", "zooming out is never past the cap");
+  for (const [type, e] of [["wheel", { deltaY: -100 }], ["keydown", { key: "+" }], ["keydown", { key: "=" }], ["dblclick", {}]] as const) {
+    m.container.dispatch(type, e);
+    assert.equal(note.dataset.shown, "true", `${type} ${JSON.stringify(e)} at the cap`);
+    assert.equal(text(), IMAGERY_CAP_WORDS.en.note);
+    assert.deepEqual([action().tagName, action().type, action().textContent, action().hidden], ["button", "button", "Map", false]);
+    t.mock.timers.tick(CAP_NOTE_MS);
+    assert.equal(note.dataset.shown, "false", "faded");
+    assert.equal(text(), "", "and emptied, so the next one is announced again");
+  }
+  // A gesture the map doesn't zoom with (Ava's chat has no scroll zoom) is no try.
+  const scroll = { on: false };
+  (m.map as unknown as { scrollZoom: { isEnabled(): boolean } }).scrollZoom = { isEnabled: () => scroll.on };
+  m.container.dispatch("wheel", { deltaY: -100 });
+  assert.equal(note.dataset.shown, "false", "no scroll zoom: a wheel is not a zoom");
+  scroll.on = true;
+  // A pinch out at the cap.
+  const touches = (d: number) => ({ touches: [{ clientX: 0, clientY: 0 }, { clientX: d, clientY: 0 }] });
+  m.container.dispatch("touchstart", touches(100));
+  m.container.dispatch("touchmove", touches(150));
+  assert.equal(note.dataset.shown, "true", "pinch");
+  // Map, from the note: the street map, its button pressed, the old max zoom back, the note gone.
+  action().click();
+  assert.equal(m.satellite(), false);
+  assert.deepEqual(m.typePressed(), ["Map"]);
+  assert.equal(m.camera.maxZoom, 17);
+  assert.equal(note.dataset.shown, "false");
+  // On the street map at the same zoom: no note.
+  m.container.dispatch("wheel", { deltaY: -100 });
+  assert.equal(note.dataset.shown, "false");
+  // French; and drawn again, one set of listeners; removed with the drawing.
+  const fr = fakeMap({ imagery: true });
+  fr.camera.zoom = cap;
+  fr.draw(walk, { mapType: "satellite" }, { frame: false, locale: "fr" });
+  fr.container.dispatch("keydown", { key: "+" });
+  assert.equal(fr.note()!.find("zc-imagery-cap-note-text")[0]!.textContent, "Le détail satellite s’arrête ici");
+  assert.equal(fr.note()!.find("zc-imagery-cap-note-map")[0]!.textContent, "Carte");
+  fr.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(fr.container.listening("wheel"), 1);
+  fr.draw(walk).remove();
+  assert.equal(fr.container.listening("wheel"), 0);
+  assert.equal(fr.note(), undefined);
 });
