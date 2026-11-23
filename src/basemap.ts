@@ -93,6 +93,9 @@ export const OVER_IMAGERY = {
   hidden: "rgba(0, 0, 0, 0)",
 } as const;
 
+/** The feather along the coast over imagery: a line this wide (px), blurred this much, in the deep-sea ground. */
+export const OCEAN_EDGE = { width: 2, blur: 1 } as const;
+
 /** What a street-map line layer is drawn in over imagery (by its Protomaps id). */
 function lineOverImagery(id: string): string {
   if (id.startsWith("water")) return OVER_IMAGERY.hidden;
@@ -139,7 +142,19 @@ export function satelliteLayers(street: readonly LayerSpecification[], i: Imager
   if (street.some((l) => l.id === IMAGERY_LAYERS.base)) return [...street];
   const visibility = mapType === "satellite" ? "visible" : "none";
   const raster = (id: string, source: string): LayerSpecification => ({ id, type: "raster", source, layout: { visibility }, paint: { "raster-fade-duration": 0 } });
-  const imagery = [raster(IMAGERY_LAYERS.base, IMAGERY_SOURCES.base), ...(i.detail ? [raster(IMAGERY_LAYERS.detail, IMAGERY_SOURCES.detail)] : [])];
+  // The ocean over the imagery, in the deep-sea ground: the composite has sea only in rectangular
+  // blocks near land (sea ice at their square edges), so its coasts are jagged in the Arctic. The
+  // street map's own ocean (Protomaps `water` kind "ocean"; lakes, rivers and the rest are other
+  // kinds and stay imagery) gives the coastline, feathered by a blurred line along it so the
+  // photographs don't look cut out. (A ring split at a tile's edge lies in the tile's buffer, which
+  // MapLibre doesn't draw, so the line leaves no seams.)
+  const ocean = { source: BASEMAP_SOURCE, "source-layer": "water", filter: ["==", ["get", "kind"], "ocean"] as ExpressionSpecification };
+  const imagery: LayerSpecification[] = [
+    raster(IMAGERY_LAYERS.base, IMAGERY_SOURCES.base),
+    ...(i.detail ? [raster(IMAGERY_LAYERS.detail, IMAGERY_SOURCES.detail)] : []),
+    { id: IMAGERY_LAYERS.ocean, type: "fill", ...ocean, layout: { visibility }, paint: { "fill-color": OVER_IMAGERY.ground, "fill-antialias": true } },
+    { id: IMAGERY_LAYERS.oceanEdge, type: "line", ...ocean, layout: { visibility, "line-join": "round" }, paint: { "line-color": OVER_IMAGERY.ground, "line-width": OCEAN_EDGE.width, "line-blur": OCEAN_EDGE.blur } },
+  ];
   const at = street.findIndex((l) => l.type === "line");
   const out: LayerSpecification[] = [];
   street.forEach((l, n) => {

@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { latest, normalizePropertyExpression, validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
+import { featureFilter, latest, normalizePropertyExpression, validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { layers } from "@protomaps/basemaps";
-import { AVA_BASEMAP, BASEMAP_SOURCE, basemapFlavor, basemapStyle, creditHtml, ESA_WORLDCOVER_2021, IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_SOURCES, MAP_TYPE_STATE, OVER_IMAGERY, withImagery } from "./basemap.ts";
+import { AVA_BASEMAP, BASEMAP_SOURCE, basemapFlavor, basemapStyle, creditHtml, ESA_WORLDCOVER_2021, IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_SOURCES, MAP_TYPE_STATE, OCEAN_EDGE, OVER_IMAGERY, withImagery } from "./basemap.ts";
 import { theme } from "./theme.ts";
 
 test("ava's basemap reads ava's tiles host, and only it", () => {
@@ -135,4 +135,33 @@ test("satellite in a host's own style (withImagery): its layers on top stay as t
   assert.equal(s.layers.filter((l) => l.type === "raster").length, 2);
   assert.equal(withImagery(s, ESA_WORLDCOVER_2021, "satellite").layers.filter((l) => l.type === "raster").length, 2);
   assert.equal(basemapStyle("ava", "light", "en", "satellite").layers.length, s.layers.length - 1);
+});
+
+test("satellite: the ocean is drawn over the imagery in the deep sea, feathered; lakes and rivers stay imagery", () => {
+  for (const mapType of ["map", "satellite"] as const) {
+    const s = basemapStyle("ava", "light", "en", mapType);
+    const ids = s.layers.map((l) => l.id);
+    const fill = s.layers.find((l) => l.id === IMAGERY_LAYERS.ocean) as { type: string; source: string; "source-layer": string; filter: unknown; layout: { visibility: string }; paint: Record<string, unknown> };
+    const edge = s.layers.find((l) => l.id === IMAGERY_LAYERS.oceanEdge) as typeof fill;
+    assert.equal(fill.type, "fill");
+    assert.equal(edge.type, "line");
+    // Over both imagery layers, under the first road or name.
+    assert.ok(ids.indexOf(IMAGERY_LAYERS.ocean) > ids.indexOf(IMAGERY_LAYERS.detail));
+    assert.equal(ids.indexOf(IMAGERY_LAYERS.oceanEdge), ids.indexOf(IMAGERY_LAYERS.ocean) + 1);
+    const firstStreet = s.layers.findIndex((l, n) => n > ids.indexOf(IMAGERY_LAYERS.oceanEdge) && (l.type === "line" || l.type === "symbol"));
+    assert.ok(firstStreet > ids.indexOf(IMAGERY_LAYERS.oceanEdge));
+    for (const l of [fill, edge]) {
+      assert.deepEqual([l.source, l["source-layer"]], [BASEMAP_SOURCE, "water"], "the street map's own water");
+      assert.equal(l.layout.visibility, mapType === "satellite" ? "visible" : "none");
+      // Which water: the basemap's own filter, evaluated as MapLibre does.
+      const f = featureFilter(l.filter as never, "layers[0].filter");
+      const passes = (kind: string, type: 1 | 2 | 3 = 3) => f.filter({ zoom: 6 } as never, { type, properties: { kind } } as never);
+      assert.equal(passes("ocean"), true, "the ocean");
+      for (const kind of ["water", "lake", "river", "basin", "canal", "reservoir"]) assert.equal(passes(kind), false, `${kind} stays imagery`);
+    }
+    assert.equal(fill.paint["fill-color"], OVER_IMAGERY.ground, "the deep sea, as the ground where there is no imagery");
+    assert.equal(fill.paint["fill-antialias"], true);
+    assert.deepEqual([edge.paint["line-color"], edge.paint["line-width"], edge.paint["line-blur"]], [OVER_IMAGERY.ground, OCEAN_EDGE.width, OCEAN_EDGE.blur], "a 1 px feather");
+    assert.ok(OCEAN_EDGE.blur >= 1);
+  }
 });

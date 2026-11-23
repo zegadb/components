@@ -8,7 +8,11 @@ import type { MapType } from "./basemaps.ts";
 export const MAP_TYPE_STATE = "zcMapType";
 /** The imagery's sources: the base everywhere, and the detail where it goes deeper. */
 export const IMAGERY_SOURCES = { base: "imagery", detail: "imagery-detail" } as const;
-export const IMAGERY_LAYERS = { base: "imagery", detail: "imagery-detail" } as const;
+/**
+ * The imagery's layers: the base and the detail, then the ocean drawn over them in the deep-sea
+ * ground (`ocean`) with a feathered edge (`oceanEdge`). All shown and hidden together.
+ */
+export const IMAGERY_LAYERS = { base: "imagery", detail: "imagery-detail", ocean: "imagery-ocean", oceanEdge: "imagery-ocean-edge" } as const;
 
 /** Whether `map`'s style has imagery (basemapStyle of a basemap that has some). */
 export const hasImagery = (map: Pick<MapLibreMap, "getLayer">): boolean => Boolean(map.getLayer(IMAGERY_LAYERS.base));

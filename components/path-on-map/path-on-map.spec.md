@@ -58,7 +58,11 @@ the names white on a dark halo; the street map's water, buildings and other
 fills above the land are cleared, and where there is no imagery (open sea) the
 ground is a deep sea (the imagery's own, `OVER_IMAGERY.ground` in
 src/basemap.ts, not a theme colour: the photograph is the same in both themes),
-not the street map's light ground. 10 m shows fields, forests, lakes and the
+not the street map's light ground. The ocean itself is drawn over the
+imagery in that deep sea, from the street map's own ocean (Protomaps `water`
+of kind `ocean`; lakes, rivers and other inland water stay imagery), its
+coast feathered by a 2 pt line blurred 1 pt: the composite has sea only in
+rectangular blocks near land, so its own coasts are jagged in the Arctic. 10 m shows fields, forests, lakes and the
 shape of a town, not streets: while satellite shows, the map goes no closer
 than the imagery's crisp limit, map zoom 13 (`maxViewZoom`; Sami, 23 Nov:
 overzoomed at 14–15 it was "very blurry and distorted"). Switching to
@@ -95,6 +99,7 @@ Back to front.
 | # | part | what it is | drawn with |
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
+| 1b | **ocean over imagery** | with `mapType: satellite`: the ocean in the deep sea, its coast feathered; lakes and rivers stay imagery | the surface's vector water (kind `ocean`), a fill and a blurred line |
 | 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles; the map's zoom capped at 13 while they show |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
