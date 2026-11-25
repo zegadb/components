@@ -101,7 +101,7 @@ Back to front.
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
 | 1b | **ocean over imagery** | with `mapType: satellite`: the ocean in the deep sea, its coast feathered; lakes and rivers stay imagery | the surface's vector water (kind `ocean`), a fill and a blurred line |
 | 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles; the map's zoom capped at 13 while they show |
-| 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d` |
+| 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d`; not drawn at all while satellite shows (the photograph shows the city; the tilt stays) |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
 | 5 | **basemap labels** | the street map's text and POI icons: street, place and building names | the surface's style (its symbol layers) |
@@ -207,7 +207,7 @@ numbers when the range is 10 or more, else 3 significant digits.
 | 2D \| 3D switch | tap the other half | click it, or Enter/Space when focused | `2d`: pitch 0, buildings laid flat; `3d`: pitch 60°, buildings standing. Centre, zoom and bearing stay; nothing is fetched again; no history entry (like moving the camera). A redraw that keeps the camera (a theme change, the plain fallback) keeps the view switched to |
 | imagery credit, compact | tap ⓘ | click it, or Enter/Space when focused | opens the full credit line beside the button; again closes it |
 | zoom past the satellite cap | pinch out | wheel or trackpad in, double click, + or = | nothing moves; the cap note shows with its **Map** action, then fades after 4 s |
-| Map \| Satellite switch | tap the other half | click it, or Enter/Space when focused | `satellite`: the imagery under the roads and names, its credit shown; `map`: the street map, the credit gone. At once, no easing; the camera stays; the street map's tiles are not fetched again (only the imagery's, the first time). No history entry. A redraw that keeps the camera keeps the map type switched to |
+| Map \| Satellite switch | tap the other half | click it, or Enter/Space when focused | `satellite`: the imagery under the roads and names, its credit shown, no extruded buildings (the tilt stays; `map` draws them again); `map`: the street map, the credit gone. At once, no easing; the camera stays; the street map's tiles are not fetched again (only the imagery's, the first time). No history entry. A redraw that keeps the camera keeps the map type switched to |
 | open or close the gear | tap the gear | click the gear, or Enter/Space when focused | shows or hides the panel |
 | change a parameter | the control | the control | creates a new history entry with that value; the canvas redraws; invalid input shows the gear error and changes nothing |
 

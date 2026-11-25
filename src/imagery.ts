@@ -40,7 +40,9 @@ export const mapTypeOf = (map: object): MapType => shownType.get(map) ?? "map";
 /**
  * Shows the street map or the imagery under the roads and names: the imagery layers' visibility
  * (a hidden one fetches nothing) and the global state the roads' and names' colours read. Nothing
- * else is fetched again. Satellite caps the map's max zoom at the imagery's crisp limit (easing out
+ * else is fetched again. The map's extruded buildings (every fill-extrusion layer) are not drawn
+ * while the imagery shows: flat-coloured boxes over a photograph bury the city it already shows; the
+ * tilt stays, and the street map draws them again. Satellite caps the map's max zoom at the imagery's crisp limit (easing out
  * to it first when the map is closer, unless `animate` is false); the street map gives the map its
  * own max zoom back. Does nothing on a map without imagery.
  */
@@ -49,6 +51,7 @@ export function setMapType(map: MapTypeTarget, mapType: MapType, animate = true)
   shownType.set(map, mapType);
   for (const id of Object.values(IMAGERY_LAYERS)) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", mapType === "satellite" ? "visible" : "none");
   map.setGlobalStateProperty(MAP_TYPE_STATE, mapType);
+  for (const l of map.getStyle()?.layers ?? []) if (l.type === "fill-extrusion") map.setLayoutProperty(l.id, "visibility", mapType === "satellite" ? "none" : "visible");
   const cap = imageryMaxZoom(map);
   if (cap === undefined) return;
   if (mapType === "satellite") {
