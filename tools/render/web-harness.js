@@ -26,10 +26,13 @@ async function main() {
   stage.style.width = `${fixture.size.width}px`;
   await document.fonts.load(`12px ${t.font.ui}`);
   await document.fonts.load(`600 12px ${t.font.ui}`);
-  const { validate, render } = await import(spec.component === 'body' ? '/dist/body/index.js' : '/dist/index.js');
+  await document.fonts.load(`300 12px ${t.font.ui}`);
+  // Each fixture through the entry its host imports: the body's and the weather's are their own.
+  const entry = { body: '/dist/body/index.js', weather: '/dist/weather/index.js' }[spec.component] ?? '/dist/index.js';
+  const { validate, render } = await import(entry);
   const checked = validate(spec);
   if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
-  const drawn = render(checked.view, { width: fixture.size.width, theme: t, id: 'fx' });
+  const drawn = render(checked.view, { width: fixture.size.width, theme: t, id: 'fx', locale: fixture.locale ?? 'en' });
   if ('body' in drawn) {
     const { drawBody } = await import('/dist/body/draw.js');
     const box = document.createElement('div');

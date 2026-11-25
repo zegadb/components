@@ -58,7 +58,31 @@ test("path-on-map/draw.ts bundles only path-on-map: no other component's contrac
   assert.ok(out.includes("[longitude, latitude] per point"), "the draw entry's bundle has no path-on-map contract");
 });
 
-for (const entry of ["./index.ts", "./path-on-map/draw.ts", "./basemap.ts"]) {
+// The weather card is its own entry too ("@zegadb/components/weather"): its contract, glyphs and ECCC's table would add
+// about a sixth to the main entry (11 KB of 68 KB minified), so a host that never shows the weather must not bundle them.
+const MAIN_STRINGS = new Set(["function-plot", "path-on-map", "price-chart"].flatMap((id) => strings(contractOf(id))));
+const WEATHER_STRINGS = [...new Set(strings(contractOf("weather")))].filter((s) => s.length >= 12 && !MAIN_STRINGS.has(s) && !s.includes('"'));
+// From its renderer, its words and its table.
+const WEATHER_CODE = ["a weather card needs now, hours or days", "Tonight low", "Durée du jour", "verglacant", "blowing-snow", "feels-line"];
+
+test("the weather's strings are distinctive enough to find, and its entry carries them", async () => {
+  assert.ok(WEATHER_STRINGS.length > 15, `${WEATHER_STRINGS.length} strings`);
+  const out = await bundle("./weather/index.ts");
+  const found = WEATHER_STRINGS.filter((s) => out.includes(JSON.stringify(s).slice(1, -1)));
+  assert.ok(found.length > WEATHER_STRINGS.length * 0.9, `the weather's own entry carries only ${found.length} of ${WEATHER_STRINGS.length}`);
+  for (const word of WEATHER_CODE) assert.ok(out.includes(word), `the weather's entry has no ${word}`);
+});
+
+for (const entry of ["./index.ts", "./path-on-map/draw.ts", "./basemap.ts", "./body/index.ts", "./body/draw.ts"]) {
+  test(`${entry.slice(2)} bundles no weather code: no contract, glyphs or ECCC table`, async () => {
+    const out = await bundle(entry);
+    const found = WEATHER_STRINGS.filter((s) => out.includes(JSON.stringify(s).slice(1, -1)));
+    assert.deepEqual(found.slice(0, 10), [], `${found.length} of the weather's strings are in ${entry}'s bundle (${out.length} bytes)`);
+    for (const word of WEATHER_CODE) assert.ok(!out.includes(word), `${entry}'s bundle has ${word}`);
+  });
+}
+
+for (const entry of ["./index.ts", "./path-on-map/draw.ts", "./basemap.ts", "./weather/index.ts"]) {
   test(`${entry.slice(2)} bundles no body code: no contract, region table, manifest or drawing`, async () => {
     const out = await bundle(entry);
     const found = BODY_STRINGS.filter((s) => out.includes(JSON.stringify(s).slice(1, -1)));

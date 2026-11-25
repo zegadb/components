@@ -18,7 +18,7 @@
     "ramp": { "type": "array", "minItems": 3, "maxItems": 9, "items": { "$ref": "#/$defs/colour" } },
     "mode": {
       "type": "object",
-      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "cartilage", "muscle", "nerve", "sequential", "diverging"],
+      "required": ["ground", "panel", "ink", "soft", "rule", "axis", "accent", "series", "up", "down", "buildings", "cartilage", "muscle", "nerve", "sequential", "diverging", "weather"],
       "additionalProperties": false,
       "properties": {
         "ground": { "$ref": "#/$defs/colour" }, "panel": { "$ref": "#/$defs/colour" }, "ink": { "$ref": "#/$defs/colour" },
@@ -30,7 +30,20 @@
         "nerve": { "$ref": "#/$defs/colour" },
         "series": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/colour" } },
         "sequential": { "$ref": "#/$defs/ramp" },
-        "diverging": { "$ref": "#/$defs/ramp" }
+        "diverging": { "$ref": "#/$defs/ramp" },
+        "weather": { "$ref": "#/$defs/weather" }
+      }
+    },
+    "weather": {
+      "type": "object",
+      "required": ["sun", "night", "nightEdge", "pop"],
+      "additionalProperties": false,
+      "description": "The weather card's own colours; everything else on it is the panel, ink, soft, rule, axis and accent.",
+      "properties": {
+        "sun": { "$ref": "#/$defs/colour", "description": "The sun in a glyph: a shape colour, never text." },
+        "night": { "$ref": "#/$defs/colour", "description": "The band behind the hours from sunset to sunrise; text on it holds 4.5:1." },
+        "nightEdge": { "$ref": "#/$defs/colour", "description": "The night band's edge, at sunset and sunrise." },
+        "pop": { "$ref": "#/$defs/colour", "description": "The chance of precipitation's words: the accent, as text, on the panel and the night band." }
       }
     },
     "host": {

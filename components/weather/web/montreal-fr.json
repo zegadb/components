@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Montréal, full, in French",
+  "description": "Every word of the card in French (Cette nuit min., PROCHAINES 24 HEURES, 16 h 19, the days, Vent, rafales, Lever, Coucher, Durée du jour), around ECCC's own French.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "locale": "fr",
+  "dataFile": "data/montreal-fr.json",
+  "spec": {
+    "component": "weather",
+    "data": {},
+    "options": {
+      "size": "full",
+      "lang": "fr"
+    }
+  }
+}

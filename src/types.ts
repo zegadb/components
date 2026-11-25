@@ -54,6 +54,18 @@ export interface ThemeColours {
   readonly nerve: string;
   readonly sequential: readonly string[];
   readonly diverging: readonly string[];
+  readonly weather: WeatherColours;
+}
+
+/** The weather card's own colours (src/weather); the rest of the card is the panel, ink, soft, rule, axis and accent. */
+export interface WeatherColours {
+  /** The sun in a glyph: a shape colour, never text. */
+  readonly sun: string;
+  /** The band behind the hours from sunset to sunrise, and its edge. */
+  readonly night: string;
+  readonly nightEdge: string;
+  /** The chance of precipitation's words: the accent as text. */
+  readonly pop: string;
 }
 
 export interface HostTheme {

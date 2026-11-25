@@ -45,7 +45,23 @@
       "components/price-chart/web/default.reference.dark.png": "9a1e40709cf0d8efc253c4f5c992e559f5adccf50f680211348688e5e58312ea",
       "components/price-chart/web/default.reference.png": "0fa4de49cfe38688b45fb319e5369d2c6a070f901e029b2ba6407c415fbe11d6",
       "components/price-chart/web/percent-phone.reference.dark.png": "670a82d20ee3d26d2bfb330cc4c0cbbab2715925cdd6f394d44bb41457145f23",
-      "components/price-chart/web/percent-phone.reference.png": "e72761e7aac8b805c09d02ac3b4d87896f9ef229e9604f018abe0e9647f3c615"
+      "components/price-chart/web/percent-phone.reference.png": "e72761e7aac8b805c09d02ac3b4d87896f9ef229e9604f018abe0e9647f3c615",
+      "components/weather/web/clyde-river-phone.reference.dark.png": "f538facfd908284dea3f27d22e57360ff47d44a3fa123e57fae590442f32c78d",
+      "components/weather/web/clyde-river-phone.reference.png": "db1f1e59937a0fa129593ca8e208624d7118e170b3212eea5e194e9eb6b33005",
+      "components/weather/web/compact-narrow.reference.dark.png": "cc2cd6b0cfb166f3b1f2a8a5bba15cb43175ed610e37a8355b617565591cc24e",
+      "components/weather/web/compact-narrow.reference.png": "7fd4c0f320cedf3a4600f959af592b6684ae5395d0224718d19660dd8927e3ee",
+      "components/weather/web/compact-phone.reference.dark.png": "8a5bce0647c594c4b0fc35ae8394bae6d305611112e40ed4da3aa83a7a1fa05c",
+      "components/weather/web/compact-phone.reference.png": "47fc42e6d49c4f9fed2dbc93dc81bac08d75d9a13f8948b3d82892097c1a07c9",
+      "components/weather/web/default.reference.dark.png": "c76f184c1b00e353d95a732fad15dedc1f3af16f5bbf5a7ef36a35760804ad38",
+      "components/weather/web/default.reference.png": "e2e3dff252fea1660b928c063e2fb01c7f0d8bf54e3905664d8c13bbfb750dc0",
+      "components/weather/web/full-phone.reference.dark.png": "a66ed7ae4474b50c96eac948afef80a07b969757837a51528347e7d70c4462bb",
+      "components/weather/web/full-phone.reference.png": "0b51eb0aae16af7e91ac0afe625404bb64a161c9ea661ae61bb23d428ba73fd9",
+      "components/weather/web/full.reference.dark.png": "542e3ef404c01fd446756c1e50d21f16fb44148cc596bd783f613717e04f86bb",
+      "components/weather/web/full.reference.png": "34de2671aa67b0881223fcdf15f225a3774ef207400c56045933cb2555be49a5",
+      "components/weather/web/montreal-fr.reference.dark.png": "e383ef4cd5ce29f6df3bce42e1e54964beddacb79599b0988474ac9d3052e06f",
+      "components/weather/web/montreal-fr.reference.png": "66b6ac30381c1acdf0abc9e5f91149b2242dc1a4d997b0a64dac0dc02c7398e5",
+      "components/weather/web/offline.reference.dark.png": "fcb19c497982aa42ff3785e52e00113cd12a59f09cd362b7e013aefdf856246c",
+      "components/weather/web/offline.reference.png": "1bd3f8b74e68fdc6650845722fc463fdf3837a2c03881876ebca8472100d9f5c"
     }
   }
 }
