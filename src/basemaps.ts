@@ -77,8 +77,11 @@ const OSM = "https://www.openstreetmap.org/copyright";
  */
 /**
  * Satellite imagery on tiles.addis.gg (`/satellite/{z}/{x}/{y}.webp`): the ESA WorldCover 2021
- * Sentinel-2 composite (10 m, CC BY 4.0), 256 px WebP, Canada to z13 and the world to z10, built
- * and served by us (addiscorp/knowledgegraph tiles-worker); no reader's browser asks anyone else.
+ * Sentinel-2 composite (10 m, CC BY 4.0), 256 px WebP, Canada to z13 and the world to z10; north of
+ * 64N recomposited from Copernicus Sentinel-2 L2A passes of 2018-2025 (20 m, 10 m around the
+ * communities; the credit adds "Contains modified Copernicus Sentinel data 2018–2025", as the
+ * Copernicus legal notice asks). Built and served by us (addiscorp/knowledgegraph tiles-worker); no
+ * reader's browser asks anyone else.
  * 10 m shows fields, forests, lakes and the shape of a city, not streets. With satellite shown the
  * map stops at z13 (`maxViewZoom`), the closest it is still crisp on a retina screen (shot at 13,
  * 13.5 and 14 on 23 Nov; 13.5 is already soft, 14 and 15 "very blurry and distorted", Sami). A cut
@@ -91,8 +94,8 @@ export const ESA_WORLDCOVER_2021: Imagery = {
   detail: { bounds: [-141.01, 41.67, -52.61, 83.12], maxzoom: 13 },
   maxViewZoom: 13,
   credit: {
-    en: [{ text: "© ESA WorldCover project 2021", href: "https://esa-worldcover.org" }, " / contains modified Copernicus Sentinel data"],
-    fr: [{ text: "© Projet ESA WorldCover 2021", href: "https://esa-worldcover.org" }, " / contient des données Copernicus Sentinel modifiées"],
+    en: [{ text: "© ESA WorldCover project 2021", href: "https://esa-worldcover.org" }, " / contains modified Copernicus Sentinel data 2018–2025"],
+    fr: [{ text: "© Projet ESA WorldCover 2021", href: "https://esa-worldcover.org" }, " / contient des données Copernicus Sentinel 2018–2025 modifiées"],
   },
 };
 
