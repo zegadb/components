@@ -43,7 +43,13 @@ export const THEMES = {
         "#DCD8E6",
         "#8D72F3",
         "#4527C4"
-      ]
+      ],
+      "weather": {
+        "sun": "#D98E00",
+        "night": "#EEEAF6",
+        "nightEdge": "#D9D2EA",
+        "pop": "#5434D6"
+      }
     },
     "dark": {
       "ground": "#1C1A29",
@@ -80,7 +86,13 @@ export const THEMES = {
         "#4B4663",
         "#7259DE",
         "#CDBFFF"
-      ]
+      ],
+      "weather": {
+        "sun": "#FFC94D",
+        "night": "#18142B",
+        "nightEdge": "#2C2648",
+        "pop": "#B9A6FF"
+      }
     }
   },
   "zega": {
@@ -124,7 +136,13 @@ export const THEMES = {
         "#C9C0B2",
         "#D98A5C",
         "#9C4220"
-      ]
+      ],
+      "weather": {
+        "sun": "#B87A00",
+        "night": "#F7F3E8",
+        "nightEdge": "#E2D9C8",
+        "pop": "#0A7039"
+      }
     },
     "dark": {
       "ground": "#1E1610",
@@ -161,7 +179,13 @@ export const THEMES = {
         "#6B6259",
         "#B8683D",
         "#F0A878"
-      ]
+      ],
+      "weather": {
+        "sun": "#E8B84A",
+        "night": "#1E1610",
+        "nightEdge": "#3A2D22",
+        "pop": "#5AD88C"
+      }
     }
   }
 } as const satisfies Record<string, HostTheme>;

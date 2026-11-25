@@ -16,7 +16,7 @@
       "description": "The component's semver. Major: an existing view spec may stop validating. Minor: something added (a field, an option). Patch: rendering only."
     },
     "title": { "type": "string", "minLength": 1 },
-    "category": { "enum": ["Math", "Finance", "Geo", "Charts", "Network", "Sports", "Anatomy"] },
+    "category": { "enum": ["Math", "Finance", "Geo", "Charts", "Network", "Sports", "Anatomy", "Weather"] },
     "description": { "type": "string", "minLength": 1, "description": "When to use it, in a sentence or two: the model reads this to choose." },
     "surface": { "$ref": "#/$defs/surface" },
     "marks": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z-]*$" }, "description": "The marks it draws (path, line, area, point, candle, bar, heat…)." },
@@ -81,9 +81,9 @@
       "type": "object",
       "required": ["kind", "description"],
       "additionalProperties": false,
-      "description": "The coordinate space the marks are drawn in. `art`: an illustrated surface (a rink, a court, a body diagram): `art` names its drawing, `frame` its coordinate system, and `regions` the named areas data may refer to by id.",
+      "description": "The coordinate space the marks are drawn in. `card`: no coordinates, a laid-out card whose height follows its content (weather). `art`: an illustrated surface (a rink, a court, a body diagram): `art` names its drawing, `frame` its coordinate system, and `regions` the named areas data may refer to by id.",
       "properties": {
-        "kind": { "enum": ["plane", "time", "map", "globe", "art"] },
+        "kind": { "enum": ["plane", "time", "map", "globe", "art", "card"] },
         "description": { "type": "string" },
         "art": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$" },
         "frame": {

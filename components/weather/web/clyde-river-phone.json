@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Clyde River in a blizzard, at night, full, at a phone's width",
+  "description": "A blizzard: ECCC's wind chill leads (Feels like −21°, Air −9° under it), the chart's air and wind-chill lines with the gap filled, an 80 % chance as bars for the hours ECCC gave it, night on both sides of a 1 h 38 min day, the footer's daylight line, minus signs.",
+  "host": "ava",
+  "size": {
+    "width": 358
+  },
+  "scale": 2,
+  "dataFile": "data/clyde-river.json",
+  "spec": {
+    "component": "weather",
+    "data": {},
+    "options": {
+      "size": "full"
+    }
+  }
+}

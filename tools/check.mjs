@@ -121,8 +121,12 @@ async function checkReferences(root, paths, want, locked, lockImages, out) {
 export async function checkRepo(root = ROOT) {
   const out = [];
   // The package's own validate(), from this root's src/: the check and every host run the same code.
-  // The body's entry's: the main entry's components and the body, so every contract is checked.
-  const { validate } = await import(join(root, 'src/body/index.ts'));
+  // Over every component: the main entry's, the body's and the weather's (each its own entry).
+  const { registry } = await import(join(root, 'src/registry.ts'));
+  const { BUILT_IN } = await import(join(root, 'src/builtin.ts'));
+  const { BODY } = await import(join(root, 'src/body/index.ts'));
+  const { WEATHER } = await import(join(root, 'src/weather/index.ts'));
+  const { validate } = registry([BODY, WEATHER, ...BUILT_IN]);
   const schemas = {
     tokens: await json(join(root, 'schemas/tokens.schema.json')),
     themes: await json(join(root, 'schemas/themes.schema.json')),

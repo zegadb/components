@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Clyde River, compact, in a phone chat bubble",
+  "description": "Under 320 points (Ava's reply bubble on a 390-point phone): three day tiles in one row, feels-like leading, two lines on a chart that is all night, the chance bars running to the end with their label in the gutter, minus signs.",
+  "host": "ava",
+  "size": {
+    "width": 300
+  },
+  "scale": 2,
+  "dataFile": "data/clyde-river.json",
+  "spec": {
+    "component": "weather",
+    "data": {}
+  }
+}

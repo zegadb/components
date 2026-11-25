@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../schemas/web-fixture.schema.json",
+  "fixture": 2,
+  "component": "weather",
+  "title": "Toronto, full",
+  "description": "The full card: the header with the condition and tonight's low, the next 24 hours with night from sunset to sunrise and the lowest and highest marked, six days on one scale for the week (Monday's 30 % from ECCC's words), the footer (wind and gusts, sunrise, sunset, daylight; no feels-like: it is 10 °C). The hours give 0 %, which is shown as nothing: no bars.",
+  "host": "ava",
+  "size": {
+    "width": 640
+  },
+  "scale": 2,
+  "dataFile": "data/toronto.json",
+  "spec": {
+    "component": "weather",
+    "data": {},
+    "options": {
+      "size": "full"
+    }
+  }
+}

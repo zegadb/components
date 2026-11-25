@@ -1,0 +1,239 @@
+{
+ "days": [
+  {
+   "condition": "Dégagé",
+   "date": "2026-11-21",
+   "icon": "clear",
+   "low_c": 4,
+   "night": true
+  },
+  {
+   "condition": "Généralement ensoleillé",
+   "date": "2026-11-22",
+   "high_c": 14,
+   "icon": "mainly-clear",
+   "low_c": 9,
+   "night": false
+  },
+  {
+   "condition": "Alternance de soleil et de nuages",
+   "date": "2026-11-23",
+   "high_c": 12,
+   "icon": "partly-cloudy",
+   "low_c": -3,
+   "night": false
+  },
+  {
+   "condition": "Ensoleillé",
+   "date": "2026-11-24",
+   "high_c": 1,
+   "icon": "clear",
+   "low_c": -6,
+   "night": false
+  },
+  {
+   "condition": "Ensoleillé",
+   "date": "2026-11-25",
+   "high_c": 1,
+   "icon": "clear",
+   "low_c": -6,
+   "night": false
+  },
+  {
+   "condition": "Ensoleillé",
+   "date": "2026-11-26",
+   "high_c": 2,
+   "icon": "clear",
+   "low_c": -2,
+   "night": false
+  }
+ ],
+ "hours": [
+  {
+   "at": "2026-11-21T16:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 14
+  },
+  {
+   "at": "2026-11-21T17:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 13
+  },
+  {
+   "at": "2026-11-21T18:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 13
+  },
+  {
+   "at": "2026-11-21T19:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 12
+  },
+  {
+   "at": "2026-11-21T20:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 11
+  },
+  {
+   "at": "2026-11-21T21:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 10
+  },
+  {
+   "at": "2026-11-21T22:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 9
+  },
+  {
+   "at": "2026-11-21T23:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 9
+  },
+  {
+   "at": "2026-11-22T00:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 8
+  },
+  {
+   "at": "2026-11-22T01:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 8
+  },
+  {
+   "at": "2026-11-22T02:00-05:00",
+   "icon": "clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 7
+  },
+  {
+   "at": "2026-11-22T03:00-05:00",
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 5
+  },
+  {
+   "at": "2026-11-22T04:00-05:00",
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 4
+  },
+  {
+   "at": "2026-11-22T05:00-05:00",
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 5
+  },
+  {
+   "at": "2026-11-22T06:00-05:00",
+   "icon": "mainly-clear",
+   "night": true,
+   "pop": 0,
+   "temp_c": 7
+  },
+  {
+   "at": "2026-11-22T07:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 8
+  },
+  {
+   "at": "2026-11-22T08:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 9
+  },
+  {
+   "at": "2026-11-22T09:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 10
+  },
+  {
+   "at": "2026-11-22T10:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 11
+  },
+  {
+   "at": "2026-11-22T11:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 12
+  },
+  {
+   "at": "2026-11-22T12:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 13
+  },
+  {
+   "at": "2026-11-22T13:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 14
+  },
+  {
+   "at": "2026-11-22T14:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 14
+  },
+  {
+   "at": "2026-11-22T15:00-05:00",
+   "icon": "mainly-clear",
+   "night": false,
+   "pop": 0,
+   "temp_c": 14
+  }
+ ],
+ "now": {
+  "condition": "Généralement ensoleillé",
+  "icon": "mainly-clear",
+  "night": false,
+  "observed": "2026-11-21T15:00-05:00",
+  "temp_c": 14.3,
+  "wind": {
+   "dir": "N",
+   "gust_kmh": 32,
+   "speed_kmh": 2
+  }
+ },
+ "place": "Montréal",
+ "sun": {
+  "rise": "2026-11-21T07:01-05:00",
+  "set": "2026-11-21T16:19-05:00"
+ },
+ "today": "2026-11-21"
+}

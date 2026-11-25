@@ -32,6 +32,10 @@
   --zc-diverging-3: #DCD8E6;
   --zc-diverging-4: #8D72F3;
   --zc-diverging-5: #4527C4;
+  --zc-weather-sun: #D98E00;
+  --zc-weather-night: #EEEAF6;
+  --zc-weather-nightEdge: #D9D2EA;
+  --zc-weather-pop: #5434D6;
   --zc-font-ui: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --zc-font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   --zc-font-map: Noto Sans Medium;
@@ -68,6 +72,10 @@
     --zc-diverging-3: #4B4663;
     --zc-diverging-4: #7259DE;
     --zc-diverging-5: #CDBFFF;
+    --zc-weather-sun: #FFC94D;
+    --zc-weather-night: #18142B;
+    --zc-weather-nightEdge: #2C2648;
+    --zc-weather-pop: #B9A6FF;
   }
 }
 
@@ -101,6 +109,10 @@
   --zc-diverging-3: #4B4663;
   --zc-diverging-4: #7259DE;
   --zc-diverging-5: #CDBFFF;
+  --zc-weather-sun: #FFC94D;
+  --zc-weather-night: #18142B;
+  --zc-weather-nightEdge: #2C2648;
+  --zc-weather-pop: #B9A6FF;
 }
 
 [data-zc-host="zega"] {
@@ -133,6 +145,10 @@
   --zc-diverging-3: #C9C0B2;
   --zc-diverging-4: #D98A5C;
   --zc-diverging-5: #9C4220;
+  --zc-weather-sun: #B87A00;
+  --zc-weather-night: #F7F3E8;
+  --zc-weather-nightEdge: #E2D9C8;
+  --zc-weather-pop: #0A7039;
   --zc-font-ui: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --zc-font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   --zc-font-map: Noto Sans Medium;
@@ -169,6 +185,10 @@
     --zc-diverging-3: #6B6259;
     --zc-diverging-4: #B8683D;
     --zc-diverging-5: #F0A878;
+    --zc-weather-sun: #E8B84A;
+    --zc-weather-night: #1E1610;
+    --zc-weather-nightEdge: #3A2D22;
+    --zc-weather-pop: #5AD88C;
   }
 }
 
@@ -202,4 +222,8 @@
   --zc-diverging-3: #6B6259;
   --zc-diverging-4: #B8683D;
   --zc-diverging-5: #F0A878;
+  --zc-weather-sun: #E8B84A;
+  --zc-weather-night: #1E1610;
+  --zc-weather-nightEdge: #3A2D22;
+  --zc-weather-pop: #5AD88C;
 }

@@ -46,6 +46,7 @@ tolerance of the reference images ([CONFORMANCE.md](CONFORMANCE.md)).
 | [price-chart](components/price-chart/price-chart.spec.md): line or candlesticks, volume, annotations | Finance | review | <img src="components/price-chart/web/default.reference.png" width="240"> <img src="components/price-chart/web/candles-zega.reference.dark.png" width="240"> |
 | [path-on-map](components/path-on-map/path-on-map.spec.md): ordered paths on the map, tilted with 3D buildings by default, a "2D \| 3D" switch in the map's controls | Geo | review | <img src="components/path-on-map/web/default.reference.png" width="240"> <img src="components/path-on-map/web/diverging-zega-phone.reference.dark.png" width="140"> |
 | [body](components/body/body.spec.md): a 3D human body (man, woman, boy and girl of 8), organs, skeleton, muscles and nerves lit, still or orbit and fly-to (three.js; body meshes CC BY 4.0, [assets/body/LICENSE](assets/body/LICENSE); muscles and nerves from Z-Anatomy, **share-alike**, only in [packages/body-za](packages/body-za/NOTICE); children from [paediatric references](components/body/references.json)) | Anatomy | draft (zegadb/components#5, phases 1–3) | none yet: proposals await Sami |
+| [weather](components/weather/weather.spec.md): one place's weather as a panel card in the chart family's style: now (or what it feels like), a chart of the next 12 (compact) or 24 hours (full) with night shaded and the chance of precipitation as bars, the days as tiles (compact) or on one scale for the week (full); our own line glyphs, mapped from ECCC's codes in one table | Weather | review | <img src="components/weather/web/default.reference.png" width="240"> <img src="components/weather/web/full.reference.dark.png" width="160"> |
 | [globe-arcs](components/globe-arcs/globe-arcs.spec.md): routes as arcs on the globe | Network | review (format 1, zega's explorer) | <img src="components/globe-arcs/globe-arcs.reference.png" width="240"> |
 | [hockey3darena](components/hockey3darena/hockey3darena.spec.md): rink heat | Sports | draft (format 1) | none yet |
 
@@ -74,6 +75,7 @@ const drawn = render(checked.view, { width, theme: theme("ava", "dark") });
 | `@zegadb/components` | `validate`, `render`, `toolDefinitions`, themes, SVG helpers, `pathOnMap`; function-plot, path-on-map and price-chart. No body, no map or three.js code |
 | `@zegadb/components/body` | the same `validate`, `render`, `toolDefinitions`, `COMPONENT_IDS`, `CONTRACTS` with the body added; `BODY_REGIONS`, `bodyRegionName`, the `body` model, `BODY` |
 | `@zegadb/components/body/draw` | `drawBody()` (three.js) |
+| `@zegadb/components/weather` | the same `validate`, `render`, `toolDefinitions`, `COMPONENT_IDS`, `CONTRACTS` with the weather card added; `WEATHER`, `ECCC_ICONS`, `ECCC_TEXT`, `ecccGlyph()` (ECCC's codes and words to our glyphs, the one table), `weatherGlyph()`, `nightBands()` |
 | `@zegadb/components/path-on-map/draw` | `drawChecked()`, `drawPaths()`, `checkPaths()`, the 2D \| 3D switch `viewToggle()` and `setMapView()` (MapLibre); checks paths against path-on-map's contract alone, so no other component's code |
 | `@zegadb/components/basemap` | `basemapStyle()` (@protomaps/basemaps) |
 
@@ -85,7 +87,11 @@ checks and draws the same), or registers it with its own list:
 entry, `BODY` from the body's). `src/entries.test.ts` bundles the other
 entries and fails if any of the body's strings are in them, and fails if
 the path-on-map draw entry carries function-plot's or price-chart's
-contract or code, or the assistant's tools.
+contract or code, or the assistant's tools. The weather card is the same:
+its own entry (`registry([WEATHER, ...BUILT_IN])` to combine it with the
+body), and the same test fails if its contract, glyphs or ECCC table reach
+any other entry. It draws no credit: the host says its source once, under
+the card (Ava: ECCC's line), never with an "edit" link.
 
 - **Basemaps:** a host's street map is defined once here
   (`src/basemaps.ts`; the style in `src/basemap.ts`), so every surface of the host shows the same map. Ava's
