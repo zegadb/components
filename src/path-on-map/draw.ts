@@ -418,7 +418,6 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   const imagery = hasImagery(map);
   let mapType: MapType = imagery ? (context.frame === false ? (shownType.get(map) ?? p.options.mapType) : p.options.mapType) : "map";
   shownType.set(map, mapType);
-  setMapType(map, mapType, false);
   const features = pathFeatures(p, theme);
   map.addSource(PATH_SOURCES.segments, { type: "geojson", data: features.segments });
   map.addSource(PATH_SOURCES.starts, { type: "geojson", data: features.starts });
@@ -429,6 +428,8 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   if (map.getSource("basemap")) map.addLayer(buildingsLayer(theme, viewLook(view, p.options.showBuildings).buildingsOpacity > 0), labels);
   const glyphs = Boolean(map.getStyle().glyphs);
   for (const layer of pathLayers(theme, p.options, glyphs)) map.addLayer(layer, UNDER_LABELS.has(layer.id) ? labels : undefined);
+  // After the buildings are added: satellite doesn't draw them (setMapType).
+  setMapType(map, mapType, false);
   const markers: MapLibreMarker[] = [];
   // Room the HTML labels need beside their starts, per side, so framing keeps them on the map.
   const room = { top: 0, right: 0, bottom: 0, left: 0 };

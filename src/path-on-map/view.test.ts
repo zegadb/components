@@ -86,6 +86,8 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
     getLayer: (id: string) => layers.find((l) => l.id === id),
     addLayer: (l: (typeof layers)[number] & { paint?: Record<string, unknown> }) => {
       layers.push(l);
+      // A layer added anew is drawn as its own layout says (visible unless it says none).
+      shown.visibility.delete(l.id);
       if (l.id === PATH_LAYERS.buildings) paint.set("buildings", l.paint?.["fill-extrusion-opacity"]);
     },
     removeLayer: (id: string) => void layers.splice(layers.findIndex((l) => l.id === id), 1),
@@ -117,7 +119,9 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   const creditText = () => credit()?.find("zc-imagery-credit-text")[0]?.innerHTML;
   const creditButton = () => credit()!.find("zc-imagery-credit-toggle")[0]!;
   const note = () => container.find("zc-imagery-cap-note")[0];
-  return { map, container, paint, camera, settle, note, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
+  /** Whether the extruded buildings are drawn: the layer not hidden, and standing (opacity over 0). */
+  const buildingsDrawn = () => shown.visibility.get(PATH_LAYERS.buildings) !== "none" && Number(paint.get("buildings")) > 0;
+  return { map, container, paint, camera, settle, note, buildingsDrawn, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
 }
 
 /** The pitch drawPaths puts the host's map at. */
@@ -435,4 +439,32 @@ test("path-on-map: zooming past the satellite cap says so, politely, with a one-
   fr.draw(walk).remove();
   assert.equal(fr.container.listening("wheel"), 0);
   assert.equal(fr.note(), undefined);
+});
+
+test("path-on-map: satellite keeps the tilt but draws no extruded buildings; Map brings them back", () => {
+  const m = fakeMap({ imagery: true });
+  m.draw(walk, { view: "3d" }, { reducedMotion: true });
+  assert.equal(m.camera.pitch, MEASURES.pitch3d);
+  assert.equal(m.buildingsDrawn(), true, "3D on the street map: the buildings stand");
+  m.typeButton("Satellite").click();
+  assert.equal(m.buildingsDrawn(), false, "3D satellite: no grey boxes over the photograph");
+  assert.equal(m.camera.pitch, MEASURES.pitch3d, "the tilt stays");
+  // The 2D | 3D switch still tilts, and the buildings stay away while the imagery shows.
+  m.button("2D").click();
+  assert.equal(m.camera.pitch, 0);
+  m.button("3D").click();
+  assert.equal(m.camera.pitch, MEASURES.pitch3d);
+  assert.equal(m.buildingsDrawn(), false);
+  m.typeButton("Map").click();
+  assert.equal(m.buildingsDrawn(), true, "the street map draws them again");
+  // Opened on satellite: never drawn; a redraw that keeps the camera keeps them away.
+  const n = fakeMap({ imagery: true });
+  n.draw(walk, { view: "3d", mapType: "satellite" }, { reducedMotion: true });
+  assert.equal(n.buildingsDrawn(), false);
+  n.draw(walk, { view: "3d", mapType: "satellite" }, { frame: false });
+  assert.equal(n.buildingsDrawn(), false);
+  // No imagery: the buildings are the map's own business, as before.
+  const plain = fakeMap();
+  plain.draw(walk, { view: "3d", mapType: "satellite" });
+  assert.equal(plain.buildingsDrawn(), true);
 });
