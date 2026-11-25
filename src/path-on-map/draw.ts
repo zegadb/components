@@ -1,7 +1,8 @@
 // Draws path-on-map on a MapLibre map in the browser (model.ts says what is
 // drawn). The host owns the map, its style and its controls (but the 2D | 3D
-// switch, which drawPaths puts on a map the reader can move unless the host
-// places viewToggle() among its own); drawPaths adds
+// switch and, on a basemap with imagery, the Map | Satellite switch, which
+// drawPaths puts on a map the reader can move unless the host places
+// viewToggle() and mapTypeToggle() among its own); drawPaths adds
 // the buildings (when the map has the basemap source), each path's casing,
 // coloured segments, start ring and label, the legend over the map's
 // bottom-left corner, and frames the camera. One implementation for every
@@ -9,6 +10,8 @@
 //
 // MapLibre is the host's (a peer dependency): this module only takes a map.
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
+import { creditHtml, ESA_WORLDCOVER_2021, type Imagery, type MapType } from "../basemaps.ts";
+import { hasImagery, imageryMaxZoom, mapTypeOf, setMapType } from "../imagery.ts";
 import { validator } from "../registry.ts";
 import type { Locale } from "../scale.ts";
 import type { Theme, ViewError } from "../types.ts";
@@ -41,11 +44,15 @@ export interface DrawContext {
   /** maplibregl.Marker, for labels as HTML on a map without glyphs. */
   Marker?: typeof MapLibreMarker;
   /**
-   * Draw the 2D | 3D switch over the map's top-right corner (the spec's map controls). Default: when
-   * the map is interactive (its drag-to-pan is on); a still (`interactive: false`) has none. A host
-   * with its own controls passes false and puts viewToggle() among them.
+   * Draw the map's controls over its top-right corner (the spec's map controls): the 2D | 3D switch,
+   * and the Map | Satellite switch when the map's style has imagery, with the imagery's credit
+   * while it shows. Default: when the map is interactive (its drag-to-pan is on); a still
+   * (`interactive: false`) has none. A host with its own controls passes false and puts
+   * viewToggle() and mapTypeToggle() among them (and says the imagery's credit while it shows).
    */
   controls?: boolean;
+  /** The imagery the map's style shows (its credit while it shows); default ESA_WORLDCOVER_2021, the one basemapStyle has. */
+  imagery?: Imagery;
   /** The switch's words (default en). */
   locale?: Locale;
   /** No easing when the view switches (default: the reader's prefers-reduced-motion). */
@@ -58,6 +65,10 @@ export interface DrawnPaths {
   readonly view: View;
   /** Switches to `view` as the 2D | 3D switch does (setMapView), and the switch with it. */
   setView(view: View): void;
+  /** The map type shown now: the paths' own, or what the reader switched to since ("map" on a map without imagery). */
+  readonly mapType: MapType;
+  /** Switches to `mapType` as the Map | Satellite switch does (setMapType), and the switch with it. */
+  setMapType(mapType: MapType): void;
   /** Shows or hides the extruded buildings, without re-tiling them. */
   showBuildings(visible: boolean): void;
   /** Takes every layer, source, label, the legend and the switch off the map. */
@@ -68,6 +79,12 @@ export interface DrawnPaths {
 export const VIEW_TOGGLE_WORDS: Record<Locale, { group: string; "2d": string; "3d": string }> = {
   en: { group: "Map view", "2d": "2D: flat, from above", "3d": "3D: tilted, buildings standing" },
   fr: { group: "Vue de la carte", "2d": "2D : à plat, vue du dessus", "3d": "3D : inclinée, bâtiments en relief" },
+};
+
+/** The Map | Satellite switch's words: its group's name, each button's word and hint. */
+export const MAP_TYPE_TOGGLE_WORDS: Record<Locale, { group: string; map: string; satellite: string; hint: Record<MapType, string> }> = {
+  en: { group: "Map type", map: "Map", satellite: "Satellite", hint: { map: "Map: streets and places", satellite: "Satellite: imagery, with the streets and names over it" } },
+  fr: { group: "Type de carte", map: "Carte", satellite: "Satellite", hint: { map: "Carte : rues et lieux", satellite: "Satellite : imagerie, avec les rues et les noms par-dessus" } },
 };
 
 /**
@@ -108,37 +125,225 @@ export interface ViewToggle {
  */
 export function viewToggle(doc: Document, options: ViewToggleOptions): ViewToggle {
   const words = VIEW_TOGGLE_WORDS[options.locale ?? "en"];
-  const cls = options.className ?? "zc-view-toggle";
-  let current = options.view;
+  const s = segmented(doc, options.className ?? "zc-view-toggle", words.group, (["2d", "3d"] as const).map((v) => ({ value: v, text: v.toUpperCase(), hint: words[v] })), options.view, options.onChange);
+  return { element: s.element, get view() { return s.value; }, set: s.set };
+}
+
+export interface MapTypeToggleOptions {
+  /** The map type it starts on. */
+  mapType: MapType;
+  locale?: Locale;
+  /** The group's class (default `zc-map-type-toggle`, styled by components.css); a host's own controls give theirs. */
+  className?: string;
+  /** Called with the map type the reader picked; the caller switches the map (setMapType). */
+  onChange(mapType: MapType): void;
+}
+
+export interface MapTypeToggle {
+  /** The group: two buttons, "Map" and "Satellite", the current one aria-pressed. Not yet on the page: the caller places it. */
+  readonly element: HTMLElement;
+  readonly mapType: MapType;
+  /** Marks `mapType` as the current one, without calling onChange. */
+  set(mapType: MapType): void;
+}
+
+/**
+ * The Map | Satellite switch, built as the 2D | 3D one: a labelled group of two native buttons, the
+ * current one `aria-pressed="true"`. Pressing the other calls onChange; the caller switches the
+ * map (setMapType). Only for a map whose style has imagery (hasImagery).
+ */
+export function mapTypeToggle(doc: Document, options: MapTypeToggleOptions): MapTypeToggle {
+  const words = MAP_TYPE_TOGGLE_WORDS[options.locale ?? "en"];
+  const s = segmented(doc, options.className ?? "zc-map-type-toggle", words.group, (["map", "satellite"] as const).map((v) => ({ value: v, text: words[v], hint: words.hint[v] })), options.mapType, options.onChange);
+  return { element: s.element, get mapType() { return s.value; }, set: s.set };
+}
+
+/** A labelled group of native buttons, one pressed: the map's switches. */
+function segmented<T extends string>(doc: Document, cls: string, name: string, items: { value: T; text: string; hint: string }[], start: T, onChange: (value: T) => void) {
+  let current = start;
   const group = doc.createElement("div");
   group.className = cls;
   group.setAttribute("role", "group");
-  group.setAttribute("aria-label", words.group);
-  const buttons = (["2d", "3d"] as const).map((view) => {
+  group.setAttribute("aria-label", name);
+  const buttons = items.map((item) => {
     const b = doc.createElement("button");
     b.type = "button";
-    b.className = `${cls}-${view}`;
-    b.textContent = view.toUpperCase();
-    b.title = words[view];
-    b.dataset.view = view;
+    b.className = `${cls}-${item.value}`;
+    b.textContent = item.text;
+    b.title = item.hint;
+    b.dataset.value = item.value;
     b.addEventListener("click", () => {
-      if (view === current) return;
-      toggle.set(view);
-      options.onChange(view);
+      if (item.value === current) return;
+      s.set(item.value);
+      onChange(item.value);
     });
     group.appendChild(b);
     return b;
   });
-  const toggle: ViewToggle = {
+  const s = {
     element: group,
-    get view() { return current; },
-    set(view) {
-      current = view;
-      for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.view === view));
+    get value() { return current; },
+    set(value: T) {
+      current = value;
+      for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.value === value));
     },
   };
-  toggle.set(current);
-  return toggle;
+  s.set(current);
+  return s;
+}
+
+/** The note over a satellite map that is as close as the imagery goes, and its one action. */
+export const IMAGERY_CAP_WORDS: Record<Locale, { note: string; map: string }> = {
+  en: { note: "Satellite detail ends here", map: "Map" },
+  fr: { note: "Le détail satellite s’arrête ici", map: "Carte" },
+};
+/** How long the note stays before it fades (ms). */
+export const CAP_NOTE_MS = 4000;
+const NOTE_CLASS = "zc-imagery-cap-note";
+
+export interface ImageryCapNoteOptions {
+  locale?: Locale;
+  /** The note's "Map" action: the host switches to the street map (its switch with it). */
+  onMap(): void;
+  /** The note's class (default `zc-imagery-cap-note`, styled by components.css). */
+  className?: string;
+}
+
+export interface ImageryCapNote {
+  /** The live region; the caller places it over the map (drawPaths puts it in the map's container). */
+  readonly element: HTMLElement;
+  /** Shows the note now (as a zoom past the cap does). */
+  show(): void;
+  /** Takes the listeners off and the note away. */
+  remove(): void;
+}
+
+/**
+ * The note a satellite map shows when the reader tries to go closer than the imagery's crisp limit
+ * (setMapType caps the map there): "Satellite detail ends here", with a one-tap "Map" that switches
+ * to the street map, fading after CAP_NOTE_MS. A try is a wheel or trackpad zoom in, a pinch out, a
+ * double click, or + / = on the keyboard, while the map is at its cap. The note is a polite live
+ * region (`role=status`), so a screen reader hears it once; the action is a native button.
+ */
+export function imageryCapNote(map: MapLibreMap, options: ImageryCapNoteOptions): ImageryCapNote {
+  const el = map.getContainer();
+  const doc = el.ownerDocument;
+  const words = IMAGERY_CAP_WORDS[options.locale ?? "en"];
+  const cls = options.className ?? NOTE_CLASS;
+  const box = doc.createElement("div");
+  box.className = cls;
+  box.setAttribute("role", "status");
+  box.setAttribute("aria-live", "polite");
+  box.dataset.shown = "false";
+  const text = doc.createElement("span");
+  text.className = `${cls}-text`;
+  const action = doc.createElement("button");
+  action.type = "button";
+  action.className = `${cls}-map`;
+  action.textContent = words.map;
+  action.hidden = true;
+  action.addEventListener("click", () => { hide(); options.onMap(); });
+  box.append(text, action);
+  const view = doc.defaultView;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const hide = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    box.dataset.shown = "false";
+    text.textContent = "";
+    action.hidden = true;
+  };
+  const show = () => {
+    // The text is set when shown (not toggled), so the live region announces it.
+    text.textContent = words.note;
+    action.hidden = false;
+    box.dataset.shown = "true";
+    if (timer !== undefined) clearTimeout(timer);
+    timer = (view?.setTimeout ?? setTimeout)(hide, CAP_NOTE_MS);
+  };
+  const atCap = () => {
+    const cap = imageryMaxZoom(map);
+    return cap !== undefined && mapTypeOf(map) === "satellite" && map.getZoom() >= cap - 0.01;
+  };
+  const tried = () => { if (atCap()) show(); };
+  // Only the gestures the map itself zooms with (Ava's chat has no scroll zoom: a wheel there scrolls the page).
+  const on = (handler: { isEnabled(): boolean } | undefined) => handler?.isEnabled() ?? true;
+  const onWheel = (e: Event) => { if ((e as WheelEvent).deltaY < 0 && on(map.scrollZoom)) tried(); };
+  const onKey = (e: Event) => { const k = (e as KeyboardEvent).key; if ((k === "+" || k === "=") && on(map.keyboard)) tried(); };
+  const onDouble = () => { if (on(map.doubleClickZoom)) tried(); };
+  let pinch = 0;
+  const spread = (e: Event) => {
+    const t = (e as TouchEvent).touches;
+    return t && t.length === 2 ? Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY) : 0;
+  };
+  const onTouchStart = (e: Event) => { pinch = spread(e); };
+  const onTouchMove = (e: Event) => { const d = spread(e); if (pinch > 0 && d > pinch * 1.1 && on(map.touchZoomRotate)) { pinch = 0; tried(); } };
+  const listeners: [string, (e: Event) => void][] = [["wheel", onWheel], ["keydown", onKey], ["dblclick", onDouble], ["touchstart", onTouchStart], ["touchmove", onTouchMove]];
+  for (const [type, fn] of listeners) el.addEventListener(type, fn, { passive: true } as AddEventListenerOptions);
+  return {
+    element: box,
+    show,
+    remove() {
+      hide();
+      for (const [type, fn] of listeners) el.removeEventListener(type, fn);
+      box.remove();
+    },
+  };
+}
+
+const CREDIT_CLASS = "zc-imagery-credit";
+/** The compact credit's button's name, per language. */
+export const IMAGERY_CREDIT_WORDS: Record<Locale, { button: string }> = {
+  en: { button: "Imagery credit" },
+  fr: { button: "Crédit de l’imagerie" },
+};
+/**
+ * A map narrower than this (px) says the imagery's credit compactly, as MapLibre's compact
+ * attribution does: an "ⓘ" button that opens the full line. Wider, the full line fits on one line.
+ */
+export const COMPACT_CREDIT_BELOW = 560;
+let creditIds = 0;
+
+interface ImageryCredit {
+  readonly element: HTMLElement;
+  /** Compact (the ⓘ button) or the full line, for a map `width` px wide. */
+  fit(width: number): void;
+}
+
+/**
+ * The imagery's credit over the map's bottom-right corner, in the page's language: drawn while the
+ * imagery shows. On a narrow map it is an "ⓘ" button (a native button: focusable, Enter and Space
+ * press it, `aria-expanded`) that opens and closes the full line; on a wide map, the full line.
+ */
+function imageryCredit(doc: Document, imagery: Imagery, locale: Locale): ImageryCredit {
+  const box = doc.createElement("div");
+  box.className = CREDIT_CLASS;
+  const id = `zc-imagery-credit-${++creditIds}`;
+  const button = doc.createElement("button");
+  button.type = "button";
+  button.className = `${CREDIT_CLASS}-toggle`;
+  button.textContent = "ⓘ";
+  button.setAttribute("aria-label", IMAGERY_CREDIT_WORDS[locale].button);
+  button.setAttribute("aria-controls", id);
+  button.setAttribute("aria-expanded", "false");
+  const text = doc.createElement("span");
+  text.className = `${CREDIT_CLASS}-text`;
+  text.id = id;
+  text.innerHTML = creditHtml(imagery.credit[locale]);
+  box.append(button, text);
+  let open = false;
+  button.addEventListener("click", () => {
+    open = !open;
+    box.dataset.open = String(open);
+    button.setAttribute("aria-expanded", String(open));
+  });
+  box.dataset.open = "false";
+  return {
+    element: box,
+    fit(width) {
+      box.dataset.compact = String(width < COMPACT_CREDIT_BELOW);
+    },
+  };
 }
 
 /** Whether the reader can move the map: the switch is a control, and a still has none. */
@@ -186,9 +391,11 @@ function legend(map: MapLibreMap, p: Paths, theme: Theme, cls: string) {
   map.getContainer().appendChild(box);
 }
 
-const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; toggle: HTMLElement | null }>();
+const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null; refit: (() => void) | null; note: ImageryCapNote | null }>();
 /** The view each map shows now: kept across a redraw that keeps the camera (`frame: false`), so a new style keeps the reader's choice. */
 const shown = new WeakMap<MapLibreMap, View>();
+/** The map type each map shows now, kept the same way (a theme change's new style keeps the imagery). */
+const shownType = new WeakMap<MapLibreMap, MapType>();
 
 /**
  * Draws `input` on `map` (its style loaded). Throws PathInputError, changing nothing, when the
@@ -208,6 +415,10 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   // A first frame shows the paths' own view; a redraw that keeps the camera keeps the one shown.
   let view: View = context.frame === false ? (shown.get(map) ?? p.options.view) : p.options.view;
   shown.set(map, view);
+  const imagery = hasImagery(map);
+  let mapType: MapType = imagery ? (context.frame === false ? (shownType.get(map) ?? p.options.mapType) : p.options.mapType) : "map";
+  shownType.set(map, mapType);
+  setMapType(map, mapType, false);
   const features = pathFeatures(p, theme);
   map.addSource(PATH_SOURCES.segments, { type: "geojson", data: features.segments });
   map.addSource(PATH_SOURCES.starts, { type: "geojson", data: features.starts });
@@ -260,9 +471,40 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     shown.set(map, next);
     setMapView(map, next, buildings, animate());
   };
-  const toggle = (context.controls ?? interactive(map)) ? viewToggle(map.getContainer().ownerDocument, { view, ...(context.locale ? { locale: context.locale } : {}), onChange: switchTo }) : null;
-  if (toggle) map.getContainer().appendChild(toggle.element);
-  drawn.set(map, { markers, cls, toggle: toggle?.element ?? null });
+  const doc = map.getContainer().ownerDocument;
+  const locale = context.locale ?? "en";
+  const own = context.controls ?? interactive(map);
+  const toggle = own ? viewToggle(doc, { view, locale, onChange: switchTo }) : null;
+  // The imagery's credit, said only while it shows, beside the controls that switch it.
+  const credit = own && imagery ? imageryCredit(doc, context.imagery ?? ESA_WORLDCOVER_2021, locale) : null;
+  const showType = (next: MapType) => {
+    mapType = next;
+    shownType.set(map, next);
+    setMapType(map, next);
+    if (credit) credit.element.hidden = next !== "satellite";
+  };
+  const typeToggle = own && imagery ? mapTypeToggle(doc, { mapType, locale, onChange: showType }) : null;
+  let controls: HTMLElement | null = null;
+  if (toggle) {
+    controls = doc.createElement("div");
+    controls.className = "zc-map-controls";
+    if (typeToggle) controls.appendChild(typeToggle.element);
+    controls.appendChild(toggle.element);
+    map.getContainer().appendChild(controls);
+  }
+  let refit: (() => void) | null = null;
+  if (credit) {
+    credit.element.hidden = mapType !== "satellite";
+    // Compact or the full line by the map's width, again when the map is resized (a phone turned).
+    refit = () => credit.fit(map.getContainer().clientWidth);
+    refit();
+    map.on?.("resize", refit);
+    map.getContainer().appendChild(credit.element);
+  }
+  // Past the imagery's crisp limit: the note, whose "Map" switches as the switch does.
+  const note = own && imagery ? imageryCapNote(map, { locale, onMap: () => { typeToggle?.set("map"); showType("map"); } }) : null;
+  if (note) map.getContainer().appendChild(note.element);
+  drawn.set(map, { markers, cls, controls, credit: credit?.element ?? null, refit, note });
   legend(map, p, theme, cls);
   if (context.frame !== false) {
     const el = map.getContainer();
@@ -281,6 +523,12 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
       toggle?.set(next);
       switchTo(next);
     },
+    get mapType() { return mapType; },
+    setMapType: (next) => {
+      if (!imagery) return;
+      typeToggle?.set(next);
+      showType(next);
+    },
     showBuildings: (visible) => {
       buildings = visible;
       if (map.getLayer(PATH_LAYERS.buildings)) map.setPaintProperty(PATH_LAYERS.buildings, "fill-extrusion-opacity", viewLook(view, visible).buildingsOpacity);
@@ -296,9 +544,13 @@ function clear(map: MapLibreMap) {
   if (was) {
     for (const m of was.markers) m.remove();
     map.getContainer().querySelector(`:scope > .${was.cls}`)?.remove();
-    was.toggle?.remove();
+    was.controls?.remove();
+    was.credit?.remove();
+    if (was.refit) map.off?.("resize", was.refit);
+    was.note?.remove();
     drawn.delete(map);
   }
 }
 
 export type { GeoJSONSource };
+export { hasImagery, setMapType } from "../imagery.ts";

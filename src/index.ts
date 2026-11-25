@@ -21,7 +21,7 @@ export { heightFor, type RenderContext, type Rendered, type Hover, type HoverCol
 export { parse as parseExpression } from "./expr.ts";
 export { THEMES } from "./generated/themes.ts";
 export * as pathOnMap from "./path-on-map/model.ts";
-export { AVA_BASEMAP, BASEMAPS, creditHtml, type Basemap, type BasemapHost, type BasemapLang, type BasemapPalette, type CreditPart } from "./basemaps.ts";
+export { AVA_BASEMAP, BASEMAPS, creditHtml, ESA_WORLDCOVER_2021, MAP_TYPES, type Basemap, type BasemapHost, type BasemapLang, type BasemapPalette, type CreditPart, type Imagery, type MapType } from "./basemaps.ts";
 export type { Contract, ViewSpec, ViewError, Theme, HostTheme, ThemeColours, Mode } from "./types.ts";
 export type { FunctionPlotData, FunctionPlotOptions } from "./function-plot.ts";
 export type { PriceChartData, PriceChartOptions } from "./price-chart.ts";

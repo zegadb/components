@@ -111,7 +111,7 @@ test("path-on-map: the name goes across the path at its start, away from the res
   // Facing east (bearing 90), east is up the screen and north to the left: the label goes right of the start.
   assert.equal(pom.labelPlacement([[0, 0], [1, 0], [2, 1]], 90).anchor, "left");
   // And the symbol layer reads it per path.
-  const layer = pom.pathLayers(ava, { colorScale: "solid", valueUnit: null, lineWidth: 6, view: "2d", bearing: 0, showBuildings: false, bounds: null }).at(-1)!;
+  const layer = pom.pathLayers(ava, { colorScale: "solid", valueUnit: null, lineWidth: 6, view: "2d", mapType: "map", bearing: 0, showBuildings: false, bounds: null }).at(-1)!;
   assert.deepEqual((layer as { layout: Record<string, unknown> }).layout["text-anchor"], ["get", "anchor"]);
 });
 
