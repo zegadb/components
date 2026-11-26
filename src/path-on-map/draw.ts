@@ -10,7 +10,8 @@
 //
 // MapLibre is the host's (a peer dependency): this module only takes a map.
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
-import { creditHtml, ESA_WORLDCOVER_2021, type Imagery, type MapType } from "../basemaps.ts";
+import { AVA_IMAGERY, creditHtml, type Imagery, type MapType } from "../basemaps.ts";
+import { imageryCredit as creditFor, type ImageryView } from "../coverage.ts";
 import { hasImagery, imageryMaxZoom, mapTypeOf, setMapType } from "../imagery.ts";
 import { validator } from "../registry.ts";
 import type { Locale } from "../scale.ts";
@@ -51,7 +52,7 @@ export interface DrawContext {
    * viewToggle() and mapTypeToggle() among them (and says the imagery's credit while it shows).
    */
   controls?: boolean;
-  /** The imagery the map's style shows (its credit while it shows); default ESA_WORLDCOVER_2021, the one basemapStyle has. */
+  /** The imagery the map's style shows (its credit while it shows, for what is in view); default AVA_IMAGERY, the one basemapStyle has. */
   imagery?: Imagery;
   /** The switch's words (default en). */
   locale?: Locale;
@@ -308,6 +309,14 @@ interface ImageryCredit {
   readonly element: HTMLElement;
   /** Compact (the ⓘ button) or the full line, for a map `width` px wide. */
   fit(width: number): void;
+  /** Says whose imagery `view` shows (the base's alone without a view). */
+  show(view?: ImageryView): void;
+}
+
+/** What `map` shows now, for the credit; undefined on a map that can't say (no bounds). */
+function viewOf(map: MapLibreMap): ImageryView | undefined {
+  const b = map.getBounds?.();
+  return b ? { bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()], zoom: map.getZoom() } : undefined;
 }
 
 /**
@@ -329,7 +338,6 @@ function imageryCredit(doc: Document, imagery: Imagery, locale: Locale): Imagery
   const text = doc.createElement("span");
   text.className = `${CREDIT_CLASS}-text`;
   text.id = id;
-  text.innerHTML = creditHtml(imagery.credit[locale]);
   box.append(button, text);
   let open = false;
   button.addEventListener("click", () => {
@@ -338,11 +346,18 @@ function imageryCredit(doc: Document, imagery: Imagery, locale: Locale): Imagery
     button.setAttribute("aria-expanded", String(open));
   });
   box.dataset.open = "false";
+  const said = { html: "" };
+  const show = (view?: ImageryView) => {
+    const html = creditHtml(creditFor(imagery, locale, view));
+    if (html !== said.html) text.innerHTML = said.html = html;
+  };
+  show();
   return {
     element: box,
     fit(width) {
       box.dataset.compact = String(width < COMPACT_CREDIT_BELOW);
     },
+    show,
   };
 }
 
@@ -391,7 +406,7 @@ function legend(map: MapLibreMap, p: Paths, theme: Theme, cls: string) {
   map.getContainer().appendChild(box);
 }
 
-const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null; refit: (() => void) | null; note: ImageryCapNote | null }>();
+const drawn = new WeakMap<MapLibreMap, { markers: MapLibreMarker[]; cls: string; controls: HTMLElement | null; credit: HTMLElement | null; refit: (() => void) | null; recredit: (() => void) | null; note: ImageryCapNote | null }>();
 /** The view each map shows now: kept across a redraw that keeps the camera (`frame: false`), so a new style keeps the reader's choice. */
 const shown = new WeakMap<MapLibreMap, View>();
 /** The map type each map shows now, kept the same way (a theme change's new style keeps the imagery). */
@@ -477,7 +492,7 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   const own = context.controls ?? interactive(map);
   const toggle = own ? viewToggle(doc, { view, locale, onChange: switchTo }) : null;
   // The imagery's credit, said only while it shows, beside the controls that switch it.
-  const credit = own && imagery ? imageryCredit(doc, context.imagery ?? ESA_WORLDCOVER_2021, locale) : null;
+  const credit = own && imagery ? imageryCredit(doc, context.imagery ?? AVA_IMAGERY, locale) : null;
   const showType = (next: MapType) => {
     mapType = next;
     shownType.set(map, next);
@@ -494,7 +509,11 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     map.getContainer().appendChild(controls);
   }
   let refit: (() => void) | null = null;
+  let recredit: (() => void) | null = null;
   if (credit) {
+    // Whose imagery is in view: said again after every move (the aerial photographs' owners differ by city).
+    recredit = () => credit.show(viewOf(map));
+    map.on?.("moveend", recredit);
     credit.element.hidden = mapType !== "satellite";
     // Compact or the full line by the map's width, again when the map is resized (a phone turned).
     refit = () => credit.fit(map.getContainer().clientWidth);
@@ -505,7 +524,7 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
   // Past the imagery's crisp limit: the note, whose "Map" switches as the switch does.
   const note = own && imagery ? imageryCapNote(map, { locale, onMap: () => { typeToggle?.set("map"); showType("map"); } }) : null;
   if (note) map.getContainer().appendChild(note.element);
-  drawn.set(map, { markers, cls, controls, credit: credit?.element ?? null, refit, note });
+  drawn.set(map, { markers, cls, controls, credit: credit?.element ?? null, refit, recredit, note });
   legend(map, p, theme, cls);
   if (context.frame !== false) {
     const el = map.getContainer();
@@ -517,6 +536,7 @@ export function drawChecked(map: MapLibreMap, p: Paths, context: DrawContext): D
     const camera = frameCamera(allPoints(p), { width: el.clientWidth, height: el.clientHeight }, p.options, insets);
     map.jumpTo({ ...camera, padding: insets });
   }
+  recredit?.();
   return {
     paths: p,
     get view() { return view; },
@@ -548,6 +568,7 @@ function clear(map: MapLibreMap) {
     was.controls?.remove();
     was.credit?.remove();
     if (was.refit) map.off?.("resize", was.refit);
+    if (was.recredit) map.off?.("moveend", was.recredit);
     was.note?.remove();
     drawn.delete(map);
   }

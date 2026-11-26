@@ -51,7 +51,9 @@ default `3d`), `mapType` (`map`, `satellite`; default `map`; since 2.1.0),
 `mapType` is what is under the paths, the roads and the names: `map`, the
 street map, or `satellite`, imagery where the host's basemap has some (Ava's:
 the ESA WorldCover 2021 Sentinel-2 composite, 10 m, Canada to tile zoom 13
-and the world to 10, from tiles.addis.gg). On a map the reader can move whose
+and the world to 10, from tiles.addis.gg; over Canada's cities, government
+aerial photographs at 16–20 cm and finer, tile zooms 13–19, drawn over it with
+an edge that fades into it). On a map the reader can move whose
 basemap has imagery, the **Map | Satellite switch** beside the 2D | 3D one
 changes it. Over the imagery the roads are drawn white over a dark casing and
 the names white on a dark halo; the street map's water, buildings and other
@@ -65,7 +67,13 @@ coast feathered by a 2 pt line blurred 1 pt: the composite has sea only in
 rectangular blocks near land, so its own coasts are jagged in the Arctic. 10 m shows fields, forests, lakes and the
 shape of a town, not streets: while satellite shows, the map goes no closer
 than the imagery's crisp limit, map zoom 13 (`maxViewZoom`; Sami, 23 Nov:
-overzoomed at 14–15 it was "very blurry and distorted"). Switching to
+overzoomed at 14–15 it was "very blurry and distorted"); where the aerial
+photographs cover the view's centre, map zoom 19 (theirs). The limit follows
+the view: moved off the photographs closer than 13, the map eases out to 13.
+The imagery's credit names whose imagery is in view, again after every move:
+the ESA composite's unless the photographs fill the view, and each
+photographs' owner's licence in its own words (Ontario, Québec, Vancouver,
+Edmonton, Winnipeg). Switching to
 Satellite closer than that eases out to it; switching back to Map gives the
 map its own max zoom again. Trying to go closer (wheel or trackpad, pinch,
 double click, + or = on the keyboard; a host's + button is disabled at the
@@ -100,7 +108,7 @@ Back to front.
 |---|---|---|---|
 | 1 | **basemap** | the street map: land, water, parks, roads | the surface's vector tiles and style (APS 9 basemap flavour of the theme) |
 | 1b | **ocean over imagery** | with `mapType: satellite`: the ocean in the deep sea, its coast feathered; lakes and rivers stay imagery | the surface's vector water (kind `ocean`), a fill and a blurred line |
-| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names | the surface's raster tiles; the map's zoom capped at 13 while they show |
+| 1a | **imagery** | with `mapType: satellite`: the satellite imagery over the land, under the roads and names; over Canada's cities, the aerial photographs over it | the surface's raster tiles; the map's zoom capped at 13 while they show, at 19 over the photographs |
 | 2 | **buildings** | building footprints extruded to their mapped heights | the surface; standing in `3d` when `showBuildings`, laid flat (hidden) in `2d`; not drawn at all while satellite shows (the photograph shows the city; the tilt stays) |
 | 3 | **casing** | a halo under the whole path so it reads over any map | one line per segment |
 | 4 | **path** | the coloured line, one segment per consecutive pair of rows | one line per segment, round caps and joins |
@@ -111,7 +119,7 @@ Back to front.
 | 9 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
 | 10 | **map controls** | zoom in, zoom out, compass (the host's); the Map \| Satellite switch (when the basemap has imagery) and the 2D \| 3D switch (the component's, on a map the reader can move; none on a still) | map SDK, top-right (masked); the switches DOM over the map's top-right corner, side by side, Map \| Satellite first |
 | 10a | **satellite cap note** | "Satellite detail ends here" and a **Map** button, after a try to zoom past the cap | DOM, top centre under the map controls; fades after 4 s |
-| 11 | **attribution** | the basemap's required credit; while the imagery shows, the imagery's credit ("© ESA WorldCover project 2021 / contains modified Copernicus Sentinel data") | map SDK, bottom-right (masked); the imagery's credit DOM over the map's bottom-right corner, drawn with the switch (a host that places the switch says it) |
+| 11 | **attribution** | the basemap's required credit; while the imagery shows, the credit of the imagery in view ("© ESA WorldCover project 2021 / contains modified Copernicus Sentinel data", then each aerial photographs' licence line, " · " between) | map SDK, bottom-right (masked); the imagery's credit DOM over the map's bottom-right corner, drawn with the switch (a host that places the switch says it) |
 
 The path and its casing go under the basemap's labels, so the names of the
 streets the path follows and crosses stay readable (each label keeps its own

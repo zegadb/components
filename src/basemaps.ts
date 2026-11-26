@@ -4,6 +4,8 @@
 // Ava's chat (avacanada/ava) draw on the same tiles in the same palette.
 // No map code here (the main entry exports it, so a host can say the credit or allow the origin
 // without loading anything); the MapLibre style is "@zegadb/components/basemap" (basemap.ts).
+import { AERIAL_COVERAGE } from "./aerial-coverage.ts";
+import type { OverlayCoverage } from "./coverage.ts";
 import { theme } from "./theme.ts";
 import type { Mode } from "./types.ts";
 
@@ -41,6 +43,30 @@ export interface Imagery {
    */
   maxViewZoom: number;
   credit: Record<BasemapLang, readonly CreditPart[]>;
+  /** Sharper imagery over parts of it (aerial photographs over cities), drawn over it where it has some. */
+  overlay?: ImageryOverlay;
+}
+
+/**
+ * Imagery drawn over a basemap's imagery where it has some: its own raster tiles, deeper, with an
+ * edge that fades into the imagery under it (its tiles' own alpha). Where it covers the view's
+ * centre the map may go closer (its maxViewZoom); the credit names whose imagery the view shows
+ * (coverage.ts reads its coverage).
+ */
+export interface ImageryOverlay {
+  /** The raster tiles, as a MapLibre source's `tiles`. */
+  tiles: string;
+  tileSize: number;
+  /** Its tiles' zooms. */
+  minzoom: number;
+  maxzoom: number;
+  /** [west, south, east, north]: no tile is asked for outside it. */
+  bounds: readonly [number, number, number, number];
+  /** The map zoom it starts to show at, fading in to minzoom (MapLibre draws minzoom's tiles from half a zoom before). */
+  fromZoom: number;
+  /** How close the map may go where it covers the view's centre: its crisp limit. */
+  maxViewZoom: number;
+  coverage: OverlayCoverage;
 }
 
 export interface Basemap {
@@ -96,6 +122,30 @@ export const ESA_WORLDCOVER_2021: Imagery = {
   },
 };
 
+/**
+ * Canadian government aerial photographs over cities on tiles.addis.gg (`/aerial/{z}/{x}/{y}.webp`):
+ * Ontario's SCOOP 2023, DRAPE 2024, SWOOP 2025 (16 cm), COOP 2021 and NWOOP 2022 (20 cm) over its
+ * cities and towns; Québec's MRNF mosaics (newest per city, 20 cm); Vancouver 2022, Edmonton 2025
+ * and Winnipeg 2024 (7.5 cm). 256 px WebP, z13–19, built and served by us (addiscorp/knowledgegraph
+ * tiles-worker), drawn over the ESA imagery with a feathered edge. Where it covers the view's centre
+ * the map may go to z19 (16–20 cm is about z19's pixel); elsewhere the ESA cap (z13) holds.
+ * Each source's credit is its licence's own words (verified on the owners' pages, 25 Nov 2026),
+ * said only where its imagery is in view.
+ */
+export const AERIAL_CANADA: ImageryOverlay = {
+  tiles: `${ADDIS_TILES}/aerial/{z}/{x}/{y}.webp`,
+  tileSize: 256,
+  minzoom: 13,
+  maxzoom: 19,
+  bounds: AERIAL_COVERAGE.bounds,
+  fromZoom: 12.5,
+  maxViewZoom: 19,
+  coverage: AERIAL_COVERAGE,
+};
+
+/** Ava's imagery: the ESA composite everywhere, the aerial photographs over Canada's cities. */
+export const AVA_IMAGERY: Imagery = { ...ESA_WORLDCOVER_2021, overlay: AERIAL_CANADA };
+
 const ava = (mode: Mode) => { const t = theme("ava", mode); return { ground: t.ground, ink: t.ink }; };
 export const AVA_BASEMAP: Basemap = {
   origin: ADDIS_TILES,
@@ -111,7 +161,7 @@ export const AVA_BASEMAP: Basemap = {
     light: { ...ava("light"), water: "#C6DAEA", park: "#E1ECDC", rule: "#FFFFFF", bigRoad: "#FFFFFF", strongRule: "#DEDBE5", buildings: "#EAE8EF", soft: "#6B6680" },
     dark: { ...ava("dark"), water: "#13304B", park: "#1A2722", rule: "#22202F", bigRoad: "#2C293B", strongRule: "#24222F", buildings: "#211F2E", soft: "#958FA8" },
   },
-  imagery: ESA_WORLDCOVER_2021,
+  imagery: AVA_IMAGERY,
 };
 
 /** The hosts that have a basemap; a host without one draws on its plain ground (pathOnMap.plainStyle). */
