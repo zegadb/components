@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { featureFilter, latest, normalizePropertyExpression, validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import { layers } from "@protomaps/basemaps";
-import { AVA_BASEMAP, BASEMAP_SOURCE, basemapFlavor, basemapStyle, creditHtml, ESA_WORLDCOVER_2021, IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_SOURCES, MAP_TYPE_STATE, OCEAN_EDGE, OVER_IMAGERY, withImagery } from "./basemap.ts";
+import { AERIAL_CANADA, AVA_BASEMAP, AVA_IMAGERY, BASEMAP_SOURCE, basemapFlavor, basemapStyle, creditHtml, ESA_WORLDCOVER_2021, IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_OVERLAY_CAP, IMAGERY_SOURCES, MAP_TYPE_STATE, OCEAN_EDGE, OVER_IMAGERY, withImagery } from "./basemap.ts";
 import { theme } from "./theme.ts";
 
 test("ava's basemap reads ava's tiles host, and only it", () => {
@@ -86,13 +86,15 @@ test("satellite: the imagery is under every road and name, over the land; hidden
     const ids = s.layers.map((l) => l.id);
     const at = ids.indexOf(IMAGERY_LAYERS.base);
     assert.equal(ids[at + 1], IMAGERY_LAYERS.detail, "the detail over the base");
+    assert.equal(ids[at + 2], IMAGERY_LAYERS.overlay, "the aerial overlay over both");
     assert.ok(at > ids.indexOf("earth") && at > ids.indexOf("landcover"));
     s.layers.forEach((l, n) => { if (l.type === "line" || l.type === "symbol") assert.ok(n > at, `${l.id} over the imagery`); });
     for (const id of Object.values(IMAGERY_LAYERS)) assert.equal((s.layers.find((l) => l.id === id)!.layout as { visibility: string }).visibility, mapType === "satellite" ? "visible" : "none");
     for (const id of Object.values(IMAGERY_LAYERS)) {
       const l = s.layers.find((x) => x.id === id)!;
       assert.equal(l.maxzoom, undefined, "never cut by zoom: the map's own zoom is capped instead (setMapType)");
-      assert.equal((l.paint as Record<string, unknown>)["raster-opacity"], undefined, "never faded out");
+      // Never faded out; the overlay only fades in, over the half zoom before its first tiles.
+      if (id !== IMAGERY_LAYERS.overlay) assert.equal((l.paint as Record<string, unknown>)["raster-opacity"], undefined, "never faded out");
     }
     assert.equal((s.metadata as Record<string, unknown>)[IMAGERY_MAX_ZOOM], 13, "how close the map may go while it shows: its crisp limit");
     assert.equal(ESA_WORLDCOVER_2021.maxViewZoom, 13);
@@ -130,11 +132,16 @@ test("satellite in a host's own style (withImagery): its layers on top stay as t
   assert.equal(street.layers.filter((l) => l.type === "raster").length, 0);
   const marker = { id: "place", type: "circle" as const, source: "place", paint: { "circle-color": "#5B4BDB" } };
   const own = { ...street, sources: { ...street.sources, place: { type: "geojson" as const, data: { type: "FeatureCollection" as const, features: [] } } }, layers: [...street.layers, marker] };
-  const s = withImagery(own, ESA_WORLDCOVER_2021, "satellite");
+  const s = withImagery(own, AVA_IMAGERY, "satellite");
   assert.deepEqual(s.layers.at(-1), marker);
-  assert.equal(s.layers.filter((l) => l.type === "raster").length, 2);
-  assert.equal(withImagery(s, ESA_WORLDCOVER_2021, "satellite").layers.filter((l) => l.type === "raster").length, 2);
+  assert.equal(s.layers.filter((l) => l.type === "raster").length, 3, "the base, the detail and the aerial overlay");
+  assert.equal(withImagery(s, AVA_IMAGERY, "satellite").layers.filter((l) => l.type === "raster").length, 3);
   assert.equal(basemapStyle("ava", "light", "en", "satellite").layers.length, s.layers.length - 1);
+  // The ESA imagery alone (no overlay): two, and no overlay source.
+  const esa = withImagery(own, ESA_WORLDCOVER_2021, "satellite");
+  assert.equal(esa.layers.filter((l) => l.type === "raster").length, 2);
+  assert.equal(esa.sources[IMAGERY_SOURCES.overlay], undefined);
+  assert.equal((esa.metadata as Record<string, unknown>)[IMAGERY_OVERLAY_CAP], undefined);
 });
 
 test("satellite: the ocean is drawn over the imagery in the deep sea, feathered; lakes and rivers stay imagery", () => {
@@ -165,3 +172,35 @@ test("satellite: the ocean is drawn over the imagery in the deep sea, feathered;
     assert.ok(OCEAN_EDGE.blur >= 1);
   }
 });
+
+test("satellite over Canada's cities: the aerial overlay is ava's tiles host's, z13-19 in its bounds, faded in from z12.5", () => {
+  const s = basemapStyle("ava", "light", "en", "satellite");
+  const o = s.sources[IMAGERY_SOURCES.overlay];
+  assert.ok(o && o.type === "raster");
+  assert.deepEqual(o.tiles, ["https://tiles.addis.gg/aerial/{z}/{x}/{y}.webp"]);
+  assert.deepEqual([o.minzoom, o.maxzoom, o.tileSize], [13, 19, 256]);
+  assert.deepEqual(o.bounds, [...AERIAL_CANADA.coverage.bounds], "no tile is asked for outside what the build covered");
+  // Southern Canada, Vancouver to the Gaspé: inside Canada's own box.
+  const [w, s_, e, n] = o.bounds!;
+  assert.ok(w > -141.01 && s_ > 41.67 && e < -52.61 && n < 83.12);
+  const layer = s.layers.find((l) => l.id === IMAGERY_LAYERS.overlay)!;
+  assert.equal((layer as { source: string }).source, IMAGERY_SOURCES.overlay);
+  const opacity = (zoom: number) => paintOf(layer, "raster-opacity", zoom);
+  assert.equal(opacity(12), 0, "nothing of it below its tiles");
+  assert.equal(opacity(12.75), 0.5);
+  assert.equal(opacity(13), 1);
+  assert.equal(opacity(18), 1);
+  // Where the map may go closer: the overlay's limit and its coverage, for setMapType.
+  assert.deepEqual((s.metadata as Record<string, unknown>)[IMAGERY_OVERLAY_CAP], { maxViewZoom: 19, z: 13, cap: AERIAL_CANADA.coverage.cap });
+  assert.equal((s.metadata as Record<string, unknown>)[IMAGERY_MAX_ZOOM], 13, "elsewhere the ESA cap holds");
+  assert.deepEqual(validateStyleMin(s as never), [], "valid MapLibre");
+  // Every URL is still the one origin a host's CSP allows.
+  for (const u of JSON.stringify(s).match(/https?:\/\/[^"/]+/g) ?? []) assert.equal(u, AVA_BASEMAP.origin);
+});
+
+/** A layer's paint value at a zoom, by MapLibre's own evaluator. */
+function paintOf(layer: { type: string; paint?: unknown }, property: string, zoom: number): number {
+  const spec = (latest as unknown as Record<string, Record<string, unknown>>)[`paint_${layer.type}`]![property];
+  const e = normalizePropertyExpression((layer.paint as Record<string, unknown>)[property] as never, "paint", spec as never);
+  return e.evaluate({ zoom } as never) as number;
+}

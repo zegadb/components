@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { validate } from "../index.ts";
 import { theme } from "../theme.ts";
-import { creditHtml, ESA_WORLDCOVER_2021 } from "../basemaps.ts";
-import { IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, MAP_TYPE_STATE } from "../imagery.ts";
+import { AERIAL_CANADA, creditHtml, ESA_WORLDCOVER_2021 } from "../basemaps.ts";
+import { IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_OVERLAY_CAP, MAP_TYPE_STATE } from "../imagery.ts";
 import { CAP_NOTE_MS, COMPACT_CREDIT_BELOW, drawPaths, IMAGERY_CAP_WORDS, IMAGERY_CREDIT_WORDS, MAP_TYPE_TOGGLE_WORDS, VIEW_TOGGLE_WORDS, type DrawContext } from "./draw.ts";
 import { FLAT_MAX_KM, framedDiagonalKm, MEASURES, PATH_LAYERS, plainStyle, type LonLat } from "./model.ts";
 
@@ -57,7 +57,7 @@ class FakeElement {
 }
 
 /** A MapLibre map's part drawPaths touches, recording the camera and the buildings' opacity. */
-function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
+function fakeMap({ interactive = true, basemap = true, imagery = false, overlay = false } = {}) {
   const t = theme("ava", "light");
   const style = plainStyle(t);
   const layers = [...style.layers, ...(imagery ? Object.values(IMAGERY_LAYERS).map((id) => ({ id, type: "raster" as const, source: id, layout: { visibility: "none" } })) : [])] as (typeof style.layers)[number][];
@@ -70,12 +70,24 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   const resized: (() => void)[] = [];
   const resize = (width: number) => { container.clientWidth = width; for (const fn of [...resized]) fn(); };
   const paint = new Map<string, unknown>();
-  const camera = { pitch: undefined as number | undefined, eased: 0, jumped: 0, centreOrZoomMoved: false, fetched: 0, zoom: 10, maxZoom: 17 };
+  const camera = { pitch: undefined as number | undefined, eased: 0, jumped: 0, centreOrZoomMoved: false, fetched: 0, zoom: 10, maxZoom: 17, center: [-79.3806, 43.6453] as [number, number] };
   const once = new Map<string, (() => void)[]>();
+  /** MapLibre's moveend listeners (map.on), beside the once ones. */
+  const moveends: (() => void)[] = [];
   /** The end of an eased move: MapLibre's moveend. */
-  const settle = () => { const fns = once.get("moveend") ?? []; once.delete("moveend"); for (const fn of fns) fn(); };
+  const settle = () => { const fns = once.get("moveend") ?? []; once.delete("moveend"); for (const fn of fns) fn(); for (const fn of [...moveends]) fn(); };
+  /** The reader moving the map to a place and zoom (as far as MapLibre lets it: its max zoom), then the move ending. */
+  const move = (center: readonly [number, number], zoom: number) => { camera.center = [center[0], center[1]]; camera.zoom = Math.min(zoom, camera.maxZoom); settle(); };
   const map = {
-    getStyle: () => ({ ...style, layers: [...layers], ...(imagery ? { metadata: { [IMAGERY_MAX_ZOOM]: ESA_WORLDCOVER_2021.maxViewZoom } } : {}) }),
+    getStyle: () => ({ ...style, layers: [...layers], ...(imagery ? { metadata: { [IMAGERY_MAX_ZOOM]: ESA_WORLDCOVER_2021.maxViewZoom, ...(overlay ? { [IMAGERY_OVERLAY_CAP]: { maxViewZoom: AERIAL_CANADA.maxViewZoom, z: AERIAL_CANADA.coverage.z, cap: AERIAL_CANADA.coverage.cap } } : {}) } } : {}) }),
+    ...(overlay ? {
+      getCenter: () => ({ lng: camera.center[0], lat: camera.center[1] }),
+      // The view's bounds: a 640 x 400 map at the camera's zoom.
+      getBounds: () => {
+        const half = (640 / 256 / 2 ** camera.zoom) * 180, tall = half * 0.625 * Math.cos((camera.center[1] * Math.PI) / 180);
+        return { getWest: () => camera.center[0] - half, getEast: () => camera.center[0] + half, getSouth: () => camera.center[1] - tall, getNorth: () => camera.center[1] + tall };
+      },
+    } : {}),
     getZoom: () => camera.zoom,
     getMaxZoom: () => camera.maxZoom,
     setMaxZoom: (z: number) => { camera.maxZoom = z; camera.zoom = Math.min(camera.zoom, z); },
@@ -95,8 +107,8 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
     setLayoutProperty: (id: string, k: string, v: string) => { if (k === "visibility") shown.visibility.set(id, v); },
     setGlobalStateProperty: (k: string, v: unknown) => void shown.state.set(k, v),
     getContainer: () => container,
-    on: (type: string, fn: () => void) => { if (type === "resize") resized.push(fn); },
-    off: (type: string, fn: () => void) => { if (type === "resize") resized.splice(resized.indexOf(fn), 1); },
+    on: (type: string, fn: () => void) => { if (type === "resize") resized.push(fn); if (type === "moveend") moveends.push(fn); },
+    off: (type: string, fn: () => void) => { if (type === "resize") resized.splice(resized.indexOf(fn), 1); if (type === "moveend" && moveends.includes(fn)) moveends.splice(moveends.indexOf(fn), 1); },
     dragPan: { isEnabled: () => interactive },
     jumpTo: (c: { pitch?: number; center?: unknown; zoom?: unknown }) => { camera.jumped++; if (c.pitch !== undefined) camera.pitch = c.pitch; if (camera.jumped > 1 && (c.center || c.zoom !== undefined)) camera.centreOrZoomMoved = true; },
     easeTo: (c: { pitch?: number; center?: unknown; zoom?: number; duration?: number }) => { camera.eased++; if (c.pitch !== undefined) camera.pitch = c.pitch; if (c.zoom !== undefined) camera.zoom = c.zoom; if (c.center || c.zoom !== undefined) camera.centreOrZoomMoved = true; },
@@ -121,7 +133,7 @@ function fakeMap({ interactive = true, basemap = true, imagery = false } = {}) {
   const note = () => container.find("zc-imagery-cap-note")[0];
   /** Whether the extruded buildings are drawn: the layer not hidden, and standing (opacity over 0). */
   const buildingsDrawn = () => shown.visibility.get(PATH_LAYERS.buildings) !== "none" && Number(paint.get("buildings")) > 0;
-  return { map, container, paint, camera, settle, note, buildingsDrawn, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
+  return { map, container, paint, camera, settle, move, moveends, note, buildingsDrawn, draw, toggle, pressed, button, typeToggle, typeButton, typePressed, credit, creditText, creditButton, satellite, resize, resized };
 }
 
 /** The pitch drawPaths puts the host's map at. */
@@ -467,4 +479,69 @@ test("path-on-map: satellite keeps the tilt but draws no extruded buildings; Map
   const plain = fakeMap();
   plain.draw(walk, { view: "3d", mapType: "satellite" });
   assert.equal(plain.buildingsDrawn(), true);
+});
+
+// Places for the aerial overlay (its plan of 25 Nov 2026).
+const CN_TOWER = [-79.3871, 43.6426] as const;
+const CALGARY = [-114.0719, 51.0447] as const;
+const CHATEAU_FRONTENAC = [-71.2045, 46.8118] as const;
+
+test("path-on-map: over the aerial photographs satellite goes to z19; moved off them it eases back to z13; Map gives the max back", () => {
+  const m = fakeMap({ imagery: true, overlay: true });
+  m.camera.maxZoom = 22;
+  m.camera.center = [...CN_TOWER];
+  m.camera.zoom = 16;
+  m.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(m.camera.maxZoom, AERIAL_CANADA.maxViewZoom, "over Toronto's photographs: as close as they are crisp");
+  assert.equal(m.camera.zoom, 16, "already within it: no move");
+  assert.equal(m.camera.eased, 0);
+  m.move(CN_TOWER, 19.5);
+  assert.equal(m.camera.zoom, 19, "and no closer");
+  // Off the photographs (Calgary has no open imagery) at z19: eased out to the ESA cap, then capped.
+  m.move(CALGARY, 19);
+  assert.equal(m.camera.zoom, ESA_WORLDCOVER_2021.maxViewZoom);
+  assert.equal(m.camera.maxZoom, 19, "capped once the ease ends");
+  m.settle();
+  assert.equal(m.camera.maxZoom, ESA_WORLDCOVER_2021.maxViewZoom);
+  // Back over a city: the cap lifts again.
+  m.move(CHATEAU_FRONTENAC, 13);
+  assert.equal(m.camera.maxZoom, 19);
+  // Map: the map's own max back, and the cap no longer follows the view.
+  m.typeButton("Map").click();
+  assert.equal(m.camera.maxZoom, 22);
+  m.move(CALGARY, 18);
+  assert.equal(m.camera.maxZoom, 22);
+  assert.equal(m.camera.zoom, 18);
+  // Never past the map's own max: a map that stops at 17 stops there over the photographs too.
+  const n = fakeMap({ imagery: true, overlay: true });
+  n.camera.center = [...CN_TOWER];
+  n.camera.zoom = 15;
+  n.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(n.camera.maxZoom, 17);
+  // The ESA imagery alone (no overlay in the style): z13 over Toronto as before.
+  const esa = fakeMap({ imagery: true });
+  esa.camera.zoom = 12;
+  esa.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.equal(esa.camera.maxZoom, 13);
+});
+
+test("path-on-map: the imagery credit names whose photographs are in view, again after every move", () => {
+  const m = fakeMap({ imagery: true, overlay: true });
+  m.camera.center = [...CN_TOWER];
+  m.camera.zoom = 15;
+  m.draw(walk, { mapType: "satellite" }, { frame: false });
+  assert.match(m.creditText()!, /Open Government Licence – Ontario/);
+  assert.match(m.creditText()!, /© ESA WorldCover project 2021/, "the lake in view is the ESA imagery");
+  m.move(CALGARY, 13);
+  assert.equal(m.creditText(), creditHtml(ESA_WORLDCOVER_2021.credit.en), "no photographs there: the ESA credit alone");
+  m.move(CHATEAU_FRONTENAC, 16);
+  assert.match(m.creditText()!, /© Gouvernement du Québec, <a [^>]+>Imagerie orthorectifiée du Québec<\/a>/);
+  assert.doesNotMatch(m.creditText()!, /Ontario/);
+  // Far out, the photographs are not drawn: the ESA credit alone, even over a city.
+  m.move(CN_TOWER, 11);
+  assert.equal(m.creditText(), creditHtml(ESA_WORLDCOVER_2021.credit.en));
+  // Taken away with the paths: no listener left on the map.
+  const before = m.moveends.length;
+  m.draw(walk, { mapType: "satellite" }, { frame: false }).remove();
+  assert.ok(m.moveends.length <= before);
 });

@@ -11,11 +11,12 @@
 import { layers, namedFlavor, type Flavor } from "@protomaps/basemaps";
 import type { ExpressionSpecification, LayerSpecification, StyleSpecification } from "maplibre-gl";
 import { BASEMAPS, type Basemap, type BasemapHost, type BasemapLang, type Imagery, type MapType } from "./basemaps.ts";
-import { IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_SOURCES, MAP_TYPE_STATE } from "./imagery.ts";
+import { IMAGERY_LAYERS, IMAGERY_MAX_ZOOM, IMAGERY_OVERLAY_CAP, IMAGERY_SOURCES, MAP_TYPE_STATE, type OverlayCap } from "./imagery.ts";
 import type { Mode } from "./types.ts";
 
 export * from "./basemaps.ts";
 export * from "./imagery.ts";
+export * from "./coverage.ts";
 
 /** The MapLibre source the basemap's layers read (draw.ts adds the extruded buildings when a map has it). */
 export const BASEMAP_SOURCE = "basemap";
@@ -68,12 +69,18 @@ export function withImagery(style: StyleSpecification, i: Imagery, mapType: MapT
   return {
     ...style,
     state: { ...style.state, [MAP_TYPE_STATE]: { default: mapType } },
-    // How close the map may go while the imagery shows: setMapType reads it from the style.
-    metadata: { ...(style.metadata as object | undefined), [IMAGERY_MAX_ZOOM]: i.maxViewZoom },
+    // How close the map may go while the imagery shows (and where the overlay lets it go closer):
+    // setMapType reads it from the style.
+    metadata: {
+      ...(style.metadata as object | undefined),
+      [IMAGERY_MAX_ZOOM]: i.maxViewZoom,
+      ...(i.overlay ? { [IMAGERY_OVERLAY_CAP]: { maxViewZoom: i.overlay.maxViewZoom, z: i.overlay.coverage.z, cap: i.overlay.coverage.cap } satisfies OverlayCap } : {}),
+    },
     sources: {
       ...style.sources,
       [IMAGERY_SOURCES.base]: { type: "raster", tiles: [i.tiles], tileSize: i.tileSize, maxzoom: i.maxzoom },
       ...(i.detail ? { [IMAGERY_SOURCES.detail]: { type: "raster", tiles: [i.tiles], tileSize: i.tileSize, minzoom: i.maxzoom + 1, maxzoom: i.detail.maxzoom, bounds: [...i.detail.bounds] } } : {}),
+      ...(i.overlay ? { [IMAGERY_SOURCES.overlay]: { type: "raster", tiles: [i.overlay.tiles], tileSize: i.overlay.tileSize, minzoom: i.overlay.minzoom, maxzoom: i.overlay.maxzoom, bounds: [...i.overlay.bounds] } } : {}),
     },
     layers: satelliteLayers(style.layers, i, mapType),
   };
@@ -134,14 +141,15 @@ function overImagery(street: unknown, over: unknown): unknown {
  * under the first line (the land, landcover and parks are under it); the fills the street map draws
  * above that (water, buildings, runways, piers) are cleared while it shows; lines turn to white over
  * a dark casing, names to white on a dark halo. While it shows, the map goes no closer than the
- * imagery's maxViewZoom (setMapType), so it is never blown up into blur. Two imagery layers: the base everywhere (overzoomed
- * past its maxzoom) and the detail over it where it has deeper tiles; a detail tile with nothing in
- * it lets the base show through.
+ * imagery's maxViewZoom (setMapType), so it is never blown up into blur; over the overlay (where
+ * it covers the view's centre), no closer than the overlay's. Imagery layers: the base everywhere
+ * (overzoomed past its maxzoom), the detail over it where it has deeper tiles (a detail tile with
+ * nothing in it lets the base show through), and the overlay over both where the imagery has one.
  */
 export function satelliteLayers(street: readonly LayerSpecification[], i: Imagery, mapType: MapType): LayerSpecification[] {
   if (street.some((l) => l.id === IMAGERY_LAYERS.base)) return [...street];
   const visibility = mapType === "satellite" ? "visible" : "none";
-  const raster = (id: string, source: string): LayerSpecification => ({ id, type: "raster", source, layout: { visibility }, paint: { "raster-fade-duration": 0 } });
+  const raster = (id: string, source: string, paint: Record<string, unknown> = {}): LayerSpecification => ({ id, type: "raster", source, layout: { visibility }, paint: { "raster-fade-duration": 0, ...paint } } as LayerSpecification);
   // The ocean over the imagery, in the deep-sea ground: the composite has sea only in rectangular
   // blocks near land (sea ice at their square edges), so its coasts are jagged in the Arctic. The
   // street map's own ocean (Protomaps `water` kind "ocean"; lakes, rivers and the rest are other
@@ -152,6 +160,10 @@ export function satelliteLayers(street: readonly LayerSpecification[], i: Imager
   const imagery: LayerSpecification[] = [
     raster(IMAGERY_LAYERS.base, IMAGERY_SOURCES.base),
     ...(i.detail ? [raster(IMAGERY_LAYERS.detail, IMAGERY_SOURCES.detail)] : []),
+    // The overlay over both, faded in over the half zoom before its tiles begin (they are drawn
+    // from there), so zooming in the photographs come up instead of cutting in; its own edges fade
+    // into the base in the tiles' alpha.
+    ...(i.overlay ? [raster(IMAGERY_LAYERS.overlay, IMAGERY_SOURCES.overlay, { "raster-opacity": ["interpolate", ["linear"], ["zoom"], i.overlay.fromZoom, 0, i.overlay.minzoom, 1] })] : []),
     { id: IMAGERY_LAYERS.ocean, type: "fill", ...ocean, layout: { visibility }, paint: { "fill-color": OVER_IMAGERY.ground, "fill-antialias": true } },
     { id: IMAGERY_LAYERS.oceanEdge, type: "line", ...ocean, layout: { visibility, "line-join": "round" }, paint: { "line-color": OVER_IMAGERY.ground, "line-width": OCEAN_EDGE.width, "line-blur": OCEAN_EDGE.blur } },
   ];
