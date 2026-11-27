@@ -51,7 +51,8 @@ default `3d`), `mapType` (`map`, `satellite`; default `map`; since 2.1.0),
 `mapType` is what is under the paths, the roads and the names: `map`, the
 street map, or `satellite`, imagery where the host's basemap has some (Ava's:
 the ESA WorldCover 2021 Sentinel-2 composite, 10 m, Canada to tile zoom 13
-and the world to 10, from tiles.addis.gg). On a map the reader can move whose
+and the world to 10, recomposited north of 64°N from Sentinel-2 passes of
+2018–2025, from tiles.addis.gg). On a map the reader can move whose
 basemap has imagery, the **Map | Satellite switch** beside the 2D | 3D one
 changes it. Over the imagery the roads are drawn white over a dark casing and
 the names white on a dark halo; the street map's water, buildings and other
@@ -111,7 +112,7 @@ Back to front.
 | 9 | **gear** | button and panel with the contract's parameters | canvas chrome, top-left |
 | 10 | **map controls** | zoom in, zoom out, compass (the host's); the Map \| Satellite switch (when the basemap has imagery) and the 2D \| 3D switch (the component's, on a map the reader can move; none on a still) | map SDK, top-right (masked); the switches DOM over the map's top-right corner, side by side, Map \| Satellite first |
 | 10a | **satellite cap note** | "Satellite detail ends here" and a **Map** button, after a try to zoom past the cap | DOM, top centre under the map controls; fades after 4 s |
-| 11 | **attribution** | the basemap's required credit; while the imagery shows, the imagery's credit ("© ESA WorldCover project 2021 / contains modified Copernicus Sentinel data") | map SDK, bottom-right (masked); the imagery's credit DOM over the map's bottom-right corner, drawn with the switch (a host that places the switch says it) |
+| 11 | **attribution** | the basemap's required credit; while the imagery shows, the imagery's credit ("© ESA WorldCover project 2021 / contains modified Copernicus Sentinel data 2018–2025") | map SDK, bottom-right (masked); the imagery's credit DOM over the map's bottom-right corner, drawn with the switch (a host that places the switch says it) |
 
 The path and its casing go under the basemap's labels, so the names of the
 streets the path follows and crosses stay readable (each label keeps its own

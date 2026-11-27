@@ -261,7 +261,7 @@ test("path-on-map: Map | Satellite beside 2D | 3D shows the imagery and its cred
   assert.equal(m.credit()!.hidden, false, "the credit shows with the imagery");
   assert.equal(m.creditText(), creditHtml(ESA_WORLDCOVER_2021.credit.en));
   assert.equal(m.credit()!.dataset.compact, "false", "a 640-px map: the full line");
-  assert.match(m.creditText()!, /© ESA WorldCover project 2021<\/a> \/ contains modified Copernicus Sentinel data/);
+  assert.match(m.creditText()!, /© ESA WorldCover project 2021<\/a> \/ contains modified Copernicus Sentinel data 2018–2025/);
   assert.equal(drawn.mapType, "satellite");
   assert.deepEqual(m.pressed(), ["3D"], "the view is not touched");
 
